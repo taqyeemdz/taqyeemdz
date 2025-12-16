@@ -1,208 +1,255 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { Card } from "@/components/ui/card"
-import Link from "next/link"
-import { MessageCircle, Star, TrendingUp, QrCode } from "lucide-react"
+import { useEffect, useState } from "react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/navigation";
+import {
+  Building2,
+  MapPin,
+  TrendingUp,
+  MessageCircle,
+  Store,
+  ChevronRight,
+  ArrowRight
+} from "lucide-react";
 
-export default function OwnerDashboard() {
+export default function OwnerDashboardPage() {
+  const supabase = createClientComponentClient();
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
-    totalFeedback: 0,
-    avgRating: 0,
-    newFeedback: 0,
-    totalQRCodes: 0,
-  })
-  const [recentFeedback, setRecentFeedback] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [businessName, setBusinessName] = useState("")
+    totalBusinesses: 0,
+    totalReviews: 0
+  });
+  const [latestBusinesses, setLatestBusinesses] = useState<any[]>([]);
+  const [recentFeedback, setRecentFeedback] = useState<any[]>([]);
 
   useEffect(() => {
-    const loadDashboardData = async () => {
-      const supabase = createClient()
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
+    const loadDashboard = async () => {
+      setLoading(true);
 
-      if (!authUser) return
+      // 1) Check session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
+      if (!user) return router.replace("/auth/login");
 
-      const { data: userData } = await supabase.from("users").select("business_id, name").eq("id", authUser.id).single()
+      // 2) Get all business IDs for this user
+      const { data: links } = await supabase
+        .from("user_business")
+        .select("business_id")
+        .eq("user_id", user.id);
 
-      if (!userData?.business_id) {
-        setLoading(false)
-        return
+      const businessIds = links?.map(l => l.business_id) || [];
+
+      if (businessIds.length === 0) {
+        setLoading(false);
+        return;
       }
 
-      // Get business data
-      const { data: businessData } = await supabase
+      // 3) Fetch Stats & Data
+      // A. Businesses Count
+      const totalBusinesses = businessIds.length;
+
+      // B. Latest 5 Businesses
+      const { data: latestBiz } = await supabase
         .from("businesses")
-        .select("name")
-        .eq("id", userData.business_id)
-        .single()
+        .select("*")
+        .in("id", businessIds)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-      setBusinessName(businessData?.name || "")
+      setLatestBusinesses(latestBiz || []);
 
-      // Get feedback data
-      const { data: feedbackData } = await supabase.from("feedback").select("*").eq("business_id", userData.business_id)
+      // C. Recent Feedback
+      const { data: recentFb } = await supabase
+        .from("feedback")
+        .select("*, businesses(name)")
+        .in("business_id", businessIds)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-      // Get QR codes
-      const { data: qrCodesData } = await supabase.from("qr_codes").select("*").eq("business_id", userData.business_id)
+      setRecentFeedback(recentFb || []);
 
-      if (feedbackData) {
-        const newCount = feedbackData.filter((f) => f.status === "new").length
-        const avgRating =
-          feedbackData.length > 0
-            ? Math.round((feedbackData.reduce((sum: number, f: any) => sum + f.rating, 0) / feedbackData.length) * 10) /
-              10
-            : 0
+      // D. Total Reviews
+      const { count } = await supabase
+        .from("feedback")
+        .select("*", { count: "exact", head: true })
+        .in("business_id", businessIds);
 
-        setStats({
-          totalFeedback: feedbackData.length,
-          avgRating,
-          newFeedback: newCount,
-          totalQRCodes: qrCodesData?.length || 0,
-        })
+      setStats({
+        totalBusinesses,
+        totalReviews: count || 0
+      });
 
-        setRecentFeedback(
-          feedbackData
-            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 5),
-        )
-      }
+      setLoading(false);
+    };
 
-      setLoading(false)
-    }
+    loadDashboard();
+  }, [router, supabase]);
 
-    loadDashboardData()
-  }, [])
-
-  if (loading) return <div className="text-slate-400">Loading dashboard...</div>
+  if (loading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3 animate-pulse">
+          <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+          <div className="h-4 w-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-50 mb-2">Business Dashboard</h1>
-        <p className="text-slate-400">{businessName || "Your business"} • Overview and management</p>
+    <div className=" mx-auto p-6 space-y-8">
+
+      {/* SECTION 1: WELCOME & STATS */}
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 mt-1"> Overview of your business performance.</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <StatCard
+            label="Total Businesses"
+            value={stats.totalBusinesses}
+            icon={Store}
+            color="blue"
+          />
+          <StatCard
+            label="Total Reviews"
+            value={stats.totalReviews}
+            icon={MessageCircle}
+            color="indigo"
+          />
+        </div>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          title="Total Feedback"
-          value={stats.totalFeedback}
-          icon={MessageCircle}
-          color="from-blue-500 to-blue-600"
-        />
-        <StatCard
-          title="Average Rating"
-          value={stats.avgRating}
-          icon={Star}
-          color="from-green-500 to-green-600"
-          suffix="/5"
-        />
-        <StatCard
-          title="New Feedback"
-          value={stats.newFeedback}
-          icon={TrendingUp}
-          color="from-orange-500 to-orange-600"
-        />
-        <StatCard
-          title="Active QR Codes"
-          value={stats.totalQRCodes}
-          icon={QrCode}
-          color="from-purple-500 to-purple-600"
-        />
-      </div>
+      {/* SECTION 2: CONTENT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-      {/* Recent Feedback */}
-      <Card className="p-6 bg-slate-900 border-slate-800">
-        <h2 className="text-xl font-semibold text-slate-50 mb-4">Recent Feedback</h2>
-        <div className="space-y-3">
-          {recentFeedback.length === 0 ? (
-            <p className="text-slate-400 text-sm">No feedback yet</p>
-          ) : (
-            recentFeedback.map((fb) => (
-              <div
-                key={fb.id}
-                className="flex items-center justify-between p-4 bg-slate-800 rounded-lg hover:bg-slate-750 transition"
-              >
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-50">{fb.customer_name}</p>
-                  <p className="text-xs text-slate-400 truncate">{fb.message}</p>
-                </div>
-                <div className="flex items-center gap-3 ml-4">
-                  <div className="flex items-center gap-1">
-                    <Star size={16} className="text-yellow-400 fill-yellow-400" />
-                    <span className="text-sm font-semibold text-slate-50">{fb.rating}</span>
+        {/* LATEST BUSINESSES LIST (Left Col) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <TrendingUp size={20} className="text-blue-600" />
+              Latest Businesses
+            </h2>
+            <button
+              onClick={() => router.push("/owner/business")}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              See all <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {latestBusinesses.length > 0 ? (
+            <div className="space-y-3">
+              {latestBusinesses.map((biz) => (
+                <div
+                  key={biz.id}
+                  onClick={() => router.push(`/owner/business/${biz.id}`)}
+                  className="group bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-4"
+                >
+                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <Building2 size={22} />
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${
-                      fb.status === "new"
-                        ? "bg-red-500/20 text-red-300"
-                        : fb.status === "viewed"
-                          ? "bg-blue-500/20 text-blue-300"
-                          : "bg-green-500/20 text-green-300"
-                    }`}
-                  >
-                    {fb.status}
-                  </span>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-gray-900 truncate">{biz.name}</h3>
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <MapPin size={12} />
+                      <span className="truncate">{biz.address || "No address"}</span>
+                    </div>
+                  </div>
+                  <div className="text-gray-300 group-hover:text-blue-600 transition-colors">
+                    <ChevronRight size={18} />
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
+          ) : (
+            <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+              <p className="text-gray-500 text-sm">No businesses yet.</p>
+            </div>
           )}
         </div>
-      </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6 bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 cursor-pointer hover:border-slate-600 transition">
-          <h3 className="font-semibold text-slate-50 mb-2">Generate QR Code</h3>
-          <p className="text-sm text-slate-400 mb-4">Create new feedback QR codes for your branches</p>
-          <Link
-            href="/owner/qr-codes/new"
-            className="text-green-400 hover:text-green-300 text-sm font-medium"
-          >
-            Create →
-          </Link>
-        </Card>
-        <Card className="p-6 bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 cursor-pointer hover:border-slate-600 transition">
-          <h3 className="font-semibold text-slate-50 mb-2">View All Feedback</h3>
-          <p className="text-sm text-slate-400 mb-4">Manage and respond to customer feedback</p>
-          <Link href="/owner/feedback" className="text-green-400 hover:text-green-300 text-sm font-medium">
-            View →
-          </Link>
-        </Card>
+        {/* RECENT FEEDBACK LIST (Right Col) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <MessageCircle size={20} className="text-indigo-600" />
+              Recent Feedback
+            </h2>
+            <button
+              onClick={() => router.push("/owner/feedback")}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
+            >
+              See all <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {recentFeedback.length > 0 ? (
+              recentFeedback.map(fb => (
+                <div
+                  key={fb.id}
+                  onClick={() => router.push(`/owner/feedback/${fb.id}`)}
+                  className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4 items-start"
+                >
+                  <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${fb.rating >= 4 ? 'bg-green-100 text-green-600' : fb.rating >= 3 ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'}`}>
+                    <span className="font-bold text-sm">{fb.rating}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-semibold text-gray-900 truncate">
+                        {fb.businesses?.name || "Unknown Business"}
+                      </h4>
+                      <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
+                        {new Date(fb.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2 mt-1">
+                      {fb.message ? `"${fb.message}"` : <span className="italic text-gray-400">No comment provided</span>}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center shadow-sm">
+                <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-400">
+                  <MessageCircle size={24} />
+                </div>
+                <p className="text-gray-500">No feedback received yet.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
-  )
+  );
 }
 
-function StatCard({
-  title,
-  value,
-  icon: Icon,
-  color,
-  suffix = "",
-}: {
-  title: string
-  value: number | string
-  icon: any
-  color: string
-  suffix?: string
-}) {
+function StatCard({ label, value, icon: Icon, color }: any) {
+  const colorClasses: any = {
+    blue: "bg-blue-50 text-blue-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    amber: "bg-amber-50 text-amber-600",
+    purple: "bg-purple-50 text-purple-600"
+  };
+
   return (
-    <Card className={`p-6 bg-gradient-to-br ${color} border-0`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-white/80 text-sm mb-1">{title}</p>
-          <p className="text-3xl font-bold text-white">
-            {value}
-            {suffix}
-          </p>
-        </div>
-        <Icon size={40} className="text-white/20" />
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClasses[color] || colorClasses.blue}`}>
+        <Icon size={28} />
       </div>
-    </Card>
-  )
+      <div>
+        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <div className="flex items-baseline gap-1">
+          <h3 className="text-3xl font-bold text-gray-900">{value}</h3>
+        </div>
+      </div>
+    </div>
+  );
 }

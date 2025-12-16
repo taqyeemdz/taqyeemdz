@@ -1,54 +1,69 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 
-import { createServerClient } from "@supabase/ssr"
-import { NextResponse, type NextRequest } from "next/server"
-export async function middleware(request: NextRequest) {
-  return await updateSession(request)
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+
+  // FIX: createMiddlewareClient handles the cookie adapter internally
+  const supabase = createMiddlewareClient({ req, res });
+
+  // Automatically refreshes expired access tokens
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  const url = req.nextUrl.clone();
+  const pathname = url.pathname;
+
+  // Public routes allowed
+  if (pathname.startsWith("/auth") || pathname.startsWith("/403")) {
+    return res;
+  }
+
+  // Protected routes
+  const isProtected =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/owner");
+
+  if (!isProtected) return res;
+
+  // Not logged in → redirect
+  if (!session) {
+    url.pathname = "/auth/login";
+    url.searchParams.set("redirectTo", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  let role = session.user.app_metadata?.role;
+
+  // Fetch role from DB if missing in JWT
+  if (!role) {
+    const { data: roleData } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    role = roleData?.role ?? null;
+  }
+
+  console.log("🔐 Middleware role:", role);
+
+  // block wrong roles
+  if (pathname.startsWith("/admin") && !["admin", "superadmin"].includes(role)) {
+    url.pathname = "/403";
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname.startsWith("/owner") && role !== "owner") {
+    url.pathname = "/402";
+    return NextResponse.redirect(url);
+  }
+
+  return res;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
-}
-export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options))
-        },
-      },
-    },
-  )
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Protect owner routes
-  if (
-    (request.nextUrl.pathname.startsWith("/owner") ||
-      request.nextUrl.pathname.startsWith("/admin") ||
-      request.nextUrl.pathname.startsWith("/protected")) &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    return NextResponse.redirect(url)
-  }
-
-  return supabaseResponse
-}
-
+  matcher: ["/admin/:path*", "/owner/:path*"],
+};

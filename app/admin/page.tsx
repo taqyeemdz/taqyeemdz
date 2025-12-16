@@ -1,130 +1,225 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Card } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
-import type { Business } from "@/lib/types"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Building,
+  Star,
+  MessageSquare,
+  TrendingUp,
+  AlertTriangle,
+  Info,
+  XCircle
+} from "lucide-react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
+import { useRouter } from "next/navigation";
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    totalBusinesses: 0,
-    totalUsers: 0,
-    totalFeedback: 0,
-    activeBusinesses: 0,
-  })
-  const [recentBusinesses, setRecentBusinesses] = useState<Business[]>([])
-  const [loading, setLoading] = useState(true)
+export const dynamic = "force-dynamic";
 
+export default function AdminDashboardPage() {
+  const supabase = createClientComponentClient();
+  const router = useRouter();
+
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [businessCount, setBusinessCount] = useState(0);
+  const [feedbackCount, setFeedbackCount] = useState(0);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [latestFeedback, setLatestFeedback] = useState<any[]>([]);
+  const [topBusinesses, setTopBusinesses] = useState<any[]>([]);
+
+  /* Check Session + Role */
   useEffect(() => {
-    const loadDashboardData = async () => {
-      const supabase = createClient()
+    async function fetchRole() {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData?.session?.user;
 
-      // Fetch statistics
-      const { data: businesses } = await supabase.from("businesses").select("*")  .order("createdat", { ascending: false })
+      if (!user) return router.replace("/auth/login");
 
-      const { data: users } = await supabase.from("users").select("*")
-      const { data: feedback } = await supabase.from("feedback").select("*")
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      const activeBiz = businesses?.filter((b) => b.subscriptionstatus === "active").length || 0
+      if (!profile || profile.role !== "admin")
+        return router.replace("/auth/login");
 
-      setStats({
-        totalBusinesses: businesses?.length || 0,
-        totalUsers: users?.length || 0,
-        totalFeedback: feedback?.length || 0,
-        activeBusinesses: activeBiz,
-      })
-
-      setRecentBusinesses((businesses || []).slice(-5).reverse())
-      setLoading(false)
+      setUserRole(profile.role);
     }
 
-    loadDashboardData()
-  }, [])
+    fetchRole();
+  }, []);
 
-  if (loading) return <div className="text-slate-400">Loading dashboard...</div>
+  /* Load Data */
+  useEffect(() => {
+    (async () => {
+      const { count: bCount } = await supabase
+        .from("businesses")
+        .select("*", { count: "exact", head: true });
+      setBusinessCount(bCount || 0);
+
+      const { count: fCount } = await supabase
+        .from("feedback")
+        .select("*", { count: "exact", head: true });
+      setFeedbackCount(fCount || 0);
+
+      const { data: avg } = await supabase.rpc("avg_feedback_rating");
+      setAvgRating(avg || 0);
+
+      const { data: latest } = await supabase
+        .from("feedback")
+        .select("id, message, rating, created_at, businesses(name)")
+        .order("created_at", { ascending: false })
+        .limit(5);
+      setLatestFeedback(latest || []);
+
+      const { data: top } = await supabase.rpc("top_businesses_by_feedback");
+      setTopBusinesses(top || []);
+    })();
+  }, []);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-50 mb-2">Admin Dashboard</h1>
-        <p className="text-slate-400">Platform overview and management</p>
-      </div>
+    <div className="p-6 flex flex-col gap-10 bg-gray-50 min-h-screen">
+      <h1 className="text-3xl font-bold text-primary-900">Admin Dashboard</h1>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Businesses" value={stats.totalBusinesses} icon="🏢" color="from-blue-500 to-blue-600" />
-        <StatCard
-          title="Active Businesses"
-          value={stats.activeBusinesses}
-          icon="✅"
-          color="from-green-500 to-green-600"
-        />
-        <StatCard title="Total Users" value={stats.totalUsers} icon="👥" color="from-purple-500 to-purple-600" />
-        <StatCard title="Total Feedback" value={stats.totalFeedback} icon="💬" color="from-orange-500 to-orange-600" />
-      </div>
-
-      {/* Recent Businesses */}
-      <Card className="p-6 bg-slate-900 border-slate-800">
-        <h2 className="text-xl font-semibold text-slate-50 mb-4">Recent Businesses</h2>
-        <div className="space-y-3">
-          {recentBusinesses.length === 0 ? (
-            <p className="text-slate-400 text-sm">No businesses yet</p>
-          ) : (
-            recentBusinesses.map((biz) => (
-              <div
-                key={biz.id}
-                className="flex items-center justify-between p-3 bg-slate-800 rounded-lg hover:bg-slate-750 transition"
-              >
-                <div>
-                  <p className="font-semibold text-slate-50">{biz.name}</p>
-                  <p className="text-xs text-slate-400">{biz.email}</p>
-                </div>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    biz.subscriptionstatus === "active"
-                      ? "bg-green-500/20 text-green-300"
-                      : "bg-yellow-500/20 text-yellow-300"
-                  }`}
-                >
-                  {biz.subscriptionstatus}
-                </span>
-              </div>
-            ))
-          )}
+      {userRole && (
+        <div className="text-xs text-gray-600">
+          Role: <b className="text-primary-700">{userRole}</b>
         </div>
-      </Card>
+      )}
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6 bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 cursor-pointer hover:border-slate-600 transition">
-          <h3 className="font-semibold text-slate-50 mb-2">Manage Businesses</h3>
-          <p className="text-sm text-slate-400 mb-4">View, approve, and manage all business accounts</p>
-          <a href="/admin/businesses" className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-            Go to Businesses →
-          </a>
-        </Card>
-        <Card className="p-6 bg-gradient-to-br from-slate-800 to-slate-900 border-slate-700 cursor-pointer hover:border-slate-600 transition">
-          <h3 className="font-semibold text-slate-50 mb-2">User Management</h3>
-          <p className="text-sm text-slate-400 mb-4">Manage user accounts and roles</p>
-          <a href="/admin/users" className="text-blue-400 hover:text-blue-300 text-sm font-medium">
-            Go to Users →
-          </a>
-        </Card>
+      {/* ============ KPI CARDS ============ */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        <DashboardStatCard
+          title="Businesses"
+          value={businessCount}
+          color="primary"
+          icon={<Building className="h-6 w-6" />}
+        />
+
+        <DashboardStatCard
+          title="Feedback"
+          value={feedbackCount}
+          color="success"
+          icon={<MessageSquare className="h-6 w-6" />}
+        />
+
+        <DashboardStatCard
+          title="Avg Rating"
+          value={avgRating?.toFixed(1) || "–"}
+          color="accent"
+          icon={<Star className="h-6 w-6" />}
+        />
+
+        <DashboardStatCard
+          title="Top Rated"
+          value={topBusinesses[0]?.business_name || "–"}
+          color="info"
+          icon={<TrendingUp className="h-6 w-6" />}
+        />
+
+        <DashboardStatCard
+          title="Warnings"
+          value="3"
+          color="warning"
+          icon={<AlertTriangle className="h-6 w-6" />}
+        />
+
+        <DashboardStatCard
+          title="Critical Issues"
+          value="1"
+          color="error"
+          icon={<XCircle className="h-6 w-6" />}
+        />
       </div>
+
+      {/* ============ RECENT FEEDBACK ============ */}
+      <DashboardCard title="Recent Feedback" icon={<MessageSquare />}>
+        {latestFeedback.length === 0 ? (
+          <p className="text-sm text-gray-500">No feedback yet.</p>
+        ) : (
+          <ul className="space-y-4">
+            {latestFeedback.map((fb) => (
+              <li key={fb.id} className="border-b border-gray-200 pb-3">
+                <div className="flex justify-between">
+                  <span className="font-semibold text-primary-800">
+                    {fb.businesses?.name}
+                  </span>
+                  <span className="font-semibold text-accent-600">
+                    ⭐ {fb.rating}
+                  </span>
+                </div>
+
+                <p className="text-gray-700">{fb.message || "No message"}</p>
+
+                <span className="text-xs text-gray-400">
+                  {new Date(fb.created_at).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DashboardCard>
+
+      {/* ============ TOP BUSINESSES ============ */}
+      <DashboardCard title="Top Businesses" icon={<TrendingUp />}>
+        {topBusinesses.length === 0 ? (
+          <p className="text-sm text-gray-500">No data yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {topBusinesses.map((b) => (
+              <li key={b.business_id} className="flex justify-between border-b border-gray-200 pb-2">
+                <span className="font-medium text-primary-700">{b.business_name}</span>
+                <span className="text-sm text-gray-600">
+                  {b.feedback_count} feedback
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </DashboardCard>
     </div>
-  )
+  );
 }
 
-function StatCard({ title, value, icon, color }: { title: string; value: number; icon: string; color: string }) {
+/* =====================================
+   THEMED COMPONENTS — ALL COLORS
+===================================== */
+
+function DashboardStatCard({ title, value, icon, color }: any) {
+  const colorMap: Record<string, string> = {
+    primary: "bg-primary-50 text-primary-700 border-primary-200",
+    success: "bg-success-50 text-success-700 border-success-200",
+    accent: "bg-accent-50 text-accent-700 border-accent-200",
+    warning: "bg-warning-50 text-warning-700 border-warning-200",
+    error: "bg-error-50 text-error-700 border-error-200",
+    info: "bg-info-50 text-info-700 border-info-200"
+  };
+
   return (
-    <Card className={`p-6 bg-gradient-to-br ${color} border-0`}>
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-white/80 text-sm mb-1">{title}</p>
-          <p className="text-3xl font-bold text-white">{value}</p>
-        </div>
-        <span className="text-4xl opacity-30">{icon}</span>
+    <div
+      className={`
+        rounded-2xl p-4 border shadow-soft hover:shadow-primary transition
+        ${colorMap[color] || "bg-gray-50 border-gray-200 text-gray-700"}
+      `}
+    >
+      <div className="flex items-center gap-3 mb-1">
+        <div className="p-3 bg-white rounded-xl shadow">{icon}</div>
+        <p className="text-xs font-semibold">{title}</p>
       </div>
-    </Card>
-  )
+      <p className="text-2xl font-bold">{value}</p>
+    </div>
+  );
+}
+
+function DashboardCard({ title, icon, children }: any) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white shadow-soft p-5 hover:shadow-primary transition">
+      <div className="flex items-center gap-2 font-semibold mb-4 text-primary-800">
+        {icon}
+        {title}
+      </div>
+      {children}
+    </div>
+  );
 }

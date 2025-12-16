@@ -1,122 +1,88 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import type { User } from "@/lib/types"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/client"
+import { useState, useEffect } from "react";
+import { Menu } from "lucide-react";
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
-export default function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const router = useRouter()
-  const [user, setUser] = useState<User | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [loading, setLoading] = useState(true)
+import Sidebar from "./_components/Sidebar";
+import RightPanel from "./_components/RightPanel";
+import AdminTopBar from "./_components/AdminTopBar";
 
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const supabase = createClientComponentClient();
+
+  const [open, setOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  /* ===============================
+      FETCH USER (ADMIN ONLY)
+  =============================== */
   useEffect(() => {
-    const checkAdmin = async () => {
-      const supabase = createClient()
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser()
+    async function loadUser() {
+      const { data: { session } } = await supabase.auth.getSession();
 
-      if (!authUser) {
-        router.push("/login")
-        return
+      if (!session) {
+        window.location.href = "/admin/login";
+        return;
       }
 
-      const { data: userProfile } = await supabase.from("users").select("*").eq("id", authUser.id).single()
-
-      if (!userProfile || userProfile.role !== "admin") {
-        router.push("/")
-        return
-      }
-
-      setUser(userProfile)
-      setLoading(false)
+      const email = session.user.email || "";
+      setUserEmail(email);
+      setLoading(false);
     }
 
-    checkAdmin()
-  }, [router])
+    loadUser();
+  }, []);
 
-  async function handleLogout() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push("/login")
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center text-gray-600">
+        Loading...
+      </div>
+    );
   }
 
-  if (loading) return null
-
   return (
-    <div className="flex h-screen bg-background">
-      {/* Admin Sidebar */}
-      <div
-        className="bg-slate-900 text-slate-50 transition-all duration-300 flex flex-col border-r border-slate-800"
-        style={{ width: sidebarOpen ? "280px" : "80px" }}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-slate-800">
-          {sidebarOpen && (
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              TaqyeemDZ
-            </h1>
-          )}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 hover:bg-slate-800 rounded text-slate-400"
-          >
-            {sidebarOpen ? "←" : "→"}
-          </button>
-        </div>
+    <div className="flex bg-gray-50 min-h-screen text-gray-900">
 
-        <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
-          <AdminNavLink href="/admin" icon="📊" label="Dashboard" sidebarOpen={sidebarOpen} />
-          <AdminNavLink href="/admin/businesses" icon="🏢" label="Businesses" sidebarOpen={sidebarOpen} />
-          <AdminNavLink href="/admin/users" icon="👥" label="Users" sidebarOpen={sidebarOpen} />
-          <AdminNavLink href="/admin/analytics" icon="📈" label="Analytics" sidebarOpen={sidebarOpen} />
-          <AdminNavLink href="/admin/reports" icon="📋" label="Reports" sidebarOpen={sidebarOpen} />
-          <AdminNavLink href="/admin/settings" icon="⚙️" label="Settings" sidebarOpen={sidebarOpen} />
-        </nav>
+      {/* ===== LEFT SIDEBAR ===== */}
+      <Sidebar open={open} onClose={() => setOpen(false)} />
 
-        <div className="border-t border-slate-800 p-3 space-y-2">
-          {sidebarOpen && (
-            <div className="p-2 bg-slate-800 rounded text-xs">
-              <p className="font-semibold text-slate-200 truncate">{user?.name}</p>
-              <p className="text-slate-400 truncate">{user?.email}</p>
-            </div>
-          )}
-          <Button onClick={handleLogout} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-50 text-xs">
-            {sidebarOpen ? "Logout" : "🚪"}
-          </Button>
-        </div>
+      {/* ===== MOBILE TOP BAR ===== */}
+      <div className="
+        md:hidden fixed top-0 left-0 right-0 bg-white border-b shadow-sm z-40 
+        flex items-center justify-between px-4 h-14
+      ">
+        <button onClick={() => setOpen(true)}>
+          <Menu className="w-6 h-6 text-gray-700" />
+        </button>
+
+        <p className="font-semibold text-primary-700 text-lg">TaqyeemDZ</p>
+
+        <div className="w-6" />
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto bg-slate-950">
-        <div className="p-8 max-w-7xl mx-auto">{children}</div>
+      {/* ===== MAIN CONTENT WRAPPER ===== */}
+      <div className="flex flex-1 flex-col md:flex-row mt-14 md:mt-0">
+
+        <div className="flex-1 px-4 md:px-8 py-4 space-y-6">
+
+          {/* 🔵 TOP BAR (Search + Icons + Avatar) */}
+          <AdminTopBar user={{ email: userEmail }} />
+
+          {/* 🔥 PAGE CONTENT */}
+          <main className="mt-6">
+            {children}
+          </main>
+
+        </div>
+
+        {/* ===== RIGHT PANEL (DESKTOP ONLY) ===== */}
+        <aside className="hidden xl:block w-[320px] border-l bg-white shadow-inner">
+          <RightPanel />
+        </aside>
       </div>
     </div>
-  )
-}
-
-function AdminNavLink({
-  href,
-  icon,
-  label,
-  sidebarOpen,
-}: { href: string; icon: string; label: string; sidebarOpen: boolean }) {
-  return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-slate-50 transition text-sm"
-      title={label}
-    >
-      <span className="text-lg">{icon}</span>
-      {sidebarOpen && <span>{label}</span>}
-    </Link>
-  )
+  );
 }
