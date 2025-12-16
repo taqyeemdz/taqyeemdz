@@ -1,7 +1,35 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createServerClient, type CookieOptions } from "@supabase/ssr"
+import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+
+async function createClient() {
+  const cookieStore = await cookies()
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
+          }
+        },
+      },
+    }
+  )
+}
 
 export async function signUp(email: string, password: string, fullName: string) {
   const supabase = await createClient()
@@ -50,7 +78,7 @@ export async function logout() {
     return { error: error.message }
   }
 
-  redirect("/login")
+  redirect("/auth/login")
 }
 
 export async function getCurrentUser() {
@@ -63,7 +91,7 @@ export async function getCurrentUser() {
   }
 
   // Fetch user profile from database
-  const { data: profile } = await supabase.from("users").select("*").eq("id", data.user.id).single()
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", data.user.id).single()
 
   return profile
 }

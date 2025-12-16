@@ -1,24 +1,43 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { createServerSupabaseClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+export async function POST(request: Request) {
   try {
-    const supabase = createServerSupabaseClient({ req, res });
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          },
+        },
+      }
+    );
 
     // 1) Get current session
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return res.status(401).json({ error: "Not logged in" });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+    }
 
     const userId = session.user.id;
 
     // 2) Parse body
-    const { name, category, phone, address } = JSON.parse(req.body);
+    const body = await request.json();
+    const { name, category, phone, address } = body;
 
-    if (!name || !category) return res.status(400).json({ error: "Missing required fields" });
+    if (!name || !category) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
 
     // 3) Insert business
     const { data: business, error: businessError } = await supabase
@@ -36,10 +55,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (linkError) throw linkError;
 
-    // 5) Respond with business ID (the frontend will generate the QR)
-    return res.status(200).json({ business_id: business.id });
+    // 5) Respond
+    return NextResponse.json({ business_id: business.id });
+
   } catch (err: any) {
     console.error("Create business error:", err);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
   }
 }
