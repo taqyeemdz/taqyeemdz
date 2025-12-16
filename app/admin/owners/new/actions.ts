@@ -2,12 +2,12 @@
 
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY! // REQUIRED
-);
-
 export async function createOwner(formData: FormData) {
+    const supabaseAdmin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const full_name = formData.get("full_name") as string;
