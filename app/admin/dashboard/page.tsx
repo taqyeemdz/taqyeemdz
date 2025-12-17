@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useRouter } from "next/navigation";
 import {
-  Star,
-  MessageSquare,
+  Building2,
   Users,
+  MessageCircle,
   TrendingUp,
+  Star,
+  Activity,
   ArrowRight,
+  ShieldCheck
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -16,214 +19,232 @@ export default function AdminDashboardPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [feedback, setFeedback] = useState<any[]>([]);
-
-  const [categories] = useState([
-    { name: "Satisfaction", progress: 80 },
-    { name: "Service", progress: 55 },
-    { name: "Cleanliness", progress: 62 },
-  ]);
-
   const [stats, setStats] = useState({
-    avg: 0,
-    total: 0,
-    businesses: 0,
+    totalBusinesses: 0,
+    totalFeedback: 0,
+    totalOwners: 0,
+    avgRating: 0
   });
-
-  const [users, setUsers] = useState<any[]>([]);
+  const [latestFeedback, setLatestFeedback] = useState<any[]>([]);
+  const [topBusinesses, setTopBusinesses] = useState<any[]>([]);
 
   useEffect(() => {
-    (async () => {
+    async function loadDashboard() {
       setLoading(true);
 
-      const { data: latest } = await supabase
-        .from("feedback")
-        .select("id, message, rating, created_at, businesses(name)")
-        .order("created_at", { ascending: false })
-        .limit(4);
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session?.user) return router.replace("/auth/login");
 
-      setFeedback(latest || []);
+      // 1. Stats Counts
+      const { count: bCount } = await supabase.from("businesses").select("*", { count: "exact", head: true });
+      const { count: fCount } = await supabase.from("feedback").select("*", { count: "exact", head: true });
+      const { count: oCount } = await supabase.from("profiles").select("*", { count: "exact", head: true }).eq('role', 'owner');
 
-      const { data: avg } = await supabase.rpc("avg_feedback_rating");
-
-      const { count: total } = await supabase
-        .from("feedback")
-        .select("*", { head: true, count: "exact" });
-
-      const { count: businessesCount } = await supabase
-        .from("businesses")
-        .select("*", { head: true, count: "exact" });
+      // Try RPC for avg rating, fallback to 0 if fails
+      let avg = 0;
+      const { data: rpcAvg } = await supabase.rpc("avg_feedback_rating");
+      if (rpcAvg) avg = rpcAvg;
 
       setStats({
-        avg: avg || 0,
-        total: total || 0,
-        businesses: businessesCount || 0,
+        totalBusinesses: bCount || 0,
+        totalFeedback: fCount || 0,
+        totalOwners: oCount || 0,
+        avgRating: avg
       });
 
-      const { data: userList } = await supabase
-        .from("profiles")
-        .select("id, email, role")
+      // 2. Latest Feedback
+      const { data: latest } = await supabase
+        .from("feedback")
+        .select("*, businesses(name)")
+        .order("created_at", { ascending: false })
         .limit(5);
+      setLatestFeedback(latest || []);
 
-      setUsers(userList || []);
+      // 3. Top Businesses (RPC or fallback)
+      const { data: top } = await supabase.rpc("top_businesses_by_feedback");
+      if (top) {
+        setTopBusinesses(top);
+      } else {
+        // Fallback: fetch standard list if RPC missing
+        const { data: fallbackList } = await supabase
+          .from("businesses")
+          .select("id, name")
+          .limit(5);
+        // Map to match shape if needed or use simple list
+        setTopBusinesses(fallbackList?.map(b => ({ business_id: b.id, business_name: b.name, feedback_count: 0 })) || []);
+      }
 
       setLoading(false);
-    })();
-  }, []);
+    }
 
-  return (
-    <div className="flex gap-8 p-6 bg-[var(--background)] min-h-screen">
+    loadDashboard();
+  }, [router, supabase]);
 
-      {/* ========================= LEFT MAIN ========================= */}
-      <div className="flex-1 flex flex-col gap-10">
-
-        {/* HERO */}
-        <div className="rounded-3xl p-8 text-white shadow-lg relative overflow-hidden bg-[var(--chart-2)]">
-          <div className="absolute right-0 top-0 w-60 h-60 bg-white/10 rounded-full blur-2xl"></div>
-
-          <h2 className="text-3xl font-bold text-white">
-            Improve Your Service Quality with Internal Feedback
-          </h2>
-
-          <p className="mt-2 text-white/80 max-w-lg">
-            Analyze private customer feedback collected from your QR codes.
-          </p>
-
-          <button className="mt-6 bg-white text-[var(--chart-2)] font-semibold px-5 py-2 rounded-full shadow hover:bg-gray-50 transition flex items-center gap-2">
-            View Insights <ArrowRight size={16} />
-          </button>
-        </div>
-
-        {/* FEEDBACK CATEGORIES */}
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4">
-            Feedback Categories
-          </h3>
-
-          <div className="flex gap-4 flex-wrap">
-            {categories.map((cat) => (
-              <div
-                key={cat.name}
-                className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 w-40 shadow-sm hover:shadow-md transition"
-              >
-                <p className="font-medium text-[var(--foreground)]">{cat.name}</p>
-
-                <div className="mt-2 h-2 bg-[var(--muted)]/40 rounded-full">
-                  <div
-                    className="h-full bg-[var(--chart-2)] rounded-full"
-                    style={{ width: `${cat.progress}%` }}
-                  ></div>
-                </div>
-
-                <p className="text-xs text-gray-500 mt-1">{cat.progress}%</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* LATEST FEEDBACK */}
-        <div>
-          <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4">
-            Latest Feedback
-          </h3>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            {feedback.map((fb) => (
-              <div
-                key={fb.id}
-                className="bg-[var(--card)] rounded-2xl p-5 border border-[var(--border)] hover:shadow-md transition"
-              >
-                <div className="flex justify-between">
-                  <span className="font-semibold text-[var(--foreground)]">
-                    {fb.businesses?.name}
-                  </span>
-
-                  <span className="text-[var(--chart-1)] font-bold">
-                    ⭐ {fb.rating}
-                  </span>
-                </div>
-
-                <p className="text-[var(--foreground)]/70 mt-2 line-clamp-2">
-                  {fb.message || "No message"}
-                </p>
-
-                <p className="text-xs text-gray-400 mt-2">
-                  {new Date(fb.created_at).toLocaleString()}
-                </p>
-              </div>
-            ))}
-          </div>
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3 animate-pulse">
+          <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+          <div className="h-4 w-32 bg-gray-200 rounded"></div>
         </div>
       </div>
+    );
+  }
 
-      {/* ========================= RIGHT PANEL ========================= */}
-      <div className="w-[320px] hidden lg:flex flex-col gap-6">
+  return (
+    <div className="max-w-6xl mx-auto p-6 space-y-8">
 
-        {/* USER CARD */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 shadow-soft flex flex-col items-center">
-          <div className="w-20 h-20 rounded-full bg-[var(--chart-2)]/20 flex items-center justify-center">
-            <Users size={40} className="text-[var(--chart-2)]" />
+      {/* HEADER */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Admin Overview</h1>
+        <p className="text-gray-500 mt-1">System-wide performance and activity.</p>
+      </div>
+
+      {/* STATS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Total Businesses"
+          value={stats.totalBusinesses}
+          icon={Building2}
+          color="blue"
+        />
+        <StatCard
+          label="Total Owners"
+          value={stats.totalOwners}
+          icon={Users}
+          color="purple"
+        />
+        <StatCard
+          label="Total Feedback"
+          value={stats.totalFeedback}
+          icon={MessageCircle}
+          color="indigo"
+        />
+        <StatCard
+          label="Avg Rating"
+          value={stats.avgRating?.toFixed(1) || "0.0"}
+          icon={Star}
+          color="amber"
+        />
+      </div>
+
+      {/* MAIN CONTENT GRID */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        {/* LEFT COL: Recent Activity (2/3) */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Activity size={20} className="text-gray-400" />
+              Recent Activity
+            </h2>
+            {/* Could add 'View All' link here */}
           </div>
 
-          <h4 className="mt-3 font-semibold text-[var(--foreground)]">
-            Admin Panel
-          </h4>
-
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Manage data & insights
-          </p>
-        </div>
-
-        {/* STATS CARD */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 shadow-soft">
-          <h3 className="font-semibold text-[var(--foreground)] mb-4">
-            Statistics
-          </h3>
-
-          <p className="text-[var(--foreground)]/70 text-sm">
-            Total Feedback:{" "}
-            <span className="font-bold text-[var(--chart-3)]">{stats.total}</span>
-          </p>
-
-          <p className="text-[var(--foreground)]/70 text-sm">
-            Average Rating:{" "}
-            <span className="font-bold text-[var(--chart-1)]">
-              {stats.avg?.toFixed(1)}
-            </span>
-          </p>
-
-          <p className="text-[var(--foreground)]/70 text-sm">
-            Businesses:{" "}
-            <span className="font-bold text-[var(--chart-5)]">
-              {stats.businesses}
-            </span>
-          </p>
-        </div>
-
-        {/* ADMINS */}
-        <div className="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 shadow-soft">
-          <h3 className="font-semibold text-[var(--foreground)] mb-4">
-            Admins & Users
-          </h3>
-
-          <div className="space-y-3">
-            {users.map((u) => (
-              <div
-                key={u.id}
-                className="flex items-center justify-between border-b pb-2 border-[var(--border)]"
-              >
-                <span className="font-medium text-[var(--foreground)]">
-                  {u.email}
-                </span>
-
-                <span className="text-xs bg-[var(--chart-2)]/15 text-[var(--chart-2)] px-2 py-1 rounded-full">
-                  {u.role}
-                </span>
+          <div className="space-y-4">
+            {latestFeedback.length > 0 ? (
+              latestFeedback.map((fb) => (
+                <div
+                  key={fb.id}
+                  className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex gap-4 items-start"
+                >
+                  <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${fb.rating >= 4 ? 'bg-green-100 text-green-700' :
+                    fb.rating <= 2 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                    {fb.rating}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">
+                      New review for <span className="text-indigo-600">{fb.businesses?.name}</span>
+                    </p>
+                    <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                      {fb.message || <span className="italic opacity-50">No message provided</span>}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(fb.created_at).toLocaleDateString()} • {new Date(fb.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                No recent activity.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
+        {/* RIGHT COL: Top Businesses (1/3) */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <TrendingUp size={20} className="text-gray-400" />
+              Top Performers
+            </h2>
+          </div>
+
+          <div className="bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
+            {topBusinesses.length > 0 ? (
+              topBusinesses.slice(0, 5).map((b, i) => (
+                <div key={b.business_id || i} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                      #{i + 1}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 line-clamp-1">{b.business_name}</p>
+                      <p className="text-xs text-gray-400">{b.feedback_count} reviews</p>
+                    </div>
+                  </div>
+                  <div className="text-xs font-bold text-gray-900 bg-gray-100 px-2 py-1 rounded-lg">
+                    {b.avg_rating ? Number(b.avg_rating).toFixed(1) : "-"}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-6 text-center text-sm text-gray-500">
+                No details available.
+              </div>
+            )}
+          </div>
+
+          {/* Quick Actions / System Health (Placeholder) */}
+          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-5 text-white shadow-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <ShieldCheck className="text-green-400" size={20} />
+              <h3 className="font-bold">System Status</h3>
+            </div>
+            <p className="text-sm text-gray-300 mb-4">
+              All systems operational. No critical issues reported.
+            </p>
+            <button className="w-full py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">
+              View System Logs
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color }: any) {
+  const colorClasses: any = {
+    blue: "bg-blue-50 text-blue-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    purple: "bg-purple-50 text-purple-600",
+    amber: "bg-amber-50 text-amber-600",
+    green: "bg-green-50 text-green-600"
+  };
+
+  return (
+    <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${colorClasses[color] || colorClasses.blue}`}>
+        <Icon size={24} />
+      </div>
+      <div>
+        <p className="text-sm font-medium text-gray-500">{label}</p>
+        <h3 className="text-2xl font-bold text-gray-900">{value}</h3>
       </div>
     </div>
   );

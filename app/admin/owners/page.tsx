@@ -3,7 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Plus, Users, Mail, Calendar } from "lucide-react";
+import {
+  Plus,
+  Users,
+  Mail,
+  Calendar,
+  Search,
+  ChevronRight,
+  ShieldCheck,
+  User as UserIcon
+} from "lucide-react";
 
 export default function OwnersListPage() {
   const supabase = createClientComponentClient();
@@ -31,11 +40,14 @@ export default function OwnersListPage() {
           const auth = users?.users?.find((u) => u.id === o.id);
           return {
             ...o,
-            email: auth?.email ?? "—",
+            // Fallback to profile email if auth fails, or handle appropriately
+            email: auth?.email || o.email || "—",
           };
         });
 
         setOwners(merged);
+      } else {
+        console.error(error);
       }
 
       setLoading(false);
@@ -48,54 +60,64 @@ export default function OwnersListPage() {
   );
 
   return (
-    <div className="p-6 flex flex-col gap-8">
+    <div className="max-w-5xl mx-auto p-6 space-y-8">
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center">
+      {/* ========================= HEADER ========================= */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+          <h1 className="text-3xl font-bold text-gray-900">
             Owners Management
           </h1>
-          <p className="text-[var(--muted-foreground)] mt-1">
-            Manage business owners registered in the system.
+          <p className="text-gray-500 mt-1">
+            Manage all registered system users and owners.
           </p>
         </div>
 
         <Link
           href="/admin/owners/new"
-          className="flex items-center gap-2 bg-[var(--chart-2)] text-white px-4 py-2 rounded-xl font-medium shadow hover:bg-[var(--chart-2)]/90 transition"
+          className="
+            flex items-center gap-2 bg-gray-900 text-white 
+            px-5 py-2.5 rounded-xl font-medium shadow-sm hover:bg-black 
+            transition-all active:scale-95
+          "
         >
           <Plus size={18} />
           New Owner
         </Link>
       </div>
 
-      {/* SEARCH BAR */}
-      <div className="relative max-w-md">
-        <Users
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          size={20}
-        />
+      {/* ========================= SEARCH ========================= */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search owner..."
+          placeholder="Search by name or email..."
           className="
-            bg-[var(--card)] border border-[var(--border)] 
-            rounded-xl w-full pl-10 pr-4 py-2.5 
-            focus:ring-2 focus:ring-[var(--chart-2)] focus:border-transparent
+            w-full bg-white border border-gray-200 
+            rounded-xl pl-12 pr-4 py-3 text-base outline-none
+            focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all
           "
         />
       </div>
 
-      {/* OWNERS LIST */}
+      {/* ========================= OWNERS LIST ========================= */}
       {loading ? (
-        <div className="text-center py-10 text-[var(--muted-foreground)]">
-          Loading owners...
+        <div className="flex justify-center py-20">
+          <div className="flex flex-col items-center gap-3 animate-pulse">
+            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
+            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-10 text-[var(--muted-foreground)]">
-          No owners found.
+        <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-12 text-center">
+          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-gray-400">
+            <Users size={24} />
+          </div>
+          <h3 className="text-gray-900 font-medium mb-1">No owners found</h3>
+          <p className="text-gray-500 text-sm">
+            Create a new owner to get started.
+          </p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-6">
@@ -104,26 +126,42 @@ export default function OwnersListPage() {
               key={o.id}
               href={`/admin/owners/${o.id}`}
               className="
-                bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5
-                hover:shadow-md hover:border-[var(--chart-2)]
-                transition flex flex-col gap-3
+                group bg-white border border-gray-100 rounded-2xl p-5
+                shadow-sm hover:shadow-md hover:border-indigo-100
+                transition-all cursor-pointer flex items-center gap-4
               "
             >
-              <div className="flex items-center gap-3">
-                <Users className="text-[var(--chart-2)]" size={24} />
-                <div>
-                  <h3 className="text-lg font-semibold text-[var(--foreground)]">
+              {/* Avatar Icon */}
+              <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 border border-indigo-100 group-hover:scale-105 transition-transform">
+                <UserIcon size={24} />
+              </div>
+
+              {/* Text Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-lg font-bold text-gray-900 truncate">
                     {o.full_name || "Unnamed Owner"}
                   </h3>
-                  <p className="text-sm text-[var(--muted-foreground)]">
-                    {o.email}
-                  </p>
+                  <span className="bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-100">
+                    Owner
+                  </span>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Mail size={14} className="shrink-0" />
+                    <span className="truncate">{o.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                    <Calendar size={12} className="shrink-0" />
+                    <span>Joined {new Date(o.created_at).toLocaleDateString()}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)] mt-2">
-                <Calendar size={14} />
-                Registered on {new Date(o.created_at).toLocaleDateString()}
+              {/* Arrow */}
+              <div className="text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all">
+                <ChevronRight size={20} />
               </div>
             </Link>
           ))}
