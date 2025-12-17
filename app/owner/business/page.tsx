@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
 import {
   Building2,
   MapPin,
@@ -16,8 +15,7 @@ import {
 import { QRCodeSVG as QRCode } from "qrcode.react";
 
 export default function OwnerBusinessPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
+  const supabase = supabaseBrowser; const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);

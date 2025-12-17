@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
+import { createSupabaseServer } from "@/lib/supabase/server";
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
 
   // FIX: createMiddlewareClient handles the cookie adapter internally
-  const supabase = createMiddlewareClient({ req, res });
+  const supabase = await createSupabaseServer();
 
   // Automatically refreshes expired access tokens
   const {

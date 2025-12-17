@@ -1,13 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
 import { ArrowLeft, PlusCircle } from "lucide-react";
 
 export default function NewBusinessPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
+  const supabase = supabaseBrowser; const router = useRouter();
 
   const [form, setForm] = useState({
     business_name: "",

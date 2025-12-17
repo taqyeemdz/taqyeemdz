@@ -3,8 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-
+import { supabaseBrowser } from "@/lib/supabase/client";
 import {
   Menu,
   X,
@@ -23,8 +22,7 @@ import {
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);

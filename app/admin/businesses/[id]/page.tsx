@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import {
+import { supabaseBrowser } from "@/lib/supabase/client"; import {
   Building2,
   MapPin,
   Phone,
@@ -12,18 +11,15 @@ import {
   Trash2,
   AlertTriangle,
 } from "lucide-react";
-import { Eye, EyeOff } from "lucide-react"; // ⬅️ add this at top
 
 export default function BusinessDetailPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
+  const supabase = supabaseBrowser; const router = useRouter();
   const { id } = useParams();
 
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState<any>(null);
   const [feedback, setFeedback] = useState<any[]>([]);
   const [showDelete, setShowDelete] = useState(false);
-const [showPassword, setShowPassword] = useState(false);
 
   const [stats, setStats] = useState({
     avg: 0,
@@ -34,16 +30,29 @@ const [showPassword, setShowPassword] = useState(false);
     (async () => {
       setLoading(true);
 
-      // ⭐ Fetch business including temp_password
-      const { data: b } = await supabase
+      // ⭐ Fetch business including owner via join
+      const { data: b, error } = await supabase
         .from("businesses")
-        .select(
-          "id, name, owner_name, email, phone, address, category, created_at, temp_password"
-        )
+        .select(`
+          id, name, phone, address, category, created_at,
+          user_business (
+            profiles (full_name, email)
+          )
+        `)
         .eq("id", id)
         .maybeSingle();
 
-      setBusiness(b);
+      if (error) console.error("Error fetching business:", error);
+
+      // Flatten owner info
+      const owner = b?.user_business?.[0]?.profiles;
+      const businessData = b ? {
+        ...b,
+        owner_name: owner?.full_name,
+        email: owner?.email // Use owner email as fallback or primary if business email doesn't exist
+      } : null;
+
+      setBusiness(businessData);
 
       // ⭐ Fetch feedback
       const { data: fb } = await supabase
@@ -131,56 +140,51 @@ const [showPassword, setShowPassword] = useState(false);
         </button>
       </div>
 
-     
+
 
       {/* INFO */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">
-          Business Information
+        <h2 className="text-xl font-semibold text-[var(--foreground)] mb-6">
+          Business Details
         </h2>
 
-        <div className="space-y-3">
-          <InfoRow label="Address" value={business.address} icon={<MapPin />} />
-          <InfoRow label="Phone" value={business.phone} icon={<Phone />} />
-          <InfoRow label="Email" value={business.email} icon={<Mail />} />
-          <InfoRow label="Password" value={showPassword ? business.temp_password : "••••••••"} icon={<Mail />} />
+        <div className="flex flex-col md:flex-row gap-8 items-start">
 
-          <div className="flex items-center gap-3 mt-1">
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-yellow-700 hover:text-yellow-900 transition"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+          {/* LEFT: Info */}
+          <div className="flex-1 space-y-4">
+            <h3 className="text-sm font-medium text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
+              Contact Info
+            </h3>
+            <InfoRow label="Address" value={business.address} icon={<MapPin />} />
+            <InfoRow label="Phone" value={business.phone} icon={<Phone />} />
+            <InfoRow label="Email" value={business.email} icon={<Mail />} />
           </div>
 
-        </div>
-        
-      </div>
+          {/* DIVIDER (Desktop only) */}
+          <div className="hidden md:block w-px self-stretch bg-[var(--border)]"></div>
 
- 
+          {/* RIGHT: Stats */}
+          <div className="flex-1 md:max-w-[40%] space-y-4">
+            <h3 className="text-sm font-medium text-[var(--muted-foreground)] uppercase tracking-wider mb-2">
+              Performance
+            </h3>
+            <div className="flex items-center gap-8">
+              <div>
+                <span className="text-3xl font-bold text-[var(--chart-1)]">
+                  {stats.avg.toFixed(1)}
+                </span>
+                <p className="text-sm text-[var(--muted-foreground)]">Avg Rating</p>
+              </div>
 
-      {/* STATS */}
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-[var(--foreground)] mb-4">
-          Feedback Summary
-        </h2>
-
-        <div className="flex gap-10">
-          <div>
-            <span className="text-4xl font-bold text-[var(--chart-1)]">
-              {stats.avg.toFixed(1)}
-            </span>
-            <p className="text-[var(--muted-foreground)]">Average Rating</p>
+              <div>
+                <span className="text-3xl font-bold text-[var(--chart-3)]">
+                  {stats.count}
+                </span>
+                <p className="text-sm text-[var(--muted-foreground)]">Total Feedback</p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <span className="text-4xl font-bold text-[var(--chart-3)]">
-              {stats.count}
-            </span>
-            <p className="text-[var(--muted-foreground)]">Total Feedback</p>
-          </div>
         </div>
       </div>
 
@@ -219,7 +223,7 @@ const [showPassword, setShowPassword] = useState(false);
         )}
       </div>
 
-      
+
 
       {/* DELETE MODAL */}
       {showDelete && (
@@ -247,8 +251,7 @@ function InfoRow({ icon, label, value }: any) {
 /* ========================= DELETE MODAL ========================= */
 
 function DeleteBusinessModal({ id, onClose }: any) {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
+  const supabase = supabaseBrowser; const router = useRouter();
 
   async function handleDelete() {
     if (!confirm("Delete this business?")) return;

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
 import {
   Building2,
   Search,
@@ -15,8 +14,7 @@ import {
 } from "lucide-react";
 
 export default function BusinessesPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
+  const supabase = supabaseBrowser; const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
@@ -72,12 +70,28 @@ export default function BusinessesPage() {
 
       const { data, error } = await supabase
         .from("businesses")
-        .select("id, name, phone, address, created_at, owner_id, owner_name") // owner_name might be a view field or join
+        .select(`
+          id, name, phone, address, created_at,
+          user_business (
+             profiles (
+               full_name
+             )
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (error) console.log(error);
 
-      setBusinesses(data || []);
+      // Flatten data to include owner_name
+      const formatted = data?.map((b: any) => {
+        const owner = b.user_business?.[0]?.profiles;
+        return {
+          ...b,
+          owner_name: owner?.full_name || "Unknown"
+        };
+      }) || [];
+
+      setBusinesses(formatted);
       setLoading(false);
     })();
   }, [router, supabase]);

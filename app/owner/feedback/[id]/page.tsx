@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter, useParams } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter, useParams } from "next/navigation";
 import {
     ChevronLeft,
     Star,
@@ -18,8 +17,7 @@ import {
 } from "lucide-react";
 
 export default function FeedbackDetailPage() {
-    const supabase = createClientComponentClient();
-    const router = useRouter();
+    const supabase = supabaseBrowser; const router = useRouter();
     const params = useParams();
     const feedbackId = params.id;
 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
 import {
   Building2,
   Users,
@@ -15,8 +14,7 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
+  const supabase = supabaseBrowser; const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({

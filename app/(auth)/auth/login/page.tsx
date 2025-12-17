@@ -3,8 +3,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-
+import { supabaseBrowser } from "@/lib/supabase/client";
 export default function LoginPage() {
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
@@ -14,8 +13,7 @@ export default function LoginPage() {
 }
 
 function LoginInner() {
-  const supabase = createClientComponentClient();
-  const router = useRouter();
+  const supabase = supabaseBrowser; const router = useRouter();
   const params = useSearchParams();
 
   const [email, setEmail] = useState("");

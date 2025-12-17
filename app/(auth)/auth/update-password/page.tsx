@@ -1,15 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
   const router = useRouter();
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   async function handleUpdate(e: any) {
     e.preventDefault();
 

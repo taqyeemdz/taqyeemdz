@@ -2,12 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare } from "lucide-react";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare } from "lucide-react";
 
 export default function ClientFeedbackPage() {
-    const supabase = createClientComponentClient();
-    const params = useParams();
+    const supabase = supabaseBrowser; const params = useParams();
     const businessId = params.businessId;
 
     const [business, setBusiness] = useState<any>(null);
@@ -159,8 +157,8 @@ export default function ClientFeedbackPage() {
                                         <Star
                                             size={42}
                                             className={`${(hoverRating || rating) >= star
-                                                    ? "fill-amber-400 text-amber-400"
-                                                    : "text-gray-200 fill-gray-50"
+                                                ? "fill-amber-400 text-amber-400"
+                                                : "text-gray-200 fill-gray-50"
                                                 } transition-colors duration-200`}
                                             strokeWidth={1.5}
                                         />

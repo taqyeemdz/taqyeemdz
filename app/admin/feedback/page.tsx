@@ -5,8 +5,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { Camera, X } from 'lucide-react';
 
 export default function FeedbackForm({ businessId }: { businessId: string }) {
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   // -------------------
   // States
   // -------------------
@@ -66,10 +65,10 @@ export default function FeedbackForm({ businessId }: { businessId: string }) {
       const fileName = `${Date.now()}.${ext}`;
 
       const { data, error: uploadErr } = await supabase.storage
-  .from('feedback-media')
-  .upload(fileName, mediaFile, {
-    upsert: false,
-  });
+        .from('feedback-media')
+        .upload(fileName, mediaFile, {
+          upsert: false,
+        });
 
 
       if (uploadErr) {
@@ -128,9 +127,8 @@ export default function FeedbackForm({ businessId }: { businessId: string }) {
         <button
           type="button"
           onClick={() => setAnonymous(true)}
-          className={`flex-1 py-2 rounded-xl text-center border ${
-            anonymous ? 'bg-green-600 text-white' : 'bg-white'
-          }`}
+          className={`flex-1 py-2 rounded-xl text-center border ${anonymous ? 'bg-green-600 text-white' : 'bg-white'
+            }`}
         >
           Anonyme
         </button>
@@ -138,9 +136,8 @@ export default function FeedbackForm({ businessId }: { businessId: string }) {
         <button
           type="button"
           onClick={() => setAnonymous(false)}
-          className={`flex-1 py-2 rounded-xl text-center border ${
-            !anonymous ? 'bg-green-600 text-white' : 'bg-white'
-          }`}
+          className={`flex-1 py-2 rounded-xl text-center border ${!anonymous ? 'bg-green-600 text-white' : 'bg-white'
+            }`}
         >
           Identifié
         </button>
@@ -209,9 +206,8 @@ export default function FeedbackForm({ businessId }: { businessId: string }) {
             key={r}
             type="button"
             onClick={() => setRating(r as any)}
-            className={`px-4 py-3 rounded-xl border ${
-              rating === r ? 'bg-green-600 text-white' : 'bg-white'
-            }`}
+            className={`px-4 py-3 rounded-xl border ${rating === r ? 'bg-green-600 text-white' : 'bg-white'
+              }`}
           >
             {r === 'good' && '👍 Bon'}
             {r === 'medium' && '😐 Moyen'}

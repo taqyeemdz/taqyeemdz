@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-
+import { supabaseBrowser } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -22,8 +21,7 @@ export default function Sidebar({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   // ⭐ LOGOUT HANDLER
   async function handleLogout() {
     await supabase.auth.signOut();

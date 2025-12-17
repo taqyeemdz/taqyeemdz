@@ -1,65 +1,101 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+"use server";
+
 import { NextResponse } from "next/server";
+import { createSupabaseServer } from "@/lib/supabase/server";
+
+type BusinessBody = {
+  name: string;
+  category: string;
+  phone?: string;
+  address?: string;
+};
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
+    // ------------------------------
+    // 1️⃣ Server-side Supabase client (anon key)
+    // ------------------------------
+    const supabaseUser = await createSupabaseServer();
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
-      }
-    );
+    // ------------------------------
+    // 2️⃣ Get current logged-in user
+    // ------------------------------
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseUser.auth.getUser();
 
-    // 1) Get current session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Not logged in" }, { status: 401 });
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Not authenticated" },
+        { status: 401 }
+      );
     }
 
-    const userId = session.user.id;
-
-    // 2) Parse body
-    const body = await request.json();
-    const { name, category, phone, address } = body;
-
-    if (!name || !category) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    // ------------------------------
+    // 3️⃣ Check role: owner only
+    // ------------------------------
+    if (user.app_metadata?.role !== "owner") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // 3) Insert business
-    const { data: business, error: businessError } = await supabase
+    // ------------------------------
+    // 4️⃣ Parse & validate body
+    // ------------------------------
+    const body: BusinessBody = await request.json();
+
+    if (!body.name || !body.category) {
+      return NextResponse.json(
+        { error: "Missing required fields: name and category" },
+        { status: 400 }
+      );
+    }
+
+    // ------------------------------
+    // 5️⃣ Admin client (service role) to bypass RLS
+    // ------------------------------
+    const supabaseAdmin = await createSupabaseServer(true);
+
+    // ------------------------------
+    // 6️⃣ Insert new business
+    // ------------------------------
+    const { data: business, error: businessError } = await supabaseAdmin
       .from("businesses")
-      .insert([{ name, category, phone, address }])
+      .insert([
+        {
+          name: body.name,
+          category: body.category,
+          phone: body.phone || null,
+          address: body.address || null,
+          owner_id: user.id, // ✅ essential for RLS
+        },
+      ])
       .select()
       .single();
 
     if (businessError) throw businessError;
 
-    // 4) Link business to owner
-    const { error: linkError } = await supabase
+    // ------------------------------
+    // 7️⃣ Optionally link owner ↔ business in user_business
+    // ------------------------------
+    const { error: linkError } = await supabaseAdmin
       .from("user_business")
-      .insert([{ user_id: userId, business_id: business.id }]);
+      .insert([{ user_id: user.id, business_id: business.id }]);
 
     if (linkError) throw linkError;
 
-    // 5) Respond
-    return NextResponse.json({ business_id: business.id });
-
+    // ------------------------------
+    // 8️⃣ Return success
+    // ------------------------------
+    return NextResponse.json({
+      business_id: business.id,
+      message: "Business created successfully",
+    });
   } catch (err: any) {
     console.error("Create business error:", err);
-    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || "Internal server error" },
+      { status: 500 }
+    );
   }
 }

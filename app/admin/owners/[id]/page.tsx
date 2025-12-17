@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import {
+import { supabaseBrowser } from "@/lib/supabase/client"; import {
     User,
     Mail,
     Calendar,
@@ -19,8 +18,7 @@ import {
 export default function OwnerDetailPage() {
     const { id } = useParams();
     const router = useRouter();
-    const supabase = createClientComponentClient();
-
+    const supabase = supabaseBrowser;
     const [loading, setLoading] = useState(true);
     const [profile, setProfile] = useState<any>(null);
     const [businesses, setBusinesses] = useState<any[]>([]);
@@ -52,15 +50,20 @@ export default function OwnerDetailPage() {
             setProfile({ ...ownerProfile, email });
 
             // 2. Fetch Businesses
-            const { data: businessList, error: bizError } = await supabase
-                .from("businesses")
-                .select("*") // Get all fields
-                .eq("owner_id", id)
-                .order("created_at", { ascending: false });
+            const { data: userBusinesses, error: bizError } = await supabase
+                .from("user_business")
+                .select(`
+                    business_id,
+                    businesses:businesses (*)
+                `)
+                .eq("user_id", id);
 
             if (bizError) console.error(bizError);
 
-            const bList = businessList || [];
+            const bList = userBusinesses?.map((ub: any) => ub.businesses) || [];
+            // Sort by created_at descending
+            bList.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
             setBusinesses(bList);
 
             // 3. Fetch Feedback for ALL these businesses

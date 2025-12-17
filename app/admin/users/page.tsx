@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Users, Plus, Search } from "lucide-react";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { Users, Plus, Search } from "lucide-react";
 
 export default function UsersPage() {
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

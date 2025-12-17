@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import {
+import { supabaseBrowser } from "@/lib/supabase/client"; import {
   Plus,
   Users,
   Mail,
@@ -15,8 +14,7 @@ import {
 } from "lucide-react";
 
 export default function OwnersListPage() {
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   const [loading, setLoading] = useState(true);
   const [owners, setOwners] = useState<any[]>([]);
   const [search, setSearch] = useState("");

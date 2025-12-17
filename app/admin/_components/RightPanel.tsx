@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import { Users, Star, BarChart3, ArrowRight } from "lucide-react";
+import { supabaseBrowser } from "@/lib/supabase/client"; import { Users, Star, BarChart3, ArrowRight } from "lucide-react";
 
 export default function RightPanel() {
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   const [stats, setStats] = useState({ avg: 0, total: 0, businesses: 0 });
   const [users, setUsers] = useState<any[]>([]);
 

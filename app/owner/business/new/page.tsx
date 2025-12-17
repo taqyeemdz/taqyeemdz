@@ -1,14 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
-import QRCode from "qrcode";
+import { supabaseBrowser } from "@/lib/supabase/client"; import QRCode from "qrcode";
 
 type FormField = "name" | "category" | "phone" | "address";
 
 export default function NewBusiness() {
-  const supabase = createClientComponentClient();
-
+  const supabase = supabaseBrowser;
   const [form, setForm] = useState<Record<FormField, string>>({
     name: "",
     category: "",
@@ -20,36 +18,38 @@ export default function NewBusiness() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    async function checkAuth() {
+      const { data } = await supabase.auth.getSession();
+
+      if (!data.session) {
+        window.location.href = "/auth/login?redirectTo=/owner/business/new";
+      }
+    }
+
+    checkAuth();
+  }, [supabase]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      // 1) Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error("You must be logged in.");
+      const res = await fetch("/api/owner/create-business", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
 
-      const userId = session.user.id;
+      const data = await res.json();
 
-      // 2) Insert business
-      const { data: business, error: businessError } = await supabase
-        .from("businesses")
-        .insert([{ ...form }])
-        .select()
-        .single();
-
-      if (businessError) throw businessError;
-
-      // 3) Link business to owner
-      const { error: linkError } = await supabase
-        .from("user_business")
-        .insert([{ user_id: userId, business_id: business.id }]);
-
-      if (linkError) throw linkError;
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create business");
+      }
 
       // 4) Generate QR code pointing to owner's business dashboard
-      const link = `${window.location.origin}/owner/business/${business.id}`;
+      const link = `${window.location.origin}/owner/business/${data.business_id}`;
       const qrDataUrl = await QRCode.toDataURL(link);
       setQrLink(qrDataUrl);
 
