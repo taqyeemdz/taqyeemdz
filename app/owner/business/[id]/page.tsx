@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, MouseEvent } from "react";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter, useParams } from "next/navigation";
 import {
     Building2,
     MapPin,
@@ -14,9 +15,14 @@ import {
     Ghost,
     Calendar,
     MessageSquare,
-    Mail
+    Mail,
+    QrCode as QrIcon,
+    X,
+    ExternalLink,
+    Copy,
+    Printer
 } from "lucide-react";
-import { QRCodeSVG as QRCode } from "qrcode.react";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function OwnerBusinessDetailsPage() {
     const supabase = supabaseBrowser; const router = useRouter();
@@ -26,6 +32,7 @@ export default function OwnerBusinessDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [business, setBusiness] = useState<any>(null);
     const [feedback, setFeedback] = useState<any[]>([]);
+    const [showQr, setShowQr] = useState(false);
 
     const [activeTab, setActiveTab] = useState<"feed" | "form">("feed");
     const [formConfig, setFormConfig] = useState<any[]>([]);
@@ -120,6 +127,68 @@ export default function OwnerBusinessDetailsPage() {
 
     const feedbackLink = `${window.location.origin}/client/feedback/${businessId}`;
 
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(feedbackLink);
+        alert("Link copied to clipboard!");
+    };
+
+    const handleDownloadQR = () => {
+        const svg = document.getElementById("qr-code-svg");
+        if (!svg) return;
+
+        const svgData = new XMLSerializer().serializeToString(svg);
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        const img = new Image();
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx?.drawImage(img, 0, 0);
+            const pngFile = canvas.toDataURL("image/png");
+
+            const downloadLink = document.createElement("a");
+            downloadLink.download = `${business.name}-QR.png`;
+            downloadLink.href = pngFile;
+            downloadLink.click();
+        };
+
+        img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    };
+
+    const handlePrintQR = () => {
+        const svg = document.getElementById("qr-code-svg");
+        if (!svg) return;
+
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) return;
+
+        const svgHtml = svg.outerHTML;
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print QR Code - ${business.name}</title>
+                    <style>
+                        body { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; }
+                        h1 { margin-bottom: 20px; }
+                        svg { width: 300px; height: 300px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>${business.name}</h1>
+                    ${svgHtml}
+                    <script>
+                        window.onload = () => {
+                            window.print();
+                            window.close();
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
     return (
         <div className=" mx-auto p-6 space-y-8">
 
@@ -127,29 +196,104 @@ export default function OwnerBusinessDetailsPage() {
             <div className="flex flex-col gap-4 md:gap-6">
                 <button
                     onClick={() => router.push("/owner/business")}
-                    className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors w-fit px-1"
+                    className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors w-fit px-1 mb-2"
                 >
                     <ChevronLeft size={18} />
                     <span className="text-sm font-medium">Back to Businesses</span>
                 </button>
 
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-200 pb-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
-                            <Building2 size={24} className="md:hidden" />
-                            <Building2 size={32} className="hidden md:block" />
-                        </div>
-                        <div className="min-w-0">
-                            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">{business.name}</h1>
-                            <div className="flex flex-wrap items-center gap-2 md:gap-3 mt-1 text-sm text-gray-500">
-                                <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide">
-                                    Active
-                                </span>
-                                <span className="hidden md:inline">•</span>
-                                <span>{feedback.length} Reviews</span>
+                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+                                <Building2 size={32} />
+                            </div>
+                            <div className="min-w-0">
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">{business.name}</h1>
+
+                                <div className="flex flex-wrap gap-x-6 gap-y-2 mt-2 text-sm text-gray-500">
+                                    {business.address && (
+                                        <div className="flex items-center gap-1.5">
+                                            <MapPin size={14} className="text-gray-400" />
+                                            <span>{business.address}</span>
+                                        </div>
+                                    )}
+                                    {business.phone && (
+                                        <div className="flex items-center gap-1.5">
+                                            <Phone size={14} className="text-gray-400" />
+                                            <span>{business.phone}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wide">
+                                            Active
+                                        </span>
+                                        <span>• {feedback.length} Reviews</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <button
+                            onClick={() => setShowQr(!showQr)}
+                            className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors shadow-sm shadow-indigo-200 shrink-0"
+                        >
+                            <QrIcon size={20} />
+                        </button>
                     </div>
+
+                    {/* EXPANDED QR SECTION */}
+                    {showQr && (
+                        <div className="mt-6 pt-6 border-t border-gray-100 flex flex-col md:flex-row items-center gap-6 animate-in slide-in-from-top-2 duration-300">
+                            <div className="bg-white p-4 rounded-2xl border-2 border-indigo-100 shadow-sm">
+                                <QRCodeSVG id="qr-code-svg" value={feedbackLink} size={180} />
+                            </div>
+                            <div className="flex-1 text-center md:text-left space-y-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900 mb-2">Scan to Review</h3>
+                                    <p className="text-gray-500 text-sm">
+                                        Show this QR code to your customers to collect feedback.
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                                    <button
+                                        onClick={handleCopyLink}
+                                        className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-100 transition"
+                                    >
+                                        <Copy size={16} />
+                                        Copy Link
+                                    </button>
+
+                                    <button
+                                        onClick={handleDownloadQR}
+                                        className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-100 transition"
+                                    >
+                                        <Download size={16} />
+                                        Download
+                                    </button>
+
+                                    <button
+                                        onClick={handlePrintQR}
+                                        className="inline-flex items-center gap-2 bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-100 transition"
+                                    >
+                                        <Printer size={16} />
+                                        Print
+                                    </button>
+
+                                    <a
+                                        href={feedbackLink}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-600 border border-indigo-200 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-indigo-100 transition"
+                                    >
+                                        <ExternalLink size={16} />
+                                        Open Link
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -170,10 +314,10 @@ export default function OwnerBusinessDetailsPage() {
             </div>
 
             {/* MAIN CONTENT GRID */}
-            <div className="flex flex-col md:grid md:grid-cols-3 gap-8">
+            <div className="w-full max-w-4xl mx-auto">
 
-                {/* LEFT CONTENT AREA (2/3 width) */}
-                <div className="order-2 md:order-1 md:col-span-2 space-y-6">
+                {/* CONTENT AREA */}
+                <div className="space-y-6">
 
                     {activeTab === "feed" ? (
                         <>
@@ -258,57 +402,9 @@ export default function OwnerBusinessDetailsPage() {
                         </div>
                     )}
                 </div>
-
-                {/* RIGHT COL: INFO & QR (1/3 width) - Order 1 on mobile, 2 on desktop */}
-                <div className="order-1 md:order-2 space-y-6">
-
-                    {/* INFO CARD */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
-                        <h3 className="font-semibold text-gray-900 border-b border-gray-100 pb-3">
-                            Business Details
-                        </h3>
-
-                        <div className="space-y-4">
-                            <div className="flex gap-3">
-                                <div className="mt-0.5 text-gray-400"><MapPin size={18} /></div>
-                                <div>
-                                    <p className="text-xs font-medium text-gray-500 uppercase">Address</p>
-                                    <p className="text-gray-700 text-sm">{business.address || "No address provided"}</p>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <div className="mt-0.5 text-gray-400"><Phone size={18} /></div>
-                                <div>
-                                    <p className="text-xs font-medium text-gray-500 uppercase">Phone</p>
-                                    <p className="text-gray-700 text-sm">{business.phone || "No phone provided"}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* QR CODE CARD (Sticky) */}
-                    <div className="md:sticky md:top-6 bg-indigo-50 rounded-2xl border border-indigo-100 p-6 flex flex-col items-center text-center">
-                        <div className="bg-white p-3 rounded-xl shadow-sm mb-4">
-                            <QRCode value={feedbackLink} size={150} />
-                        </div>
-                        <h3 className="font-bold text-indigo-900 mb-1">Feedback QR Code</h3>
-                        <p className="text-indigo-600/80 text-xs mb-4 max-w-[200px]">
-                            Download or show this code to your customers to collect feedback.
-                        </p>
-
-                        <a
-                            href={feedbackLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="bg-white text-indigo-600 border border-indigo-200 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-indigo-50 transition w-full flex items-center justify-center gap-2"
-                        >
-                            <Share2 size={14} /> Open Link
-                        </a>
-                    </div>
-
-                </div>
             </div>
+
+
         </div>
     );
 }
