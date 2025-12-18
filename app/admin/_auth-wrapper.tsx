@@ -1,10 +1,10 @@
 // app/admin/_auth-wrapper.tsx
 import { ReactNode } from "react";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createSupabaseServer } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export default async function AdminAuthWrapper({ children }: { children: ReactNode }) {
-  const supabase = await createServerSupabase();
+  const supabase = await createSupabaseServer();
 
   // Get session
   const {
