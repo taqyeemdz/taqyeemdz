@@ -203,10 +203,10 @@ export default function OwnerBusinessDetailsPage() {
                 </button>
 
                 <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
-                        <div className="flex items-center gap-5">
-                            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
-                                <Building2 size={32} />
+                    <div className="flex flex-row gap-4 md:gap-6 justify-between items-start md:items-center">
+                        <div className="flex items-center gap-3 md:gap-5 min-w-0">
+                            <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 shrink-0">
+                                <Building2 size={24} className="md:w-8 md:h-8" />
                             </div>
                             <div className="min-w-0">
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">{business.name}</h1>
