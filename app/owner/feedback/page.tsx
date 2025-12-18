@@ -19,7 +19,9 @@ export default function FeedbackPage() {
 
   const [loading, setLoading] = useState(true);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<any[]>([]);
   const [filter, setFilter] = useState("all"); // all, positive, negative
+  const [selectedBusinessId, setSelectedBusinessId] = useState("all");
 
   useEffect(() => {
     const fetchFeedback = async () => {
@@ -43,18 +45,24 @@ export default function FeedbackPage() {
         return;
       }
 
-      // 3. Fetch all feedback
-      const { data, error } = await supabase
-        .from("feedback")
-        .select("*, businesses(name)")
-        .in("business_id", businessIds)
-        .order("created_at", { ascending: false });
+      // 3. Fetch businesses and feedback
+      const [busRes, fbRes] = await Promise.all([
+        supabase
+          .from("businesses")
+          .select("id, name")
+          .in("id", businessIds),
+        supabase
+          .from("feedback")
+          .select("*, businesses(name)")
+          .in("business_id", businessIds)
+          .order("created_at", { ascending: false })
+      ]);
 
-      if (error) {
-        console.error("Error fetching feedback:", error);
-      } else {
-        setFeedbacks(data || []);
-      }
+      if (busRes.error) console.error("Error fetching businesses:", busRes.error);
+      if (fbRes.error) console.error("Error fetching feedback:", fbRes.error);
+
+      setBusinesses(busRes.data || []);
+      setFeedbacks(fbRes.data || []);
       setLoading(false);
     };
 
@@ -63,9 +71,15 @@ export default function FeedbackPage() {
 
   // FILTER LOGIC
   const filteredFeedbacks = feedbacks.filter(fb => {
-    if (filter === "positive") return fb.rating >= 4;
-    if (filter === "negative") return fb.rating <= 2;
-    return true;
+    // Rating filter
+    const matchesRating = filter === "all" ||
+      (filter === "positive" && fb.rating >= 4) ||
+      (filter === "negative" && fb.rating <= 2);
+
+    // Business filter
+    const matchesBusiness = selectedBusinessId === "all" || fb.business_id === selectedBusinessId;
+
+    return matchesRating && matchesBusiness;
   });
 
   if (loading) {
@@ -89,24 +103,43 @@ export default function FeedbackPage() {
           <p className="text-gray-500 mt-1">Review feedback across all your businesses.</p>
         </div>
 
-        {/* FILTERS */}
-        <div className="flex p-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          {[
-            { id: "all", label: "All" },
-            { id: "positive", label: "Positive (4-5)" },
-            { id: "negative", label: "Negative (1-2)" },
-          ].map((f) => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${filter === f.id
-                ? "bg-indigo-50 text-indigo-700"
-                : "text-gray-600 hover:bg-gray-50"
-                }`}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* BUSINESS SELECT */}
+          <div className="relative">
+            <select
+              value={selectedBusinessId}
+              onChange={(e) => setSelectedBusinessId(e.target.value)}
+              className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
             >
-              {f.label}
-            </button>
-          ))}
+              <option value="all">All Businesses</option>
+              {businesses.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+              <ChevronRight size={16} className="rotate-90" />
+            </div>
+          </div>
+
+          {/* RATING FILTERS */}
+          <div className="flex p-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            {[
+              { id: "all", label: "All" },
+              { id: "positive", label: "Positive" },
+              { id: "negative", label: "Negative" },
+            ].map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setFilter(f.id)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${filter === f.id
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-600 hover:bg-gray-50"
+                  }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

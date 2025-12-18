@@ -152,7 +152,6 @@ export default function TamboolaPage() {
                             </div>
                             <div>
                                 <h1 className="text-3xl font-bold text-gray-900">Tamboola Draw</h1>
-                                <p className="text-gray-500 mt-1">Randomly select winners from customer feedback</p>
                             </div>
                         </div>
 
