@@ -45,7 +45,9 @@ export default function BusinessDetailPage() {
       if (error) console.error("Error fetching business:", error);
 
       // Flatten owner info
-      const owner = b?.user_business?.[0]?.profiles;
+      const rawOwner = b?.user_business?.[0]?.profiles;
+      const owner = Array.isArray(rawOwner) ? rawOwner[0] : rawOwner;
+
       const businessData = b ? {
         ...b,
         owner_name: owner?.full_name,
