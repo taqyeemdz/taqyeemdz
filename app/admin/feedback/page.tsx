@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabaseBrowser } from "@/lib/supabase/client";
 import { Camera, X } from 'lucide-react';
 
 export default function FeedbackForm({ businessId }: { businessId: string }) {

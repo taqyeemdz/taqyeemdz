@@ -27,6 +27,10 @@ export default function OwnerBusinessDetailsPage() {
     const [business, setBusiness] = useState<any>(null);
     const [feedback, setFeedback] = useState<any[]>([]);
 
+    const [activeTab, setActiveTab] = useState<"feed" | "form">("feed");
+    const [formConfig, setFormConfig] = useState<any[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -50,6 +54,10 @@ export default function OwnerBusinessDetailsPage() {
             }
 
             setBusiness(b);
+            // Initialize form config if it exists
+            if (b.form_config) {
+                setFormConfig(b.form_config);
+            }
 
             // 3️⃣ Load feedback
             const { data: fb, error: fbError } = await supabase
@@ -68,6 +76,34 @@ export default function OwnerBusinessDetailsPage() {
 
         fetchData();
     }, [businessId, router, supabase]);
+
+    const handleSaveForm = async () => {
+        setIsSaving(true);
+        const { error } = await supabase
+            .from("businesses")
+            .update({ form_config: formConfig })
+            .eq("id", businessId);
+
+        if (error) {
+            console.error("Error saving form config:", error);
+            alert("Failed to save form configuration");
+        } else {
+            alert("Form configuration saved successfully!");
+        }
+        setIsSaving(false);
+    };
+
+    const addField = () => {
+        setFormConfig([...formConfig, { id: crypto.randomUUID(), label: "", type: "text", required: false }]);
+    };
+
+    const updateField = (id: string, key: string, value: any) => {
+        setFormConfig(formConfig.map(f => f.id === id ? { ...f, [key]: value } : f));
+    };
+
+    const removeField = (id: string) => {
+        setFormConfig(formConfig.filter(f => f.id !== id));
+    };
 
     if (loading) {
         return (
@@ -117,29 +153,108 @@ export default function OwnerBusinessDetailsPage() {
                 </div>
             </div>
 
+            {/* TABS */}
+            <div className="flex gap-4 border-b border-gray-200">
+                <button
+                    onClick={() => setActiveTab("feed")}
+                    className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 ${activeTab === "feed" ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                >
+                    Recent Feedback
+                </button>
+                <button
+                    onClick={() => setActiveTab("form")}
+                    className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 ${activeTab === "form" ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                >
+                    Form Editor
+                </button>
+            </div>
+
             {/* MAIN CONTENT GRID */}
             <div className="flex flex-col md:grid md:grid-cols-3 gap-8">
 
-                {/* LEFT COL: FEEDBACK FEED (2/3 width) - Order 2 on mobile, 1 on desktop */}
+                {/* LEFT CONTENT AREA (2/3 width) */}
                 <div className="order-2 md:order-1 md:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-gray-900">Recent Feedback</h2>
-                        {/* Could add a filter dropdown here */}
-                    </div>
 
-                    {feedback.length === 0 ? (
-                        <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-10 text-center">
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-gray-400">
-                                <MessageSquare size={20} />
+                    {activeTab === "feed" ? (
+                        <>
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900">Recent Feedback</h2>
                             </div>
-                            <h3 className="text-gray-900 font-medium mb-1">No feedback yet</h3>
-                            <p className="text-gray-500 text-sm">Share your QR code to get your first review!</p>
-                        </div>
+
+                            {feedback.length === 0 ? (
+                                <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-10 text-center">
+                                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-gray-400">
+                                        <MessageSquare size={20} />
+                                    </div>
+                                    <h3 className="text-gray-900 font-medium mb-1">No feedback yet</h3>
+                                    <p className="text-gray-500 text-sm">Share your QR code to get your first review!</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {feedback.map((fb) => (
+                                        <FeedbackCard key={fb.id} feedback={fb} />
+                                    ))}
+                                </div>
+                            )}
+                        </>
                     ) : (
-                        <div className="space-y-4">
-                            {feedback.map((fb) => (
-                                <FeedbackCard key={fb.id} feedback={fb} />
-                            ))}
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-bold text-gray-900">Customize Feedback Form</h2>
+                                <button onClick={handleSaveForm} disabled={isSaving} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50">
+                                    {isSaving ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
+
+                            <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
+                                {formConfig.map((field, index) => (
+                                    <div key={field.id} className="p-4 border border-gray-100 rounded-xl bg-gray-50 space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <h4 className="text-sm font-semibold text-gray-700">Field #{index + 1}</h4>
+                                            <button onClick={() => removeField(field.id)} className="text-red-500 text-xs hover:underline">Remove</button>
+                                        </div>
+                                        <div className="grid md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Label / Question</label>
+                                                <input
+                                                    type="text"
+                                                    value={field.label}
+                                                    onChange={(e) => updateField(field.id, "label", e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                    placeholder="e.g. What did you order?"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+                                                <select
+                                                    value={field.type}
+                                                    onChange={(e) => updateField(field.id, "type", e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                                                >
+                                                    <option value="text">Text Input</option>
+                                                    <option value="textarea">Long Text</option>
+                                                    <option value="rating">Star Rating (1-5)</option>
+                                                    <option value="boolean">Yes / No</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`req-${field.id}`}
+                                                checked={field.required}
+                                                onChange={(e) => updateField(field.id, "required", e.target.checked)}
+                                                className="rounded text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <label htmlFor={`req-${field.id}`} className="text-sm text-gray-600">Required Field</label>
+                                        </div>
+                                    </div>
+                                ))}
+
+                                <button onClick={addField} className="w-full py-3 border-2 border-dashed border-gray-200 rounded-xl text-gray-500 font-medium hover:border-indigo-300 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2">
+                                    <span className="text-xl">+</span> Add Custom Field
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

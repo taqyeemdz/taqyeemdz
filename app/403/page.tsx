@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { supabaseBrowser } from "@/lib/supabase/client"
 import { useRouter } from 'next/navigation'
 import { LogOut, ShieldAlert } from 'lucide-react'
 
 export default function ForbiddenPage() {
-  const supabase = createClientComponentClient()
+  const supabase = supabaseBrowser
   const router = useRouter()
   const [userEmail, setUserEmail] = useState<string | null>(null)
 

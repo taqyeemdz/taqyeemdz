@@ -1,17 +1,42 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createSupabaseServer } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
+  let res = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
 
-  // FIX: createMiddlewareClient handles the cookie adapter internally
-  const supabase = await createSupabaseServer();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            req.cookies.set(name, value)
+          );
+          res = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options)
+          );
+        },
+      },
+    }
+  );
 
-  // Automatically refreshes expired access tokens
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const url = req.nextUrl.clone();
   const pathname = url.pathname;
@@ -29,20 +54,20 @@ export async function middleware(req: NextRequest) {
   if (!isProtected) return res;
 
   // Not logged in → redirect
-  if (!session) {
+  if (!user) {
     url.pathname = "/auth/login";
     url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }
 
-  let role = session.user.app_metadata?.role;
+  let role = user.app_metadata?.role;
 
   // Fetch role from DB if missing in JWT
   if (!role) {
     const { data: roleData } = await supabase
       .from("profiles")
       .select("role")
-      .eq("id", session.user.id)
+      .eq("id", user.id)
       .maybeSingle();
 
     role = roleData?.role ?? null;

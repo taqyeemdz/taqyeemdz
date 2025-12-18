@@ -14,6 +14,7 @@ export default function ClientFeedbackPage() {
     const [error, setError] = useState("");
 
     // Feedback form state
+    // Feedback form state
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [message, setMessage] = useState("");
@@ -24,6 +25,10 @@ export default function ClientFeedbackPage() {
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [sex, setSex] = useState("male");
+
+    // Custom Fields State
+    const [customFields, setCustomFields] = useState<any[]>([]);
+    const [customResponses, setCustomResponses] = useState<Record<string, any>>({});
 
     useEffect(() => {
         if (!businessId) return;
@@ -40,12 +45,27 @@ export default function ClientFeedbackPage() {
                 setError("Business not found.");
             } else {
                 setBusiness(data);
+                // Initialize Custom Fields
+                if (data.form_config && Array.isArray(data.form_config)) {
+                    setCustomFields(data.form_config);
+                    // Init responses
+                    const initials: Record<string, any> = {};
+                    data.form_config.forEach((f: any) => {
+                        if (f.type === 'boolean') initials[f.id] = false;
+                        else initials[f.id] = "";
+                    });
+                    setCustomResponses(initials);
+                }
             }
             setLoading(false);
         };
 
         loadBusiness();
     }, [businessId]);
+
+    const handleCustomResponseChange = (id: string, value: any) => {
+        setCustomResponses(prev => ({ ...prev, [id]: value }));
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,6 +74,23 @@ export default function ClientFeedbackPage() {
         if (rating === 0) {
             setError("Please select a rating.");
             return;
+        }
+
+        // Validate required custom fields
+        for (const field of customFields) {
+            if (field.required && !customResponses[field.id]) {
+                // For boolean, false is a valid response even if required usually implies "checked" for agreements, 
+                // but here it might just mean "Answer mandatory". Let's assume non-empty for text/rating.
+                // For boolean "required" usually means "must check yes".
+                if (field.type === 'boolean' && field.required && customResponses[field.id] !== true) {
+                    setError(`Please check ${field.label}`);
+                    return;
+                }
+                if (field.type !== 'boolean' && (customResponses[field.id] === "" || customResponses[field.id] === undefined)) {
+                    setError(`Please answer: ${field.label}`);
+                    return;
+                }
+            }
         }
 
         if (!businessId) return;
@@ -67,6 +104,7 @@ export default function ClientFeedbackPage() {
             phone: anonymous ? null : phone || null,
             email: anonymous ? null : email || null,
             sex: anonymous ? null : sex,
+            custom_responses: customResponses
         };
 
         const { error: insertError } = await supabase.from("feedback").insert(payload);
@@ -74,10 +112,22 @@ export default function ClientFeedbackPage() {
         if (insertError) {
             setError(insertError.message);
         } else {
+            // ALSO SAVE TO CLIENTS (Code backup for trigger)
+            if (!anonymous && phone) {
+                await supabase.from("clients").upsert({
+                    full_name: fullName,
+                    phone: phone,
+                    email: email,
+                    sex: sex,
+                    last_seen_at: new Date().toISOString()
+                }, { onConflict: 'phone' });
+            }
+
             setSuccess(true);
             // Reset form (optional, since we show success screen)
             setMessage("");
             setRating(0);
+            setCustomResponses({});
         }
     };
 
@@ -121,6 +171,8 @@ export default function ClientFeedbackPage() {
             </div>
         );
     }
+
+
 
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
@@ -173,6 +225,66 @@ export default function ClientFeedbackPage() {
                                 )}
                             </p>
                         </div>
+
+                        {/* CUSTOM FORM FIELDS */}
+                        {customFields.length > 0 && (
+                            <div className="space-y-4 border-t border-b border-gray-100 py-4">
+                                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Additional Questions</h3>
+                                {customFields.map((field) => (
+                                    <div key={field.id} className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            {field.label} {field.required && <span className="text-red-500">*</span>}
+                                        </label>
+
+                                        {field.type === 'text' && (
+                                            <input
+                                                type="text"
+                                                value={customResponses[field.id] || ""}
+                                                onChange={(e) => handleCustomResponseChange(field.id, e.target.value)}
+                                                className="block w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                            />
+                                        )}
+
+                                        {field.type === 'textarea' && (
+                                            <textarea
+                                                value={customResponses[field.id] || ""}
+                                                onChange={(e) => handleCustomResponseChange(field.id, e.target.value)}
+                                                rows={3}
+                                                className="block w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                            />
+                                        )}
+
+                                        {field.type === 'boolean' && (
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCustomResponseChange(field.id, !customResponses[field.id])}
+                                                    className={`w-12 h-6 rounded-full transition-colors flex items-center p-1 ${customResponses[field.id] ? 'bg-indigo-600 justify-end' : 'bg-gray-200 justify-start'}`}
+                                                >
+                                                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                                </button>
+                                                <span className="text-sm text-gray-600">{customResponses[field.id] ? "Yes" : "No"}</span>
+                                            </div>
+                                        )}
+
+                                        {field.type === 'rating' && (
+                                            <div className="flex gap-1">
+                                                {[1, 2, 3, 4, 5].map((val) => (
+                                                    <button
+                                                        key={val}
+                                                        type="button"
+                                                        onClick={() => handleCustomResponseChange(field.id, val)}
+                                                        className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${customResponses[field.id] === val ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                                                    >
+                                                        {val}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {/* ANONYMOUS TOGGLE */}
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center justify-between">
@@ -303,3 +415,5 @@ export default function ClientFeedbackPage() {
         </div>
     );
 }
+
+

@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  Bell
+  Bell,
+  Trophy
 } from "lucide-react";
 
 export default function OwnerDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -67,6 +68,8 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
     { href: "/owner", label: "Dashboard", icon: LayoutDashboard },
     { href: "/owner/business", label: "Businesses", icon: Store },
     { href: "/owner/feedback", label: "Feedbacks", icon: MessageCircle },
+    { href: "/owner/tamboola", label: "Tamboola", icon: Trophy },
+
     // { href: "/owner/qr-codes", label: "QR Codes", icon: QrCode },
     { href: "/owner/settings", label: "Settings", icon: Settings },
   ];

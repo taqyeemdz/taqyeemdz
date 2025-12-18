@@ -1,0 +1,56 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { supabaseBrowser } from "@/lib/supabase/client"
+import { useRouter } from 'next/navigation'
+import { LogOut, ShieldAlert } from 'lucide-react'
+
+export default function PaymentRequiredPage() {
+    const supabase = supabaseBrowser
+    const router = useRouter()
+    const [userEmail, setUserEmail] = useState<string | null>(null)
+
+    useEffect(() => {
+        supabase.auth.getUser().then(({ data }) => {
+            setUserEmail(data?.user?.email ?? null)
+        })
+    }, [supabase])
+
+    async function handleLogout() {
+        try {
+            await supabase.auth.signOut()
+            router.replace('/auth/login')
+        } catch (error) {
+            console.error('Logout failed:', error)
+        }
+    }
+
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-center px-6">
+            <div className="bg-white shadow-md rounded-xl p-8 max-w-md w-full border border-gray-100">
+                <div className="flex flex-col items-center">
+                    <ShieldAlert size={48} className="text-amber-500 mb-4" />
+                    <h1 className="text-2xl font-semibold text-gray-800 mb-2">
+                        Payment Required
+                    </h1>
+                    <p className="text-gray-600 mb-6">
+                        You must be an owner to access this section.
+                    </p>
+
+                    {userEmail && (
+                        <p className="text-sm text-gray-500 mb-4">
+                            Logged in as <span className="font-medium">{userEmail}</span>
+                        </p>
+                    )}
+
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center justify-center gap-2 w-full bg-amber-600 text-white font-medium py-2 rounded-md hover:bg-amber-700 transition-colors"
+                    >
+                        <LogOut size={18} /> Logout & Switch Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}

@@ -143,6 +143,36 @@ export default function FeedbackDetailPage() {
                             </div>
                         </div>
 
+                        {/* CUSTOM RESPONSES */}
+                        {feedback.custom_responses && Object.keys(feedback.custom_responses).length > 0 && feedback.businesses?.form_config && (
+                            <div className="space-y-4 pt-6 border-t border-gray-50">
+                                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+                                    <span className="text-indigo-500 font-serif italic text-lg">i</span>
+                                    Additional Info
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {feedback.businesses.form_config.map((field: any) => {
+                                        const response = feedback.custom_responses[field.id];
+                                        if (response === undefined || response === "" || response === null) return null;
+
+                                        return (
+                                            <div key={field.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                                <p className="text-xs font-semibold text-gray-500 mb-1">{field.label}</p>
+                                                <p className="text-gray-900 font-medium">
+                                                    {field.type === 'boolean'
+                                                        ? (response ? "Yes" : "No")
+                                                        : field.type === 'rating'
+                                                            ? `${response} / 5`
+                                                            : response
+                                                    }
+                                                </p>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {/* CUSTOMER DETAILS (If not anonymous) */}
                         {!isAnonymous && (
                             <div className="mt-8 pt-6 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
