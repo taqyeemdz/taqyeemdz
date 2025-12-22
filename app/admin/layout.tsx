@@ -16,7 +16,8 @@ import {
   ChevronRight,
   User,
   Bell,
-  Activity
+  Activity,
+  Zap
 } from "lucide-react";
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {

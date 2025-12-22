@@ -23,10 +23,13 @@ export default function OwnersListPage() {
     (async () => {
       setLoading(true);
 
-      // Load all owners
+      // Load all owners with their plans
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, role, created_at,email")
+        .select(`
+          id, full_name, role, created_at, email, plan_id,
+          subscription_plans (name)
+        `)
         .eq("role", "owner")
         .order("created_at", { ascending: false });
 
@@ -34,12 +37,12 @@ export default function OwnersListPage() {
         /** fetch auth emails for each user */
         const { data: users } = await supabase.auth.admin.listUsers();
 
-        const merged = data.map((o) => {
+        const merged = data.map((o: any) => {
           const auth = users?.users?.find((u) => u.id === o.id);
           return {
             ...o,
-            // Fallback to profile email if auth fails, or handle appropriately
             email: auth?.email || o.email || "—",
+            plan_name: o.subscription_plans?.name || "No Plan"
           };
         });
 
@@ -142,6 +145,9 @@ export default function OwnersListPage() {
                   </h3>
                   <span className="bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-100">
                     Owner
+                  </span>
+                  <span className="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-indigo-100">
+                    {o.plan_name}
                   </span>
                 </div>
 

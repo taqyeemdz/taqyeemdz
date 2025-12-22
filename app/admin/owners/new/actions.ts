@@ -11,11 +11,12 @@ export async function createOwner(formData: FormData) {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
     const full_name = formData.get("full_name") as string;
+    const plan_id = formData.get("plan_id") as string;
 
     console.log("🛠️ createOwner Action called");
     console.log("   Email:", email);
     console.log("   Full Name:", full_name);
-    console.log("   Has Service Key:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.log("   Plan ID:", plan_id);
 
     // 1️⃣ Create user in Auth
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
@@ -33,10 +34,13 @@ export async function createOwner(formData: FormData) {
 
     const userId = data.user.id;
 
-    // 2️⃣ Update role ONLY (profile already exists via trigger)
+    // 2️⃣ Update role and plan_id (profile already exists via trigger)
     const { error: roleError } = await supabaseAdmin
         .from("profiles")
-        .update({ role: "owner" })
+        .update({
+            role: "owner",
+            plan_id: plan_id
+        })
         .eq("id", userId);
 
     if (roleError) {

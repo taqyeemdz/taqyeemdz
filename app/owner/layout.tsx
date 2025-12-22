@@ -67,6 +67,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
   const links = [
     { href: "/owner", label: "Dashboard", icon: LayoutDashboard },
     { href: "/owner/business", label: "Businesses", icon: Store },
+    { href: "/owner/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/owner/feedback", label: "Feedbacks", icon: MessageCircle },
     { href: "/owner/tamboola", label: "Tamboola", icon: Trophy },
 

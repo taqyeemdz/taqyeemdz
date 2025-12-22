@@ -19,6 +19,7 @@ export default function OwnerBusinessPage() {
 
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [ownerPlan, setOwnerPlan] = useState<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -27,16 +28,43 @@ export default function OwnerBusinessPage() {
 
       if (!user) return router.replace("/auth/login");
 
-      const { data: links, error } = await supabase
+      // 1. Fetch Owner Profile + Plan
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select(`
+          *,
+          subscription_plans(*)
+        `)
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setOwnerPlan(profile.subscription_plans);
+      }
+      // 2) Get all business IDs for this user
+      const { data: links } = await supabase
         .from("user_business")
-        .select("business_id, businesses(*)")
+        .select("business_id")
         .eq("user_id", user.id);
+
+      const businessIds = links?.map(l => l.business_id) || [];
+
+      if (businessIds.length === 0) {
+        setLoading(false);
+        return;
+      }
+      // 2. Fetch Businesses
+      const { data: businessList, error } = await supabase
+        .from("businesses")
+        .select("*")
+        .in("id", businessIds)
+        .order("created_at", { ascending: false })
+
 
       if (error) {
         console.error("Error fetching businesses:", error);
-      } else if (links) {
-        const businessList = links.map((link: any) => link.businesses);
-        setBusinesses(businessList);
+      } else if (businessList) {
+        setBusinesses(businessList || []);
       }
 
       setLoading(false);
@@ -53,6 +81,9 @@ export default function OwnerBusinessPage() {
       </div>
     );
   }
+
+  const totalBranches = businesses.reduce((acc, b) => acc + (b.branch_count || 0), 0);
+  const totalQRs = businesses.reduce((acc, b) => acc + (b.qr_count || 0), 0);
 
   return (
     <div className=" mx-auto p-6 space-y-8">
@@ -75,7 +106,7 @@ export default function OwnerBusinessPage() {
       {businesses.length > 0 ? (
         <div className="flex flex-col gap-4">
           {businesses.map((b) => (
-            <BusinessRow key={b.id} business={b} router={router} />
+            <BusinessRow key={b.id} business={b} router={router} ownerPlan={ownerPlan} />
           ))}
         </div>
       ) : (
@@ -85,7 +116,7 @@ export default function OwnerBusinessPage() {
   );
 }
 
-function BusinessRow({ business, router }: { business: any, router: any }) {
+function BusinessRow({ business, router, ownerPlan }: { business: any, router: any, ownerPlan: any }) {
   const [showQr, setShowQr] = useState(false);
   const feedbackLink = `${window.location.origin}/client/feedback/${business.id}`;
 
@@ -122,26 +153,37 @@ function BusinessRow({ business, router }: { business: any, router: any }) {
                 <span>{business.phone}</span>
               </div>
             )}
+            <div className="flex items-center gap-1.5 ml-auto md:ml-0">
+              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">
+                {business.branch_count || 0} Branches
+              </span>
+              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">
+                {business.qr_count || 0} QR Codes
+              </span>
+            </div>
           </div>
         </div>
 
         {/* ACTIONS */}
         <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-0 border-gray-100">
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowQr(!showQr); }}
-            className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${showQr ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
-            title="Show Details"
-          >
-            <QrCode size={18} />
-          </button>
 
-          <button
-            onClick={() => router.push(`/owner/business/${business.id}`)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors ml-auto md:ml-0"
-          >
-            <span>Manage</span>
-            <ChevronRight size={16} />
-          </button>
+          <div className="flex items-center gap-3 ml-auto md:ml-0">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowQr(!showQr); }}
+              className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${showQr ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+              title="Show Details"
+            >
+              <QrCode size={18} />
+            </button>
+
+            <button
+              onClick={() => router.push(`/owner/business/${business.id}`)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors"
+            >
+              <span>Manage</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
       </div>
 

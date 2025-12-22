@@ -2,7 +2,7 @@
 
 
 
-  export type UserRole = "admin" | "business_owner" | "manager" | "staff"
+export type UserRole = "admin" | "business_owner" | "manager" | "staff"
 
 export type User = {
   id: string
@@ -12,10 +12,17 @@ export type User = {
   business_id?: string
   role: "admin" | "owner" | "manager" | "staff"
 }
-
-
-
-
+export interface SubscriptionPlan {
+  id: string
+  name: string
+  price: number
+  currency: string
+  features: string[]
+  max_branches: number
+  max_qr_codes: number
+  max_feedback_monthly: number
+  max_businesses: number
+}
 
 export interface Business {
   id: string
@@ -35,10 +42,9 @@ export interface Business {
   branches: Branch[]
   created_at: string;
   updatedAt: Date
-  subscriptionPlan: "starter" | "pro" | "enterprise"
-  subscriptionstatus: "inactive" |"active" | "cancelled" | "expired"
-  maxBranches: number
-  maxQRCodes: number
+  subscriptionstatus: "inactive" | "active" | "cancelled" | "expired"
+  branch_count?: number
+  qr_count?: number
 }
 
 export type Branch = {
@@ -94,6 +100,8 @@ export type AppUser = {
   createdat: string
   role: "admin" | "owner" | "manager" | "staff" | null
   business_id?: string
+  plan_id?: string
+  plan?: SubscriptionPlan
 }
 
 
@@ -132,7 +140,7 @@ export type QRCode = {
   name: string
   code: string
   scansCount: number
-  description:string
+  description: string
   formType: string
   isActive: boolean
 

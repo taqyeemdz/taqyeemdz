@@ -147,7 +147,7 @@ export default function TamboolaPage() {
                 <div className="space-y-2">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+                            <div className="w-12 h-12 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">
                                 <Trophy size={24} />
                             </div>
                             <div>
@@ -186,230 +186,218 @@ export default function TamboolaPage() {
                         <p className="text-gray-500">No businesses found. Please create a business first.</p>
                     </div>
                 ) : (
-                    <>
-                        {/* STATS BAR */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center">
-                                        <Users size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 font-medium">Eligible Entries</p>
-                                        <p className="text-2xl font-bold text-gray-900">{eligibleFeedbacks.length}</p>
-                                    </div>
-                                </div>
-                            </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center">
-                                        <Trophy size={20} />
+                        {/* LEFT COLUMN: UNIFIED DRAW CARD */}
+                        <div className="lg:col-span-7 space-y-6">
+                            <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm space-y-6">
+                                {/* DRAW CONTROLS */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className="shrink-0 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                            <Gift className="w-12 h-12 text-indigo-600" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h2 className="text-xl font-black text-gray-900 tracking-tight leading-tight">
+                                                Draw Winners for Marmita
+                                            </h2>
+                                            <p className="text-gray-500 text-xs font-medium mt-1">
+                                                {selectedBusiness?.name}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 font-medium">Winners Selected</p>
-                                        <p className="text-2xl font-bold text-gray-900">{winners.length}</p>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
-                                        <Sparkles size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500 font-medium">Draw Status</p>
-                                        <p className="text-sm font-bold text-gray-900">
-                                            {winners.length > 0 ? "Complete" : "Ready"}
-                                        </p>
+                                    {eligibleFeedbacks.length > 0 ? (
+                                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                                            {winners.length === 0 ? (
+                                                <>
+                                                    <button
+                                                        onClick={drawWinners}
+                                                        disabled={isDrawing}
+                                                        className="flex-1 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm hover:scale-[1.01] active:scale-95 disabled:opacity-50"
+                                                    >
+                                                        {isDrawing ? (
+                                                            <Loader2 className="animate-spin" size={18} />
+                                                        ) : (
+                                                            <Shuffle size={18} />
+                                                        )}
+                                                        {isDrawing ? "DRAWING..." : "START DRAW"}
+                                                    </button>
+
+                                                    <div className="relative w-full sm:w-24 shrink-0">
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max={eligibleFeedbacks.length}
+                                                            value={numberOfWinners}
+                                                            onChange={(e) => setNumberOfWinners(Math.max(1, Math.min(parseInt(e.target.value) || 1, eligibleFeedbacks.length)))}
+                                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-center text-lg font-black text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all placeholder-gray-300"
+                                                        />
+                                                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-white border border-gray-100 px-2 text-[8px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">WINNERS</span>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    onClick={resetDraw}
+                                                    className="w-full bg-white hover:bg-gray-50 text-gray-900 py-3 px-6 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all border border-gray-200 hover:scale-[1.01] active:scale-95"
+                                                >
+                                                    <X size={18} />
+                                                    RESET & DRAW AGAIN
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-gray-50 rounded-xl p-4 text-center border border-gray-100">
+                                            <p className="font-bold text-gray-500 text-sm">Zero entries found. Wait for more feedback!</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* DIVIDER */}
+                                <div className="border-t border-gray-100"></div>
+
+                                {/* DRAW SUMMARY */}
+                                <div className="space-y-4">
+                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Draw Summary</h3>
+
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="p-3 rounded-xl bg-gray-50/50 border border-gray-200 text-center">
+                                            <div className="w-8 h-8 bg-white text-gray-400 rounded-lg flex items-center justify-center border border-gray-100 mx-auto mb-2">
+                                                <Users size={16} />
+                                            </div>
+                                            <p className="text-lg font-black text-gray-900 leading-none">{eligibleFeedbacks.length}</p>
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mt-1">Entries</p>
+                                        </div>
+
+                                        <div className="p-3 rounded-xl bg-gray-50/50 border border-gray-200 text-center">
+                                            <div className="w-8 h-8 bg-white text-gray-400 rounded-lg flex items-center justify-center border border-gray-100 mx-auto mb-2">
+                                                <Trophy size={16} />
+                                            </div>
+                                            <p className="text-lg font-black text-gray-900 leading-none">{winners.length}</p>
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mt-1">Winners</p>
+                                        </div>
+
+                                        <div className="p-3 rounded-xl bg-gray-50/50 border border-gray-200 text-center">
+                                            <div className="w-8 h-8 bg-white text-gray-400 rounded-lg flex items-center justify-center border border-gray-100 mx-auto mb-2">
+                                                <Sparkles size={16} />
+                                            </div>
+                                            <p className="text-lg font-black text-gray-900 leading-none">
+                                                {winners.length > 0 ? "Done" : "Ready"}
+                                            </p>
+                                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mt-1">Status</p>
+                                        </div>
                                     </div>
                                 </div>
+
+                                {/* WINNERS DISPLAY */}
+                                {winners.length > 0 && (
+                                    <>
+                                        <div className="border-t border-gray-100"></div>
+                                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                                    <Trophy className="text-indigo-600" size={16} />
+                                                    Selected Winners
+                                                </h3>
+                                                <div className="px-2 py-1 bg-gray-100 text-gray-600 rounded-lg text-[8px] font-black uppercase tracking-widest border border-gray-200">
+                                                    Official
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {winners.map((winner, index) => (
+                                                    <div
+                                                        key={winner.id}
+                                                        className="bg-gray-50/50 p-4 rounded-xl border border-gray-200 group hover:bg-white hover:border-indigo-200 transition-all duration-300"
+                                                        style={{
+                                                            animation: 'fadeIn 0.5s ease-out',
+                                                            animationDelay: `${index * 100}ms`,
+                                                            animationFillMode: 'both'
+                                                        }}
+                                                    >
+                                                        <div className="flex items-start gap-3">
+                                                            <div className="w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center font-black text-lg shadow-sm shrink-0">
+                                                                {index + 1}
+                                                            </div>
+
+                                                            <div className="flex-1 min-w-0">
+                                                                <h4 className="font-black text-gray-900 text-base tracking-tight leading-none group-hover:text-indigo-600 transition-colors truncate">
+                                                                    {winner.full_name}
+                                                                </h4>
+                                                                <div className="flex items-center gap-1.5 text-gray-500 mt-1.5">
+                                                                    <Phone size={12} />
+                                                                    <span className="text-xs font-bold tracking-tight">{winner.phone}</span>
+                                                                </div>
+
+                                                                <div className="mt-3 flex items-center justify-between pt-3 border-t border-gray-100">
+                                                                    <div className="flex gap-0.5">
+                                                                        {[1, 2, 3, 4, 5].map((star) => (
+                                                                            <Star
+                                                                                key={star}
+                                                                                size={10}
+                                                                                className={`${star <= winner.rating ? "fill-gray-900 text-gray-900" : "fill-gray-100 text-gray-100"}`}
+                                                                                strokeWidth={1}
+                                                                            />
+                                                                        ))}
+                                                                    </div>
+                                                                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Rating</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* EMPTY STATE */}
+                                {eligibleFeedbacks.length === 0 && (
+                                    <>
+                                        <div className="border-t border-gray-100"></div>
+                                        <div className="py-12 text-center space-y-4">
+                                            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto text-gray-300">
+                                                <Users size={32} />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">Pool is empty</h3>
+                                                <p className="text-gray-400 text-xs max-w-xs mx-auto font-medium">
+                                                    No customers have left contact info for <strong>{selectedBusiness?.name}</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
-                        {/* DRAW CONTROLS */}
-                        {eligibleFeedbacks.length > 0 ? (
-                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100 shadow-sm">
-                                <div className="max-w-2xl mx-auto space-y-6">
-                                    <div className="text-center">
-                                        <Gift className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-                                        <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                                            Draw Winners for {selectedBusiness?.name}
-                                        </h2>
-                                        <p className="text-gray-600">Select how many winners you want to draw</p>
+                        {/* RIGHT COLUMN: ENTRY POOL */}
+                        <div className="lg:col-span-5">
+
+                            {/* ELIGIBLE ENTRIES LIST (SUMMARY) */}
+                            {eligibleFeedbacks.length > 0 && (
+                                <div className="bg-white p-8 rounded-[2.5rem] border border-gray-200 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between px-1">
+                                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">Entry Pool</h3>
+                                        <span className="text-[10px] font-black text-gray-300">{eligibleFeedbacks.length} TOTAL</span>
                                     </div>
-
-                                    {winners.length === 0 && (
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                    Number of Winners
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max={eligibleFeedbacks.length}
-                                                    value={numberOfWinners}
-                                                    onChange={(e) => setNumberOfWinners(Math.max(1, Math.min(parseInt(e.target.value) || 1, eligibleFeedbacks.length)))}
-                                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-                                                />
-                                                <p className="text-xs text-gray-500 mt-2">
-                                                    Maximum: {eligibleFeedbacks.length} eligible entries
-                                                </p>
-                                            </div>
-
-                                            <button
-                                                onClick={drawWinners}
-                                                disabled={isDrawing}
-                                                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {isDrawing ? (
-                                                    <>
-                                                        <Shuffle className="animate-spin" size={24} />
-                                                        Drawing...
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Shuffle size={24} />
-                                                        Draw Winners
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {winners.length > 0 && (
-                                        <button
-                                            onClick={resetDraw}
-                                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-                                        >
-                                            <X size={18} />
-                                            Reset & Draw Again
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="bg-gray-50 rounded-3xl border border-dashed border-gray-200 p-12 text-center">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
-                                    <Users size={32} />
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900 mb-2">No Eligible Entries</h3>
-                                <p className="text-gray-500 max-w-md mx-auto">
-                                    No feedbacks found with both customer name and phone number for <strong>{selectedBusiness?.name}</strong>. Encourage customers to leave their contact information!
-                                </p>
-                            </div>
-                        )}
-
-                        {/* WINNERS DISPLAY */}
-                        {winners.length > 0 && (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                        <Trophy className="text-amber-500" size={28} />
-                                        Winners 🎉
-                                    </h2>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {winners.map((winner, index) => (
-                                        <div
-                                            key={winner.id}
-                                            className="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border-2 border-amber-200 shadow-lg"
-                                            style={{
-                                                animation: 'fadeIn 0.5s ease-out',
-                                                animationDelay: `${index * 100}ms`,
-                                                animationFillMode: 'both'
-                                            }}
-                                        >
-                                            <div className="flex items-start gap-4">
-                                                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-md shrink-0">
-                                                    #{index + 1}
+                                    <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {eligibleFeedbacks.map((fb) => (
+                                            <div key={fb.id} className="p-4 rounded-3xl bg-gray-50/50 border border-gray-100 flex items-center gap-4 group hover:bg-white hover:border-indigo-200 transition-all duration-300">
+                                                <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-xs font-black text-gray-400 border border-gray-100 transition-colors">
+                                                    {fb.full_name?.charAt(0)}
                                                 </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <User size={16} className="text-amber-700" />
-                                                        <h3 className="font-bold text-gray-900 text-lg">
-                                                            {winner.full_name}
-                                                        </h3>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2 text-gray-600 mb-2">
-                                                        <Phone size={14} />
-                                                        <span className="text-sm font-medium">{winner.phone}</span>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
-                                                        <Star size={14} className="text-amber-500" />
-                                                        <span>Rating: {winner.rating}/5</span>
-                                                    </div>
-
-                                                    <div className="bg-white/70 rounded-lg p-3 mt-3">
-                                                        <p className="text-xs font-medium text-gray-500 mb-1">Business:</p>
-                                                        <p className="text-sm font-semibold text-gray-900">
-                                                            {winner.businesses?.name || "Unknown"}
-                                                        </p>
-                                                    </div>
-
-                                                    {winner.message && (
-                                                        <div className="bg-white/70 rounded-lg p-3 mt-2">
-                                                            <p className="text-xs font-medium text-gray-500 mb-1">Feedback:</p>
-                                                            <p className="text-sm text-gray-700 line-clamp-2 italic">
-                                                                "{winner.message}"
-                                                            </p>
-                                                        </div>
-                                                    )}
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-black text-gray-900 truncate">{fb.full_name}</p>
+                                                    <p className="text-[10px] font-bold text-gray-400">{fb.phone}</p>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* ELIGIBLE ENTRIES LIST */}
-                        {eligibleFeedbacks.length > 0 && (
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                                        <Users size={20} className="text-blue-600" />
-                                        All Eligible Entries ({eligibleFeedbacks.length})
-                                    </h2>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {eligibleFeedbacks.map((fb) => (
-                                        <div
-                                            key={fb.id}
-                                            className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all"
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${fb.rating >= 4 ? 'bg-green-100 text-green-600' :
-                                                    fb.rating >= 3 ? 'bg-yellow-100 text-yellow-600' :
-                                                        'bg-red-100 text-red-600'
-                                                    }`}>
-                                                    <span className="font-bold text-sm">{fb.rating}</span>
-                                                </div>
-
-                                                <div className="flex-1 min-w-0">
-                                                    <h4 className="font-semibold text-gray-900 truncate mb-1">
-                                                        {fb.full_name}
-                                                    </h4>
-                                                    <p className="text-xs text-gray-500 mb-2">{fb.phone}</p>
-                                                    <div className="flex items-center gap-1 text-xs text-gray-400">
-                                                        <Building2 size={12} />
-                                                        <span>{fb.businesses?.name || "Unknown Business"}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
 
@@ -424,7 +412,8 @@ export default function TamboolaPage() {
             transform: scale(1);
           }
         }
-      `}</style>
+      `}
+            </style>
         </div>
     );
 }

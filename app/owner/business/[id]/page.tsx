@@ -22,7 +22,8 @@ import {
     Copy,
     Printer,
     Trash2,
-    AlertTriangle
+    AlertTriangle,
+    Send
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -37,7 +38,7 @@ export default function OwnerBusinessDetailsPage() {
     const [feedback, setFeedback] = useState<any[]>([]);
     const [showQr, setShowQr] = useState(false);
 
-    const [activeTab, setActiveTab] = useState<"feed" | "form">("feed");
+    const [activeTab, setActiveTab] = useState<"feed" | "form" | "preview">("feed");
     const [formConfig, setFormConfig] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
@@ -319,6 +320,12 @@ export default function OwnerBusinessDetailsPage() {
                 >
                     Form Editor
                 </button>
+                <button
+                    onClick={() => setActiveTab("preview")}
+                    className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 ${activeTab === "preview" ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                >
+                    Form Preview
+                </button>
             </div>
 
             {/* MAIN CONTENT AREA */}
@@ -345,7 +352,7 @@ export default function OwnerBusinessDetailsPage() {
                             </div>
                         )}
                     </div>
-                ) : (
+                ) : activeTab === "form" ? (
                     <div className="space-y-6 max-w-3xl">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-bold text-gray-900">Customize Feedback Form</h2>
@@ -409,6 +416,79 @@ export default function OwnerBusinessDetailsPage() {
                                 <span className="text-xl">+</span> Add Custom Field
                             </button>
                         </div>
+                    </div>
+                ) : (
+                    <div className="max-w-xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 py-6">
+                        <div className="text-center space-y-2">
+                            <div className="bg-amber-50 text-amber-600 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-100 inline-block">
+                                LIVE PREVIEW MODE
+                            </div>
+                            <p className="text-sm text-gray-400 font-medium">This is exactly what your customers see when they scan your QR code.</p>
+                        </div>
+
+                        <div className="bg-white py-10 px-8 border border-gray-100 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                            <div className="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+
+                            <div className="space-y-10">
+                                {/* Headline Preview */}
+                                <div className="text-center">
+                                    <h1 className="text-3xl font-black text-gray-900 tracking-tight">{business.name}</h1>
+                                    <p className="text-gray-500 mt-2 font-medium">We value your opinion. Please rate your experience.</p>
+                                </div>
+
+                                {/* Rating Preview */}
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="flex gap-2">
+                                        {[1, 2, 3, 4, 5].map((s) => (
+                                            <Star key={s} size={42} className="text-gray-100 fill-gray-50" strokeWidth={1.5} />
+                                        ))}
+                                    </div>
+                                    <p className="text-xs font-black text-gray-300 uppercase tracking-widest">Tap a star to rate</p>
+                                </div>
+
+                                {/* Custom Fields Simulation */}
+                                {formConfig.length > 0 && (
+                                    <div className="space-y-6 pt-6 border-t border-gray-50">
+                                        {formConfig.map((f: any) => (
+                                            <div key={f.id} className="space-y-2">
+                                                <label className="text-sm font-black text-gray-700 flex items-center gap-2">
+                                                    {f.label} {f.required && <span className="text-red-500 text-lg">*</span>}
+                                                </label>
+                                                <div className="h-12 bg-gray-50 rounded-xl border border-gray-100" />
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Info Simulation */}
+                                <div className="space-y-6 pt-6 border-t border-gray-50">
+                                    <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-black text-gray-900">Stay Anonymous</span>
+                                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Review won't show your name</span>
+                                        </div>
+                                        <div className="w-10 h-6 bg-indigo-600 rounded-full p-1 flex justify-end">
+                                            <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Your Message (Optional)</label>
+                                        <div className="h-32 bg-gray-50 rounded-2xl border border-gray-100 p-4 relative">
+                                            <MessageSquare size={18} className="text-gray-300" />
+                                            <span className="text-gray-300 text-sm font-medium mt-2 block ml-6">Tell us about your experience...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button className="w-full bg-indigo-600 text-white rounded-2xl py-5 font-black text-sm shadow-xl shadow-indigo-100 flex items-center justify-center gap-3 opacity-80 cursor-not-allowed">
+                                    <span>SEND FEEDBACK</span>
+                                    <Send size={18} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <p className="text-center text-[10px] text-gray-300 font-black uppercase tracking-[0.3em]">Powered by TaqyeemDZ</p>
                     </div>
                 )}
             </div>
