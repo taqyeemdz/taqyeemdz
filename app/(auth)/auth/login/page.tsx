@@ -28,9 +28,17 @@ function LoginInner() {
     const checkSession = async () => {
       const { data } = await supabase.auth.getSession();
       const session = data.session;
-      const role = session?.user.app_metadata?.role;
 
       if (!session?.user) return;
+
+      // Fetch role from profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      const role = profile?.role;
 
       if (redirectTo) {
         router.replace(redirectTo);
@@ -59,7 +67,19 @@ function LoginInner() {
       if (loginError) throw loginError;
       if (!data.session) throw new Error("Login failed");
 
-      const role = data.user.app_metadata?.role;
+      // Fetch role from profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        throw new Error("Failed to fetch user profile");
+      }
+
+      const role = profile?.role;
 
       if (!role) throw new Error("Your account is not activated yet.");
 

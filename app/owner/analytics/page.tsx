@@ -13,7 +13,10 @@ import {
   Building2,
   Sparkles,
   ThumbsUp,
-  Clock
+  Clock,
+  ListChecks,
+  CheckCircle2,
+  X
 } from "lucide-react";
 
 export default function AnalyticsPage() {
@@ -22,6 +25,8 @@ export default function AnalyticsPage() {
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("all");
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [customFields, setCustomFields] = useState<any[]>([]);
+  const [customFieldsAnalytics, setCustomFieldsAnalytics] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalFeedback: 0,
     averageRating: 0,
@@ -53,7 +58,7 @@ export default function AnalyticsPage() {
       if (businessIds.length > 0) {
         const { data: busDocs } = await supabase
           .from("businesses")
-          .select("id, name")
+          .select("id, name, form_config")
           .in("id", businessIds);
 
         if (busDocs && busDocs.length > 0) {
@@ -89,6 +94,21 @@ export default function AnalyticsPage() {
       if (data) {
         setFeedbacks(data);
         calculateStats(data);
+
+        // Get custom fields for selected business
+        if (selectedBusinessId !== "all") {
+          const business = businesses.find(b => b.id === selectedBusinessId);
+          if (business?.form_config && Array.isArray(business.form_config)) {
+            setCustomFields(business.form_config);
+            analyzeCustomFields(business.form_config, data);
+          } else {
+            setCustomFields([]);
+            setCustomFieldsAnalytics([]);
+          }
+        } else {
+          setCustomFields([]);
+          setCustomFieldsAnalytics([]);
+        }
       }
     };
 
@@ -136,6 +156,64 @@ export default function AnalyticsPage() {
       recentTrend: trend,
       responseRate
     });
+  };
+
+  const analyzeCustomFields = (fields: any[], feedbackData: any[]) => {
+    const analytics = fields.map(field => {
+      const responses = feedbackData
+        .map(f => f.custom_responses?.[field.id])
+        .filter(r => r !== undefined && r !== null && r !== "");
+
+      const responseCount = responses.length;
+      const completionRate = feedbackData.length > 0
+        ? (responseCount / feedbackData.length) * 100
+        : 0;
+
+      let analysis: any = {
+        fieldId: field.id,
+        label: field.label,
+        type: field.type,
+        responseCount,
+        completionRate
+      };
+
+      // Type-specific analysis
+      if (field.type === 'boolean') {
+        const trueCount = responses.filter(r => r === true).length;
+        const falseCount = responses.filter(r => r === false).length;
+        analysis.truePercentage = responseCount > 0 ? (trueCount / responseCount) * 100 : 0;
+        analysis.falsePercentage = responseCount > 0 ? (falseCount / responseCount) * 100 : 0;
+      } else if (field.type === 'rating') {
+        const numericResponses = responses.filter(r => typeof r === 'number');
+        const avg = numericResponses.length > 0
+          ? numericResponses.reduce((a, b) => a + b, 0) / numericResponses.length
+          : 0;
+        analysis.average = avg;
+
+        // Distribution
+        const dist: Record<number, number> = {};
+        numericResponses.forEach(r => {
+          dist[r] = (dist[r] || 0) + 1;
+        });
+        analysis.distribution = dist;
+      } else if (field.type === 'text') {
+        // For text, show most common words or phrases (simple implementation)
+        const allText = responses.join(' ').toLowerCase();
+        const words = allText.split(/\s+/).filter(w => w.length > 3);
+        const wordCount: Record<string, number> = {};
+        words.forEach(w => {
+          wordCount[w] = (wordCount[w] || 0) + 1;
+        });
+        const topWords = Object.entries(wordCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 5);
+        analysis.topWords = topWords;
+      }
+
+      return analysis;
+    });
+
+    setCustomFieldsAnalytics(analytics);
   };
 
   const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
@@ -343,6 +421,129 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </div>
+
+        {/* CUSTOM FIELDS ANALYTICS */}
+        {customFieldsAnalytics.length > 0 && (
+          <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm">
+            <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-3 mb-6">
+              <ListChecks size={20} className="text-gray-400" />
+              Custom Fields Analytics
+              <span className="text-xs font-bold text-gray-400 ml-auto">{selectedBusiness?.name}</span>
+            </h3>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {customFieldsAnalytics.map((field) => (
+                <div key={field.fieldId} className="p-5 rounded-2xl bg-gray-50/50 border border-gray-200 space-y-4">
+                  {/* Field Header */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="text-base font-black text-gray-900">{field.label}</h4>
+                      <p className="text-xs text-gray-500 font-medium mt-0.5 capitalize">{field.type} field</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-indigo-600">{field.completionRate.toFixed(0)}%</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Completion</p>
+                    </div>
+                  </div>
+
+                  {/* Type-specific visualizations */}
+                  {field.type === 'boolean' && (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 size={16} className="text-green-600" />
+                        <div className="flex-1 h-6 bg-gray-100 rounded-lg overflow-hidden relative">
+                          <div
+                            className="h-full bg-green-500 rounded-lg transition-all duration-1000"
+                            style={{ width: `${field.truePercentage}%` }}
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-gray-700">
+                            Yes: {field.truePercentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <X size={16} className="text-red-600" />
+                        <div className="flex-1 h-6 bg-gray-100 rounded-lg overflow-hidden relative">
+                          <div
+                            className="h-full bg-red-500 rounded-lg transition-all duration-1000"
+                            style={{ width: `${field.falsePercentage}%` }}
+                          />
+                          <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-gray-700">
+                            No: {field.falsePercentage.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 font-medium pt-2">
+                        {field.responseCount} responses
+                      </p>
+                    </div>
+                  )}
+
+                  {field.type === 'rating' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <span className="text-sm font-bold text-amber-900">Average Rating</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl font-black text-amber-600">{field.average.toFixed(1)}</span>
+                          <Star size={16} className="text-amber-500 fill-amber-500" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {Object.entries(field.distribution || {})
+                          .sort((a, b) => Number(b[0]) - Number(a[0]))
+                          .map(([rating, count]: [string, any]) => {
+                            const percentage = field.responseCount > 0 ? (count / field.responseCount) * 100 : 0;
+                            return (
+                              <div key={rating} className="flex items-center gap-2">
+                                <span className="text-xs font-black text-gray-600 w-8">{rating}★</span>
+                                <div className="flex-1 h-5 bg-gray-100 rounded-lg overflow-hidden relative">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-lg transition-all duration-1000"
+                                    style={{ width: `${percentage}%` }}
+                                  />
+                                  <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-gray-600">
+                                    {count}
+                                  </span>
+                                </div>
+                                <span className="text-xs font-bold text-gray-400 w-10 text-right">{percentage.toFixed(0)}%</span>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                  {field.type === 'text' && (
+                    <div className="space-y-3">
+                      <p className="text-xs text-gray-500 font-medium">
+                        {field.responseCount} text responses received
+                      </p>
+                      {field.topWords && field.topWords.length > 0 && (
+                        <div>
+                          <p className="text-xs font-black text-gray-600 mb-2 uppercase tracking-wider">Common Words</p>
+                          <div className="flex flex-wrap gap-2">
+                            {field.topWords.map(([word, count]: [string, number]) => (
+                              <div key={word} className="px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                <span className="text-xs font-bold text-indigo-900">{word}</span>
+                                <span className="text-[10px] font-black text-indigo-400 ml-1.5">×{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {customFieldsAnalytics.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-400 text-sm font-medium">No custom fields configured for this business</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>
