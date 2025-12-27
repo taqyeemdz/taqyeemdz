@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 interface UpgradeModalProps {
     isOpen: boolean;
     onClose: () => void;
+    maxLimit?: number;
+    currentCount?: number;
+    type?: string;
 }
 
 export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
@@ -62,8 +65,8 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                                 <div
                                     key={plan.id}
                                     className={`relative p-6 rounded-[2rem] border-2 transition-all duration-300 flex flex-col ${plan.name === 'Pro'
-                                            ? 'border-indigo-600 shadow-xl shadow-indigo-100'
-                                            : 'border-gray-100 hover:border-gray-200 shadow-sm bg-white'
+                                        ? 'border-indigo-600 shadow-xl shadow-indigo-100'
+                                        : 'border-gray-100 hover:border-gray-200 shadow-sm bg-white'
                                         }`}
                                 >
                                     {plan.name === 'Pro' && (
@@ -115,8 +118,8 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                                     <Button
                                         onClick={() => handleUpgrade(plan)}
                                         className={`w-full rounded-2xl py-6 font-black transition-all hover:scale-[1.02] active:scale-95 shadow-lg ${plan.name === 'Pro'
-                                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
-                                                : 'bg-gray-900 hover:bg-gray-800 text-white'
+                                            ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100'
+                                            : 'bg-gray-900 hover:bg-gray-800 text-white'
                                             }`}
                                     >
                                         Select Plan
