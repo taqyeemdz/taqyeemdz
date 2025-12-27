@@ -449,15 +449,7 @@ export default function AdminSettings() {
                               />
                             </div>
 
-                            <div className="space-y-1.5">
-                              <Label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">QR Codes / Br</Label>
-                              <Input
-                                type="number"
-                                value={plan.max_qr_codes}
-                                onChange={(e) => updatePlan(plan.id, "max_qr_codes", parseInt(e.target.value) || 0)}
-                                className="h-9 sm:h-10 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-sm"
-                              />
-                            </div>
+
                             <div className="space-y-1.5">
                               <Label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Feedback / Mo</Label>
                               <Input

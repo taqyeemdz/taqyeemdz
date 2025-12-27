@@ -13,6 +13,7 @@ import {
   Star
 } from "lucide-react";
 import { QRCodeSVG as QRCode } from "qrcode.react";
+import { UpgradeModal } from "@/components/owner/UpgradeModal";
 
 export default function OwnerBusinessPage() {
   const supabase = supabaseBrowser; const router = useRouter();
@@ -20,6 +21,7 @@ export default function OwnerBusinessPage() {
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [ownerPlan, setOwnerPlan] = useState<any>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -94,7 +96,13 @@ export default function OwnerBusinessPage() {
           <p className="text-gray-500 mt-1">Manage your businesses and view feedback.</p>
         </div>
         <button
-          onClick={() => router.push("/owner/business/new")}
+          onClick={() => {
+            if (ownerPlan && businesses.length >= (ownerPlan.max_businesses || 0)) {
+              setShowUpgradeModal(true);
+            } else {
+              router.push("/owner/business/new");
+            }
+          }}
           className="group flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-full font-medium shadow-lg shadow-gray-200 hover:shadow-xl hover:scale-105 transition-all active:scale-95"
         >
           <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -110,8 +118,23 @@ export default function OwnerBusinessPage() {
           ))}
         </div>
       ) : (
-        <EmptyState router={router} />
+        <EmptyState
+          router={router}
+          onNewBusiness={() => {
+            if (ownerPlan && businesses.length >= (ownerPlan.max_businesses || 0)) {
+              setShowUpgradeModal(true);
+            } else {
+              router.push("/owner/business/new");
+            }
+          }}
+        />
       )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        maxLimit={ownerPlan?.max_businesses}
+      />
     </div>
   );
 }
@@ -208,7 +231,7 @@ function BusinessRow({ business, router, ownerPlan }: { business: any, router: a
   );
 }
 
-function EmptyState({ router }: { router: any }) {
+function EmptyState({ router, onNewBusiness }: { router: any, onNewBusiness: () => void }) {
   return (
     <div className="bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center flex flex-col items-center">
       <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-6 text-gray-400">
@@ -219,7 +242,7 @@ function EmptyState({ router }: { router: any }) {
         Get started by adding your first business. You'll be able to collect feedback and manage your profile.
       </p>
       <button
-        onClick={() => router.push("/owner/business/new")}
+        onClick={onNewBusiness}
         className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl transition-all"
       >
         <Plus size={20} />

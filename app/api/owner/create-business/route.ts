@@ -57,7 +57,34 @@ export async function POST(request: Request) {
     const supabaseAdmin = await createSupabaseServer(true);
 
     // ------------------------------
-    // 6️⃣ Insert new business
+    // 6️⃣ Check subscription limits
+    // ------------------------------
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("subscription_plans(max_businesses)")
+      .eq("id", user.id)
+      .single();
+
+    const maxBusinesses = (profile?.subscription_plans as any)?.max_businesses || 0;
+
+    const { count: currentBusinesses } = await supabaseAdmin
+      .from("user_business")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id);
+
+    if (currentBusinesses !== null && currentBusinesses >= maxBusinesses) {
+      return NextResponse.json(
+        {
+          error: "Subscription limit reached",
+          code: "LIMIT_REACHED",
+          max: maxBusinesses
+        },
+        { status: 403 }
+      );
+    }
+
+    // ------------------------------
+    // 7️⃣ Insert new business
     // ------------------------------
     const { data: business, error: businessError } = await supabaseAdmin
       .from("businesses")
@@ -76,7 +103,7 @@ export async function POST(request: Request) {
     if (businessError) throw businessError;
 
     // ------------------------------
-    // 7️⃣ Optionally link owner ↔ business in user_business
+    // 8️⃣ Optionally link owner ↔ business in user_business
     // ------------------------------
     const { error: linkError } = await supabaseAdmin
       .from("user_business")
@@ -85,7 +112,7 @@ export async function POST(request: Request) {
     if (linkError) throw linkError;
 
     // ------------------------------
-    // 8️⃣ Return success
+    // 9️⃣ Return success
     // ------------------------------
     return NextResponse.json({
       business_id: business.id,

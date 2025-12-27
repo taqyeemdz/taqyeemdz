@@ -118,8 +118,7 @@ export default function SettingsPage() {
     );
   }
 
-  const totalBranches = businesses.reduce((acc, b) => acc + (b.branch_count || 0), 0);
-  const totalQRs = businesses.reduce((acc, b) => acc + (b.qr_count || 0), 0);
+
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 p-6 md:p-8">
@@ -246,8 +245,6 @@ export default function SettingsPage() {
                   </h3>
                   <div className="space-y-6">
                     <UsageBar label="Businesses" current={businesses.length} total={ownerPlan?.max_businesses} />
-                    <UsageBar label="Branches" current={totalBranches} total={ownerPlan?.max_branches} />
-                    <UsageBar label="QR Codes" current={totalQRs} total={ownerPlan?.max_qr_codes} />
                   </div>
 
                   <div className="pt-6 border-t border-gray-50 text-center">
