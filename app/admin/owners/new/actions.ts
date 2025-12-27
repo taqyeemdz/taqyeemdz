@@ -38,6 +38,7 @@ export async function createOwner(formData: FormData) {
     const { error: roleError } = await supabaseAdmin
         .from("profiles")
         .update({
+            full_name: full_name,
             role: "owner",
             plan_id: plan_id
         })

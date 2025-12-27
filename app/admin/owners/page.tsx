@@ -64,12 +64,12 @@ export default function OwnersListPage() {
     <div className="max-w-5xl mx-auto p-6 space-y-8">
 
       {/* ========================= HEADER ========================= */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Owners Management
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-sm sm:text-base text-gray-500 mt-1">
             Manage all registered system users and owners.
           </p>
         </div>
@@ -77,9 +77,9 @@ export default function OwnersListPage() {
         <Link
           href="/admin/owners/new"
           className="
-            flex items-center gap-2 bg-gray-900 text-white 
+            flex items-center justify-center gap-2 bg-gray-900 text-white 
             px-5 py-2.5 rounded-xl font-medium shadow-sm hover:bg-black 
-            transition-all active:scale-95
+            transition-all active:scale-95 text-sm sm:text-base w-full sm:w-auto
           "
         >
           <Plus size={18} />
@@ -121,42 +121,45 @@ export default function OwnersListPage() {
           </p>
         </div>
       ) : (
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           {filtered.map((o) => (
             <Link
               key={o.id}
               href={`/admin/owners/${o.id}`}
               className="
-                group bg-white border border-gray-100 rounded-2xl p-5
+                group bg-white border border-gray-100 rounded-2xl p-4 sm:p-5
                 shadow-sm hover:shadow-md hover:border-indigo-100
-                transition-all cursor-pointer flex items-center gap-4
+                transition-all cursor-pointer flex items-start sm:items-center gap-4
               "
             >
               {/* Avatar Icon */}
-              <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 border border-indigo-100 group-hover:scale-105 transition-transform">
-                <UserIcon size={24} />
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 border border-indigo-100 group-hover:scale-105 transition-transform mt-1 sm:mt-0">
+                <UserIcon size={20} className="sm:hidden" />
+                <UserIcon size={24} className="hidden sm:block" />
               </div>
 
               {/* Text Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-lg font-bold text-gray-900 truncate">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 mb-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">
                     {o.full_name || "Unnamed Owner"}
                   </h3>
-                  <span className="bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-100">
-                    Owner
-                  </span>
-                  <span className="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-indigo-100">
-                    {o.plan_name}
-                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-100 whitespace-nowrap">
+                      Owner
+                    </span>
+                    <span className="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-indigo-100 whitespace-nowrap">
+                      {o.plan_name}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
                     <Mail size={14} className="shrink-0" />
                     <span className="truncate">{o.email}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 text-[10px] sm:text-xs text-gray-400">
                     <Calendar size={12} className="shrink-0" />
                     <span>Joined {new Date(o.created_at).toLocaleDateString()}</span>
                   </div>
