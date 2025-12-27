@@ -14,8 +14,11 @@ import {
     X,
     Building2,
     ChevronDown,
-    Loader2
+    Loader2,
+    Lock,
+    ArrowRight
 } from "lucide-react";
+import { UpgradeModal } from "@/components/owner/UpgradeModal";
 
 export default function TamboolaPage() {
     const supabase = supabaseBrowser;
@@ -27,6 +30,8 @@ export default function TamboolaPage() {
     const [numberOfWinners, setNumberOfWinners] = useState(1);
     const [winners, setWinners] = useState<any[]>([]);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [allowTamboola, setAllowTamboola] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     // 1. Fetch businesses on mount
     useEffect(() => {
@@ -59,6 +64,24 @@ export default function TamboolaPage() {
                     setSelectedBusinessId(busDocs[0].id); // Default to first business
                 }
             }
+
+            // Fetch subscription features
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("plan_id")
+                .eq("id", user.id)
+                .single();
+
+            if (profile?.plan_id) {
+                const { data: plan } = await supabase
+                    .from("subscription_plans")
+                    .select("allow_tamboola")
+                    .eq("id", profile.plan_id)
+                    .single();
+
+                setAllowTamboola(!!plan?.allow_tamboola);
+            }
+
             setLoading(false);
         };
 
@@ -140,8 +163,33 @@ export default function TamboolaPage() {
     const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-gray-50 p-4 md:p-8 relative">
+            {!allowTamboola && !loading && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-gray-50/50 backdrop-blur-[2px]">
+                    <div className="max-w-md w-full bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 text-center animate-in zoom-in-95 duration-500">
+                        <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Lock size={40} className="text-indigo-600" />
+                        </div>
+                        <h2 className="text-2xl font-black text-gray-900 mb-2">Tamboola Restricted</h2>
+                        <p className="text-gray-500 font-medium mb-8">
+                            Upgrade to a Pro or Enterprise plan to unlock the Tamboola Draw feature and gamify your feedback system.
+                        </p>
+                        <button
+                            onClick={() => setShowUpgradeModal(true)}
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-indigo-100"
+                        >
+                            Unlock Tamboola <ArrowRight size={20} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+            />
+
+            <div className={`max-w-7xl mx-auto space-y-8 ${!allowTamboola && 'opacity-30 pointer-events-none select-none'}`}>
 
                 {/* HEADER */}
                 <div className="space-y-2">

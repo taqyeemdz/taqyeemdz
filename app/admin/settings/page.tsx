@@ -182,6 +182,9 @@ export default function AdminSettings() {
       max_qr_codes: 5,
       max_feedback_monthly: 100,
       max_businesses: 1,
+      allow_media: false,
+      allow_stats: false,
+      allow_tamboola: false,
       is_active: true
     };
     setPlans([...plans, newPlan]);
@@ -448,16 +451,46 @@ export default function AdminSettings() {
                                 className="h-9 sm:h-10 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-sm"
                               />
                             </div>
+                          </div>
 
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2">
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                              <div className="space-y-0.5">
+                                <Label className="text-[10px] font-bold text-gray-900">Media Upload</Label>
+                                <p className="text-[9px] text-gray-400 font-medium leading-none">Photos/Videos</p>
+                              </div>
+                              <button
+                                onClick={() => updatePlan(plan.id, "allow_media", !plan.allow_media)}
+                                className={`w-10 h-5 rounded-full transition-colors flex items-center p-1 ${plan.allow_media ? 'bg-indigo-600 justify-end' : 'bg-gray-300 justify-start'}`}
+                              >
+                                <div className="w-3 h-3 rounded-full bg-white shadow-sm" />
+                              </button>
+                            </div>
 
-                            <div className="space-y-1.5">
-                              <Label className="text-[9px] sm:text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Feedback / Mo</Label>
-                              <Input
-                                type="number"
-                                value={plan.max_feedback_monthly}
-                                onChange={(e) => updatePlan(plan.id, "max_feedback_monthly", parseInt(e.target.value) || 0)}
-                                className="h-9 sm:h-10 bg-gray-50 border-none rounded-xl font-bold text-gray-700 text-sm"
-                              />
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                              <div className="space-y-0.5">
+                                <Label className="text-[10px] font-bold text-gray-900">Statistics</Label>
+                                <p className="text-[9px] text-gray-400 font-medium leading-none">Analytics Access</p>
+                              </div>
+                              <button
+                                onClick={() => updatePlan(plan.id, "allow_stats", !plan.allow_stats)}
+                                className={`w-10 h-5 rounded-full transition-colors flex items-center p-1 ${plan.allow_stats ? 'bg-indigo-600 justify-end' : 'bg-gray-300 justify-start'}`}
+                              >
+                                <div className="w-3 h-3 rounded-full bg-white shadow-sm" />
+                              </button>
+                            </div>
+
+                            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                              <div className="space-y-0.5">
+                                <Label className="text-[10px] font-bold text-gray-900">Tamboola</Label>
+                                <p className="text-[9px] text-gray-400 font-medium leading-none">Gamification Feature</p>
+                              </div>
+                              <button
+                                onClick={() => updatePlan(plan.id, "allow_tamboola", !plan.allow_tamboola)}
+                                className={`w-10 h-5 rounded-full transition-colors flex items-center p-1 ${plan.allow_tamboola ? 'bg-indigo-600 justify-end' : 'bg-gray-300 justify-start'}`}
+                              >
+                                <div className="w-3 h-3 rounded-full bg-white shadow-sm" />
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -516,7 +549,6 @@ export default function AdminSettings() {
               {[
                 { key: "registrations_enabled", label: "Public Registrations", desc: "Allow new business owners to sign up independently.", icon: Globe },
                 { key: "maintenance_mode", label: "Maintenance Mode", desc: "Restrict platform access to administrative personnel only.", icon: Bell },
-
               ].map((feature, idx) => (
                 <div key={idx} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 sm:p-8 hover:bg-gray-50/20 transition-colors gap-4">
                   <div className="flex items-start gap-4">
@@ -576,5 +608,5 @@ export default function AdminSettings() {
         </div>
       )}
     </div>
-  )
+  );
 }

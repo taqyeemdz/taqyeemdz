@@ -26,6 +26,8 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
   const pathname = usePathname();
   const supabase = supabaseBrowser;
   const [user, setUser] = useState<any>(null);
+  const [allowStats, setAllowStats] = useState(false);
+  const [allowTamboola, setAllowTamboola] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true); // Desktop state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Mobile state
@@ -53,6 +55,18 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
       }
 
       setUser(profile);
+
+      if (profile.plan_id) {
+        const { data: plan } = await supabase
+          .from("subscription_plans")
+          .select("allow_stats, allow_tamboola")
+          .eq("id", profile.plan_id)
+          .single();
+
+        setAllowStats(!!plan?.allow_stats);
+        setAllowTamboola(!!plan?.allow_tamboola);
+      }
+
       setLoading(false);
     })();
   }, []);
@@ -67,11 +81,9 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
   const links = [
     { href: "/owner", label: "Dashboard", icon: LayoutDashboard },
     { href: "/owner/business", label: "Businesses", icon: Store },
-    { href: "/owner/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/owner/analytics", label: "Analytics", icon: BarChart3, locked: !allowStats },
     { href: "/owner/feedback", label: "Feedbacks", icon: MessageCircle },
-    { href: "/owner/tamboola", label: "Tamboola", icon: Trophy },
-
-    // { href: "/owner/qr-codes", label: "QR Codes", icon: QrCode },
+    { href: "/owner/tamboola", label: "Tamboola", icon: Trophy, locked: !allowTamboola },
     { href: "/owner/settings", label: "Settings", icon: Settings },
   ];
 
@@ -134,7 +146,14 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
               >
                 <Icon size={20} className={`${isActive ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"} shrink-0`} />
 
-                {sidebarOpen && <span>{label}</span>}
+                {sidebarOpen && (
+                  <div className="flex items-center justify-between flex-1">
+                    <span>{label}</span>
+                    {links.find(l => l.href === href)?.locked && (
+                      <span className="bg-indigo-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest">Pro</span>
+                    )}
+                  </div>
+                )}
 
                 {/* Active Indicator Strip */}
                 {isActive && sidebarOpen && (
@@ -213,7 +232,12 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                                 `}
                   >
                     <Icon size={20} />
-                    {label}
+                    <div className="flex items-center justify-between flex-1">
+                      <span>{label}</span>
+                      {links.find(l => l.href === href)?.locked && (
+                        <span className="bg-indigo-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-widest">Pro</span>
+                      )}
+                    </div>
                   </Link>
                 );
               })}

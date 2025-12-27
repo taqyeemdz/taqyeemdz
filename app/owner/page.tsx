@@ -9,7 +9,8 @@ import {
   MessageCircle,
   Store,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
+  Zap
 } from "lucide-react";
 
 export default function OwnerDashboardPage() {
@@ -22,6 +23,7 @@ export default function OwnerDashboardPage() {
   });
   const [latestBusinesses, setLatestBusinesses] = useState<any[]>([]);
   const [recentFeedback, setRecentFeedback] = useState<any[]>([]);
+  const [allowStats, setAllowStats] = useState(false);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -80,6 +82,23 @@ export default function OwnerDashboardPage() {
         totalReviews: count || 0
       });
 
+      // E. Fetch Subscription Features
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.plan_id) {
+        const { data: plan } = await supabase
+          .from("subscription_plans")
+          .select("allow_stats")
+          .eq("id", profile.plan_id)
+          .single();
+
+        setAllowStats(!!plan?.allow_stats);
+      }
+
       setLoading(false);
     };
 
@@ -119,6 +138,7 @@ export default function OwnerDashboardPage() {
             value={stats.totalReviews}
             icon={MessageCircle}
             color="indigo"
+            locked={!allowStats}
           />
         </div>
       </div>
@@ -229,25 +249,35 @@ export default function OwnerDashboardPage() {
   );
 }
 
-function StatCard({ label, value, icon: Icon, color }: any) {
+function StatCard({ label, value, icon: Icon, color, locked }: any) {
   const colorClasses: any = {
     blue: "bg-blue-50 text-blue-600",
     indigo: "bg-indigo-50 text-indigo-600",
     amber: "bg-amber-50 text-amber-600",
-    purple: "bg-purple-50 text-purple-600"
+    purple: "bg-purple-50 text-purple-600",
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
-      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClasses[color] || colorClasses.blue}`}>
-        <Icon size={28} />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500">{label}</p>
-        <div className="flex items-baseline gap-1">
-          <h3 className="text-3xl font-bold text-gray-900">{value}</h3>
+    <div className={`bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden ${locked ? 'opacity-75 grayscale' : ''}`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorClasses[color] || 'bg-gray-50 text-gray-600'}`}>
+          <Icon size={20} />
         </div>
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+          {locked ? <Zap size={10} className="fill-indigo-500 text-indigo-500 inline mr-1" /> : ''}
+          {label.split(' ')[1] || 'Stat'}
+        </span>
       </div>
+      <p className="text-3xl font-black text-gray-900 leading-none">
+        {locked ? '---' : value}
+      </p>
+      <p className="text-xs font-bold text-gray-500 mt-2">{label}</p>
+
+      {locked && (
+        <div className="absolute inset-x-0 bottom-0 bg-indigo-600/10 backdrop-blur-[1px] py-1 text-center">
+          <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">Pro Feature</span>
+        </div>
+      )}
     </div>
   );
 }

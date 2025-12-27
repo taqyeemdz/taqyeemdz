@@ -16,8 +16,11 @@ import {
   Clock,
   ListChecks,
   CheckCircle2,
-  X
+  X,
+  Lock,
+  ArrowRight
 } from "lucide-react";
+import { UpgradeModal } from "@/components/owner/UpgradeModal";
 
 export default function AnalyticsPage() {
   const supabase = supabaseBrowser;
@@ -34,6 +37,8 @@ export default function AnalyticsPage() {
     recentTrend: 0,
     responseRate: 0
   });
+  const [allowStats, setAllowStats] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Fetch businesses on mount
   useEffect(() => {
@@ -66,6 +71,24 @@ export default function AnalyticsPage() {
           setSelectedBusinessId("all");
         }
       }
+
+      // Fetch subscription features
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan_id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.plan_id) {
+        const { data: plan } = await supabase
+          .from("subscription_plans")
+          .select("allow_stats")
+          .eq("id", profile.plan_id)
+          .single();
+
+        setAllowStats(!!plan?.allow_stats);
+      }
+
       setLoading(false);
     };
 
@@ -219,8 +242,33 @@ export default function AnalyticsPage() {
   const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 relative">
+      {!allowStats && !loading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-gray-50/50 backdrop-blur-[2px]">
+          <div className="max-w-md w-full bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl p-8 text-center animate-in zoom-in-95 duration-500">
+            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Lock size={40} className="text-indigo-600" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Analytics Restricted</h2>
+            <p className="text-gray-500 font-medium mb-8">
+              Upgrade to the Pro plan to unlock detailed feedback analytics, custom field insights, and performance tracking.
+            </p>
+            <button
+              onClick={() => setShowUpgradeModal(true)}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl py-4 font-black flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-indigo-100"
+            >
+              Unlock Analytics <ArrowRight size={20} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+      />
+
+      <div className={`max-w-7xl mx-auto space-y-8 ${!allowStats && 'opacity-30 pointer-events-none select-none'}`}>
 
         {/* HEADER */}
         <div className="space-y-2">

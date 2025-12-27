@@ -14,6 +14,7 @@ export default function ClientFeedbackPage() {
     const [loading, setLoading] = useState(true);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState("");
+    const [allowMedia, setAllowMedia] = useState(false);
 
     // Feedback form state
     const [rating, setRating] = useState(0);
@@ -51,6 +52,32 @@ export default function ClientFeedbackPage() {
                 setError("Business not found.");
             } else {
                 setBusiness(data);
+
+                // Fetch owner's plan features
+                const { data: ownerLink } = await supabase
+                    .from("user_business")
+                    .select("user_id")
+                    .eq("business_id", businessId)
+                    .single();
+
+                if (ownerLink) {
+                    const { data: profile } = await supabase
+                        .from("profiles")
+                        .select("plan_id")
+                        .eq("id", ownerLink.user_id)
+                        .single();
+
+                    if (profile?.plan_id) {
+                        const { data: plan } = await supabase
+                            .from("subscription_plans")
+                            .select("allow_media")
+                            .eq("id", profile.plan_id)
+                            .single();
+
+                        setAllowMedia(!!plan?.allow_media);
+                    }
+                }
+
                 // Initialize Custom Fields
                 if (data.form_config && Array.isArray(data.form_config)) {
                     setCustomFields(data.form_config);
@@ -340,49 +367,50 @@ export default function ClientFeedbackPage() {
                             </div>
                         )}
 
-                        {/* MEDIA UPLOAD SECTION - NEW */}
-                        <div className="space-y-4 border-t border-b border-gray-100 py-4">
-                            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Photo or Video</h3>
+                        {allowMedia && (
+                            <div className="space-y-4 border-t border-b border-gray-100 py-4">
+                                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Photo or Video</h3>
 
-                            {!mediaPreview ? (
-                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                                        <p className="text-sm text-gray-500">Click to upload photo or video</p>
+                                {!mediaPreview ? (
+                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                                            <p className="text-sm text-gray-500">Click to upload photo or video</p>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*,video/*"
+                                            onChange={handleMediaChange}
+                                        />
+                                    </label>
+                                ) : (
+                                    <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
+                                        <button
+                                            type="button"
+                                            onClick={removeMedia}
+                                            className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-10"
+                                        >
+                                            <X size={16} />
+                                        </button>
+
+                                        {mediaFile?.type.startsWith('video') ? (
+                                            <video
+                                                src={mediaPreview}
+                                                controls
+                                                className="w-full max-h-64 object-contain"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={mediaPreview}
+                                                alt="Preview"
+                                                className="w-full max-h-64 object-contain"
+                                            />
+                                        )}
                                     </div>
-                                    <input
-                                        type="file"
-                                        className="hidden"
-                                        accept="image/*,video/*"
-                                        onChange={handleMediaChange}
-                                    />
-                                </label>
-                            ) : (
-                                <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
-                                    <button
-                                        type="button"
-                                        onClick={removeMedia}
-                                        className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-10"
-                                    >
-                                        <X size={16} />
-                                    </button>
-
-                                    {mediaFile?.type.startsWith('video') ? (
-                                        <video
-                                            src={mediaPreview}
-                                            controls
-                                            className="w-full max-h-64 object-contain"
-                                        />
-                                    ) : (
-                                        <img
-                                            src={mediaPreview}
-                                            alt="Preview"
-                                            className="w-full max-h-64 object-contain"
-                                        />
-                                    )}
-                                </div>
-                            )}
-                        </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* ANONYMOUS TOGGLE */}
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center justify-between">

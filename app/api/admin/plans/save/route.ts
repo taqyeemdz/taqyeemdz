@@ -64,6 +64,9 @@ export async function POST(req: Request) {
             max_branches: Math.max(1, Number(p.max_branches) || 1),
             max_qr_codes: Math.max(1, Number(p.max_qr_codes) || 1),
             max_feedback_monthly: Math.max(0, Number(p.max_feedback_monthly) || 0),
+            allow_media: !!p.allow_media,
+            allow_stats: !!p.allow_stats,
+            allow_tamboola: !!p.allow_tamboola,
             is_active: p.is_active !== false,
         }))
 
@@ -124,7 +127,7 @@ export async function POST(req: Request) {
         if (err?.hint) errorMessage += ` - Hint: ${err.hint}`;
 
         return NextResponse.json(
-            { error: errorMessage },
+            { error: errorMessage, details: err?.details, hint: err?.hint },
             { status: 500 }
         )
     }
