@@ -16,6 +16,12 @@ import {
     Video
 } from "lucide-react";
 
+const isMediaVideo = (url: string) => {
+    if (!url) return false;
+    const ext = url.split('.').pop()?.toLowerCase();
+    return ['mp4', 'webm', 'ogg', 'mov'].includes(ext || '');
+};
+
 export default function FeedbackDetailPage() {
     const supabase = supabaseBrowser; const router = useRouter();
     const params = useParams();
@@ -23,8 +29,10 @@ export default function FeedbackDetailPage() {
 
     const [loading, setLoading] = useState(true);
     const [feedback, setFeedback] = useState<any>(null);
+    const [isZoomed, setIsZoomed] = useState(false); // New state for lightbox
 
     useEffect(() => {
+        // ... (existing useEffect) ...
         const fetchFeedback = async () => {
             setLoading(true);
 
@@ -51,6 +59,7 @@ export default function FeedbackDetailPage() {
         fetchFeedback();
     }, [feedbackId, router, supabase]);
 
+    // ... (existing loading/error checks) ...
     if (loading) {
         return (
             <div className="flex h-[60vh] items-center justify-center">
@@ -84,6 +93,28 @@ export default function FeedbackDetailPage() {
     return (
         <div className=" mx-auto p-6 space-y-6">
 
+            {/* LIGHTBOX OVERLAY */}
+            {isZoomed && feedback.media_url && !isMediaVideo(feedback.media_url) && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200"
+                    onClick={() => setIsZoomed(false)}
+                >
+                    <div className="relative max-w-7xl w-full max-h-screen flex items-center justify-center">
+                        <img
+                            src={feedback.media_url}
+                            alt="Full Zoom"
+                            className="max-w-full max-h-[90vh] object-contain rounded-md shadow-2xl"
+                        />
+                        <button
+                            onClick={() => setIsZoomed(false)}
+                            className="absolute top-4 right-4 text-white hover:text-gray-300 bg-black/50 rounded-full p-2 transition-colors"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* BACK BUTTON */}
             <button
                 onClick={() => router.back()}
@@ -94,11 +125,9 @@ export default function FeedbackDetailPage() {
             </button>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-
                 {/* LEFT COL: CONTENT (2/3) */}
                 <div className="md:col-span-2 space-y-6">
-
-                    {/* FEEDBACK HEADER CARD */}
+                    {/* ... (Existing Feedback Header Card) ... */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
                         {/* User & Rating Row */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 border-b border-gray-50 pb-6">
@@ -195,31 +224,56 @@ export default function FeedbackDetailPage() {
                         )}
                     </div>
 
-                    {/* MEDIA GALLERY (PLACEHOLDER) */}
+                    {/* MEDIA GALLERY */}
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
                         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                             <ImageIcon size={20} className="text-indigo-500" />
-                            Media Gallery
+                            Media Attachment
                         </h3>
 
-                        {/* Placeholder State */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            <div className="aspect-square bg-gray-50 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer group">
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                                    <ImageIcon size={20} />
+                        {feedback.media_url ? (
+                            <div className="space-y-3">
+                                <div className="rounded-xl overflow-hidden border border-gray-100 bg-black/5 w-fit">
+                                    {isMediaVideo(feedback.media_url) ? (
+                                        <video
+                                            controls
+                                            className="w-28 h-28 object-cover rounded-lg"
+                                            src={feedback.media_url}
+                                        />
+                                    ) : (
+                                        <div
+                                            className="group relative cursor-zoom-in overflow-hidden rounded-lg w-28 h-28"
+                                            onClick={() => setIsZoomed(true)}
+                                        >
+                                            <img
+                                                src={feedback.media_url}
+                                                alt="Feedback attachment"
+                                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                            />
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                                <span className="bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full backdrop-blur-md">Zoom</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <span className="text-xs font-medium">No Images</span>
-                            </div>
-                            <div className="aspect-square bg-gray-50 rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer group">
-                                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform">
-                                    <Video size={20} />
+
+                                <div className="text-left">
+                                    <a
+                                        href={feedback.media_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline flex items-center gap-1"
+                                    >
+                                        View Full Size
+                                    </a>
                                 </div>
-                                <span className="text-xs font-medium">No Video</span>
                             </div>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-4 text-center">
-                            Media attachments will appear here once enabled for clients.
-                        </p>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-10 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                <ImageIcon size={32} className="mb-2 opacity-50" />
+                                <span className="text-sm font-medium">No media attached</span>
+                            </div>
+                        )}
                     </div>
 
                 </div>
@@ -261,4 +315,5 @@ export default function FeedbackDetailPage() {
             </div>
         </div>
     );
+
 }

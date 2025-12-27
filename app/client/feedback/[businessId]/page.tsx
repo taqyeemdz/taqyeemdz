@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { supabaseBrowser } from "@/lib/supabase/client"; import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare } from "lucide-react";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, X } from "lucide-react";
 
 export default function ClientFeedbackPage() {
-    const supabase = supabaseBrowser; const params = useParams();
-    const businessId = params.businessId;
+    const supabase = supabaseBrowser;
+    const params = useParams();
+    const businessId = params.businessId as string;
 
     const [business, setBusiness] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -14,11 +16,15 @@ export default function ClientFeedbackPage() {
     const [error, setError] = useState("");
 
     // Feedback form state
-    // Feedback form state
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [message, setMessage] = useState("");
     const [anonymous, setAnonymous] = useState(true);
+
+    // Media Upload State
+    const [mediaFile, setMediaFile] = useState<File | null>(null);
+    const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
 
     // Personal Info
     const [fullName, setFullName] = useState("");
@@ -67,6 +73,26 @@ export default function ClientFeedbackPage() {
         setCustomResponses(prev => ({ ...prev, [id]: value }));
     };
 
+    const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) { // 10MB limit
+            setError("File size too large (max 10MB)");
+            return;
+        }
+
+        setMediaFile(file);
+        setMediaPreview(URL.createObjectURL(file));
+        setError(""); // Clear error if any
+    };
+
+    const removeMedia = () => {
+        setMediaFile(null);
+        if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+        setMediaPreview(null);
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -79,9 +105,6 @@ export default function ClientFeedbackPage() {
         // Validate required custom fields
         for (const field of customFields) {
             if (field.required && !customResponses[field.id]) {
-                // For boolean, false is a valid response even if required usually implies "checked" for agreements, 
-                // but here it might just mean "Answer mandatory". Let's assume non-empty for text/rating.
-                // For boolean "required" usually means "must check yes".
                 if (field.type === 'boolean' && field.required && customResponses[field.id] !== true) {
                     setError(`Please check ${field.label}`);
                     return;
@@ -94,40 +117,71 @@ export default function ClientFeedbackPage() {
         }
 
         if (!businessId) return;
+        setUploading(true);
 
-        const payload = {
-            business_id: businessId,
-            rating,
-            message,
-            anonymous,
-            full_name: anonymous ? null : fullName || null,
-            phone: anonymous ? null : phone || null,
-            email: anonymous ? null : email || null,
-            sex: anonymous ? null : sex,
-            custom_responses: customResponses
-        };
+        try {
+            let mediaUrl = null;
 
-        const { error: insertError } = await supabase.from("feedback").insert(payload);
+            // Upload Media if exists
+            if (mediaFile) {
+                const ext = mediaFile.name.split('.').pop();
+                const fileName = `${businessId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
-        if (insertError) {
-            setError(insertError.message);
-        } else {
-            // ALSO SAVE TO CLIENTS (Code backup for trigger)
-            if (!anonymous && phone) {
-                await supabase.from("clients").upsert({
-                    full_name: fullName,
-                    phone: phone,
-                    email: email,
-                    sex: sex,
-                    last_seen_at: new Date().toISOString()
-                }, { onConflict: 'phone' });
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('feedback-media')
+                    .upload(fileName, mediaFile);
+
+                if (uploadError) {
+                    throw new Error(`Upload failed: ${uploadError.message}`);
+                }
+
+                const { data: urlData } = supabase.storage
+                    .from('feedback-media')
+                    .getPublicUrl(fileName);
+
+                mediaUrl = urlData.publicUrl;
             }
 
-            setSuccess(true);
-            // Reset form (optional, since we show success screen)
-            setMessage("");
-            setRating(0);
-            setCustomResponses({});
+            const payload = {
+                business_id: businessId,
+                rating,
+                message,
+                anonymous,
+                full_name: anonymous ? null : fullName || null,
+                phone: anonymous ? null : phone || null,
+                email: anonymous ? null : email || null,
+                sex: anonymous ? null : sex,
+                custom_responses: customResponses,
+                media_url: mediaUrl
+            };
+
+            const { error: insertError } = await supabase.from("feedback").insert(payload);
+
+            if (insertError) {
+                throw insertError;
+            } else {
+                // ALSO SAVE TO CLIENTS (Code backup for trigger)
+                if (!anonymous && phone) {
+                    await supabase.from("clients").upsert({
+                        full_name: fullName,
+                        phone: phone,
+                        email: email,
+                        sex: sex,
+                        last_seen_at: new Date().toISOString()
+                    }, { onConflict: 'phone' });
+                }
+
+                setSuccess(true);
+                // Reset form
+                setMessage("");
+                setRating(0);
+                setCustomResponses({});
+                removeMedia();
+            }
+        } catch (err: any) {
+            setError(err.message || "An error occurred");
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -286,6 +340,50 @@ export default function ClientFeedbackPage() {
                             </div>
                         )}
 
+                        {/* MEDIA UPLOAD SECTION - NEW */}
+                        <div className="space-y-4 border-t border-b border-gray-100 py-4">
+                            <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Photo or Video</h3>
+
+                            {!mediaPreview ? (
+                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <Camera className="w-8 h-8 text-gray-400 mb-2" />
+                                        <p className="text-sm text-gray-500">Click to upload photo or video</p>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*,video/*"
+                                        onChange={handleMediaChange}
+                                    />
+                                </label>
+                            ) : (
+                                <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
+                                    <button
+                                        type="button"
+                                        onClick={removeMedia}
+                                        className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-10"
+                                    >
+                                        <X size={16} />
+                                    </button>
+
+                                    {mediaFile?.type.startsWith('video') ? (
+                                        <video
+                                            src={mediaPreview}
+                                            controls
+                                            className="w-full max-h-64 object-contain"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={mediaPreview}
+                                            alt="Preview"
+                                            className="w-full max-h-64 object-contain"
+                                        />
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
                         {/* ANONYMOUS TOGGLE */}
                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center justify-between">
                             <div className="flex flex-col">
@@ -399,14 +497,16 @@ export default function ClientFeedbackPage() {
                         {/* SUBMIT BUTTON */}
                         <button
                             type="submit"
-                            className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-4 px-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-md"
+                            disabled={uploading}
+                            className={`w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-4 px-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-md ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
-                            <span>Send Feedback</span>
+                            <span>{uploading ? 'Sending...' : 'Send Feedback'}</span>
                             <Send size={18} />
                         </button>
 
                     </form>
                 </div>
+
 
                 <p className="text-center text-xs text-gray-400">
                     Powered by TaqyeemDZ
