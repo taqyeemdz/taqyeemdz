@@ -28,39 +28,38 @@ function UpdatePasswordInner() {
   // IMPORTANT: Analyser l'URL pour des erreurs ou échanger le code contre une session
   useEffect(() => {
     async function initSession() {
-      // 1. Vérifier d'abord s'il y a une erreur dans l'URL (ex: lien expiré)
       const error = searchParams.get("error");
       const errorCode = searchParams.get("error_code");
+      const code = searchParams.get("code");
 
-      if (error === "access_denied" || errorCode === "otp_expired") {
-        setErr("Le lien a expiré ou a déjà été utilisé sur un autre appareil.");
+      console.log("Update Password Init:", { error, errorCode, hasCode: !!code });
+
+      // 1. Tenter d'échanger le code s'il est présent
+      if (code) {
+        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (!exchangeError && data?.session) {
+          setHasSession(true);
+          setSessionLoading(false);
+          return;
+        }
+      }
+
+      // 2. Vérifier si une session est DÉJÀ active (Supabase auto-login)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setHasSession(true);
         setSessionLoading(false);
+        setErr(""); // Nettoyer l'erreur si on a finalement une session
         return;
       }
 
-      // 2. Tenter l'échange du code (PKCE)
-      const code = searchParams.get("code");
-      if (code) {
-        try {
-          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) {
-            setErr("Échec de la connexion sécurisée. Veuillez redemander un lien.");
-            console.error("Exchange error:", exchangeError);
-          } else if (data?.session) {
-            setHasSession(true);
-          }
-        } catch (e) {
-          setErr("Une erreur technique est survenue.");
-        }
-      } else {
-        // Pas de code dans l'URL ? Vérifions si on a déjà une session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          setHasSession(true);
-        } else {
-          setErr("Session introuvable. Veuillez utiliser le lien reçu par email.");
-        }
+      // 3. Si on a une erreur et vraiment aucune session
+      if (error === "access_denied" || errorCode === "otp_expired") {
+        setErr("Le lien a expiré ou a déjà été utilisé. Demandez un nouveau lien si vous n'êtes pas connecté.");
+      } else if (!code) {
+        setErr("Lien invalide ou session introuvable.");
       }
+
       setSessionLoading(false);
     }
 
