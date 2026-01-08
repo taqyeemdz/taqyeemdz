@@ -83,10 +83,9 @@ export default function LoginForm() {
     setMsg("");
     setLoading(true);
 
-    // Détecter l'URL actuelle
-    const baseUrl = typeof window !== "undefined"
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    // Détecter l'URL actuelle de manière robuste
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
+      (typeof window !== "undefined" ? window.location.origin : "https://taqyeemdz.vercel.app");
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${baseUrl}/auth/update-password`,

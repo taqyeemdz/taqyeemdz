@@ -28,36 +28,48 @@ function UpdatePasswordInner() {
   // IMPORTANT: Analyser l'URL pour des erreurs ou échanger le code contre une session
   useEffect(() => {
     async function initSession() {
+      // 1. Extraire les erreurs (Query params ET Fragment)
       const error = searchParams.get("error");
       const errorCode = searchParams.get("error_code");
+
+      // Sur mobile, Supabase met parfois les erreurs derrière le fragment #
+      const hashParams = typeof window !== "undefined" ? new URLSearchParams(window.location.hash.substring(1)) : null;
+      const fragmentError = hashParams?.get("error") || hashParams?.get("error_code");
+
       const code = searchParams.get("code");
 
-      console.log("Update Password Init:", { error, errorCode, hasCode: !!code });
+      console.log("Update Password Init:", { error, errorCode, fragmentError, hasCode: !!code });
 
-      // 1. Tenter d'échanger le code s'il est présent
+      // 2. Tenter d'échanger le code s'il est présent (PKCE Flow)
       if (code) {
         const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (!exchangeError && data?.session) {
           setHasSession(true);
           setSessionLoading(false);
           return;
+        } else if (exchangeError) {
+          setErr(`Erreur de session : ${exchangeError.message}`);
+          setSessionLoading(false);
+          return;
         }
       }
 
-      // 2. Vérifier si une session est DÉJÀ active (Supabase auto-login)
+      // 3. Vérifier s'il y a déjà une session active ou un access_token dans le fragment (Implicit Flow)
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setHasSession(true);
         setSessionLoading(false);
-        setErr(""); // Nettoyer l'erreur si on a finalement une session
+        setErr("");
         return;
       }
 
-      // 3. Si on a une erreur et vraiment aucune session
-      if (error === "access_denied" || errorCode === "otp_expired") {
-        setErr("Le lien a expiré ou a déjà été utilisé. Demandez un nouveau lien si vous n'êtes pas connecté.");
+      // 4. Si on arrive ici, c'est une erreur de lien
+      if (errorCode === "otp_expired" || fragmentError === "otp_expired") {
+        setErr("Le jeton de sécurité a expiré. Cela arrive souvent si le lien a été pré-cliqué par votre service de messagerie. Veuillez demander un nouveau lien.");
+      } else if (error || fragmentError) {
+        setErr(`Erreur de lien : ${error || fragmentError}`);
       } else if (!code) {
-        setErr("Lien invalide ou session introuvable.");
+        setErr("Aucun code de session trouvé dans le lien. Utilisez bien le lien reçu par email.");
       }
 
       setSessionLoading(false);
