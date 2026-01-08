@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabaseBrowser } from "@/lib/supabase/client"; import {
+import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import {
   Plus,
-  Users,
-  Mail,
-  Calendar,
   Search,
   ChevronRight,
-  ShieldCheck,
-  User as UserIcon
+  User as UserIcon,
+  Phone,
+  Mail,
+  Loader2,
+  Filter
 } from "lucide-react";
 
 export default function OwnersListPage() {
+  const router = useRouter();
   const supabase = supabaseBrowser;
   const [loading, setLoading] = useState(true);
   const [owners, setOwners] = useState<any[]>([]);
@@ -22,158 +25,160 @@ export default function OwnersListPage() {
   useEffect(() => {
     (async () => {
       setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*, subscription_plans:plan_id(name)")
+          .eq("role", "owner")
+          .order("created_at", { ascending: false });
 
-      // Load all owners with their plans
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          id, full_name, role, created_at, email, plan_id,
-          subscription_plans (name)
-        `)
-        .eq("role", "owner")
-        .order("created_at", { ascending: false });
+        if (error) throw error;
 
-      if (!error) {
-        /** fetch auth emails for each user */
-        const { data: users } = await supabase.auth.admin.listUsers();
+        // Fetch auth emails
+        let emailMap: Record<string, string> = {};
+        try {
+          const res = await fetch("/api/admin/owners/list-emails");
+          const emailData = await res.json();
+          if (emailData.emails) emailMap = emailData.emails;
+        } catch (e) { }
 
-        const merged = data.map((o: any) => {
-          const auth = users?.users?.find((u) => u.id === o.id);
-          return {
-            ...o,
-            email: auth?.email || o.email || "—",
-            plan_name: o.subscription_plans?.name || "No Plan"
-          };
-        });
+        const merged = (data || []).map((o: any) => ({
+          ...o,
+          email: o.email || emailMap[o.id] || "—",
+          plan_name: o.subscription_plans?.name || "Standard"
+        }));
 
         setOwners(merged);
-      } else {
-        console.error(error);
+      } catch (err) {
+        console.error("Error loading owners:", err);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     })();
-  }, []);
+  }, [supabase]);
 
-  const filtered = owners.filter((o) =>
-    o.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-    o.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = owners.filter((o) => {
+    const s = search.toLowerCase();
+    return (
+      (o.full_name?.toLowerCase() || "").includes(s) ||
+      (o.email?.toLowerCase() || "").includes(s) ||
+      (o.phone || "").includes(search)
+    );
+  });
 
   return (
-    <div className="max-w-5xl mx-auto p-6 space-y-8">
+    <div className="max-w-6xl mx-auto p-8 space-y-10">
 
-      {/* ========================= HEADER ========================= */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
+      {/* minimalist header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Owners Management
-          </h1>
-          <p className="text-sm sm:text-base text-gray-500 mt-1">
-            Manage all registered system users and owners.
-          </p>
+          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Propriétaires</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Base de données des clients et abonnements.</p>
         </div>
-
-        <Link
-          href="/admin/owners/new"
-          className="
-            flex items-center justify-center gap-2 bg-gray-900 text-white 
-            px-5 py-2.5 rounded-xl font-medium shadow-sm hover:bg-black 
-            transition-all active:scale-95 text-sm sm:text-base w-full sm:w-auto
-          "
+        <button
+          onClick={() => router.push("/admin/owners/new")}
+          className="bg-black text-white text-sm px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-medium active:scale-95"
         >
-          <Plus size={18} />
-          New Owner
-        </Link>
+          <Plus size={16} />
+          Nouveau Propriétaire
+        </button>
       </div>
 
-      {/* ========================= SEARCH ========================= */}
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or email..."
-          className="
-            w-full bg-white border border-gray-200 
-            rounded-xl pl-12 pr-4 py-3 text-base outline-none
-            focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all
-          "
-        />
+      {/* minimal search & utility bar */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher..."
+            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:border-slate-400 transition-colors"
+          />
+        </div>
+        <button className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
+          <Filter size={16} />
+        </button>
       </div>
 
-      {/* ========================= OWNERS LIST ========================= */}
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="flex flex-col items-center gap-3 animate-pulse">
-            <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-            <div className="h-4 w-32 bg-gray-200 rounded"></div>
+      {/* minimal table */}
+      <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm shadow-slate-200/50">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <Loader2 className="animate-spin text-slate-300" size={24} />
+            <span className="text-xs text-slate-400 font-medium tracking-wide">Chargement...</span>
           </div>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-gray-400">
-            <Users size={24} />
+        ) : filtered.length === 0 ? (
+          <div className="py-24 text-center">
+            <p className="text-sm text-slate-400">Aucun propriétaire trouvé.</p>
           </div>
-          <h3 className="text-gray-900 font-medium mb-1">No owners found</h3>
-          <p className="text-gray-500 text-sm">
-            Create a new owner to get started.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {filtered.map((o) => (
-            <Link
-              key={o.id}
-              href={`/admin/owners/${o.id}`}
-              className="
-                group bg-white border border-gray-100 rounded-2xl p-4 sm:p-5
-                shadow-sm hover:shadow-md hover:border-indigo-100
-                transition-all cursor-pointer flex items-start sm:items-center gap-4
-              "
-            >
-              {/* Avatar Icon */}
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center shrink-0 border border-indigo-100 group-hover:scale-105 transition-transform mt-1 sm:mt-0">
-                <UserIcon size={20} className="sm:hidden" />
-                <UserIcon size={24} className="hidden sm:block" />
-              </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-50 text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
+                  <th className="px-6 py-4">Propriétaire</th>
+                  <th className="px-6 py-4 hidden md:table-cell">Contact</th>
+                  <th className="px-6 py-4 hidden md:table-cell text-center">Téléphone</th>
+                  <th className="px-6 py-4 text-center">Plan</th>
+                  <th className="px-6 py-4 text-center">Statut</th>
+                  <th className="px-6 py-4 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filtered.map((o) => (
+                  <tr
+                    key={o.id}
+                    onClick={() => router.push(`/admin/owners/${o.id}`)}
+                    className="group hover:bg-slate-50/80 transition-all cursor-pointer"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 text-xs font-semibold">
+                          {o.full_name?.charAt(0).toUpperCase() || <UserIcon size={14} />}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-900 leading-tight">{o.full_name || "Sans nom"}</span>
+                          <span className="text-[11px] text-slate-400 mt-0.5 font-mono">#{o.id?.split('-')[0]}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 hidden md:table-cell">
+                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                        <Mail size={12} className="text-slate-300" />
+                        <span>{o.email}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 hidden md:table-cell text-center">
+                      {o.phone ? (
+                        <div className="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium">
+                          <Phone size={12} className="text-slate-300" />
+                          <span>{o.phone}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className="text-[11px] font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-center">
+                        {o.plan_name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`text-[11px] font-medium ${o.is_active ? 'text-emerald-500' : 'text-slate-400'}`}>
+                        {o.is_active ? 'Actif' : 'Inactif'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ChevronRight size={16} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
-              {/* Text Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 mb-1">
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">
-                    {o.full_name || "Unnamed Owner"}
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="bg-green-50 text-green-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-green-100 whitespace-nowrap">
-                      Owner
-                    </span>
-                    <span className="bg-indigo-50 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-indigo-100 whitespace-nowrap">
-                      {o.plan_name}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500">
-                    <Mail size={14} className="shrink-0" />
-                    <span className="truncate">{o.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[10px] sm:text-xs text-gray-400">
-                    <Calendar size={12} className="shrink-0" />
-                    <span>Joined {new Date(o.created_at).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Arrow */}
-              <div className="text-gray-300 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all">
-                <ChevronRight size={20} />
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

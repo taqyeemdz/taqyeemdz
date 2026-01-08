@@ -100,32 +100,32 @@ export default function AdminDashboardPage() {
 
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Admin Overview</h1>
-        <p className="text-gray-500 mt-1">System-wide performance and activity.</p>
+        <h1 className="text-3xl font-bold text-gray-900">Vue d'ensemble Admin</h1>
+        <p className="text-gray-500 mt-1">Performance et activité à l'échelle du système.</p>
       </div>
 
       {/* STATS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Total Businesses"
+          label="Total Entreprises"
           value={stats.totalBusinesses}
           icon={Building2}
           color="blue"
         />
         <StatCard
-          label="Total Owners"
+          label="Total Propriétaires"
           value={stats.totalOwners}
           icon={Users}
           color="purple"
         />
         <StatCard
-          label="Total Feedback"
+          label="Total Feedbacks"
           value={stats.totalFeedback}
           icon={MessageCircle}
           color="indigo"
         />
         <StatCard
-          label="Avg Rating"
+          label="Note Moyenne"
           value={stats.avgRating?.toFixed(1) || "0.0"}
           icon={Star}
           color="amber"
@@ -138,9 +138,9 @@ export default function AdminDashboardPage() {
         {/* LATEST OWNERS */}
         <div className="flex flex-col gap-4 h-full">
           <div className="flex items-center justify-between shrink-0">
-            <h2 className="text-lg font-bold text-gray-900">Latest Owners</h2>
+            <h2 className="text-lg font-bold text-gray-900">Derniers Propriétaires</h2>
             <Link href="/admin/owners" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 group">
-              See All <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              Voir tout <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
@@ -153,8 +153,8 @@ export default function AdminDashboardPage() {
                       <Users size={18} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900 truncate">{owner.full_name || "Owner"}</p>
-                      <p className="text-xs text-gray-500 truncate">{owner.email || "No email"}</p>
+                      <p className="text-sm font-bold text-gray-900 truncate">{owner.full_name || "Propriétaire"}</p>
+                      <p className="text-xs text-gray-500 truncate">{owner.email || "Pas d'e-mail"}</p>
                     </div>
                     <span className="text-xs text-gray-400 shrink-0">
                       {new Date(owner.created_at).toLocaleDateString()}
@@ -163,7 +163,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center p-6 text-center text-gray-500 text-sm">No owners found.</div>
+              <div className="h-full flex items-center justify-center p-6 text-center text-gray-500 text-sm">Aucun propriétaire trouvé.</div>
             )}
           </div>
         </div>
@@ -171,9 +171,9 @@ export default function AdminDashboardPage() {
         {/* LATEST BUSINESSES */}
         <div className="flex flex-col gap-4 h-full">
           <div className="flex items-center justify-between shrink-0">
-            <h2 className="text-lg font-bold text-gray-900">Latest Businesses</h2>
+            <h2 className="text-lg font-bold text-gray-900">Dernières Entreprises</h2>
             <Link href="/admin/businesses" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 group">
-              See All <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              Voir tout <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </div>
 
@@ -194,7 +194,7 @@ export default function AdminDashboardPage() {
                           </span>
                         )}
                         <span className="flex items-center gap-1 text-gray-400 truncate max-w-[100px]">
-                          <MapPin size={10} /> {biz.address || "No address"}
+                          <MapPin size={10} /> {biz.address || "Pas d'adresse"}
                         </span>
                       </div>
                     </div>
@@ -205,7 +205,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center p-6 text-center text-gray-500 text-sm">No businesses found.</div>
+              <div className="h-full flex items-center justify-center p-6 text-center text-gray-500 text-sm">Aucune entreprise trouvée.</div>
             )}
           </div>
         </div>
@@ -215,6 +215,7 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
 
 function StatCard({ label, value, icon: Icon, color }: any) {
   const colorClasses: any = {
@@ -237,3 +238,4 @@ function StatCard({ label, value, icon: Icon, color }: any) {
     </div>
   );
 }
+

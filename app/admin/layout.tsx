@@ -17,7 +17,8 @@ import {
   User,
   Bell,
   Activity,
-  Zap
+  Zap,
+  BarChart3
 } from "lucide-react";
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -64,10 +65,11 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
   }
 
   const links = [
-    { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/admin/businesses", label: "Businesses", icon: Building2 },
-    { href: "/admin/owners", label: "Owners", icon: Users },
-    { href: "/admin/settings", label: "Settings", icon: Settings },
+    { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
+    { href: "/admin/onboarding", label: "Demandes", icon: Zap },
+    { href: "/admin/owners", label: "Propriétaires", icon: Users },
+    { href: "/admin/accounting", label: "Comptabilité", icon: BarChart3 },
+    { href: "/admin/settings", label: "Paramètres", icon: Settings },
   ];
 
   return (
@@ -145,7 +147,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{user?.full_name || "Admin"}</p>
                 <button onClick={handleLogout} className="text-xs text-red-400 hover:text-red-300 hover:underline flex items-center gap-1">
-                  <LogOut size={10} /> Logout
+                  <LogOut size={10} /> Déconnexion
                 </button>
               </div>
             </div>
@@ -223,7 +225,7 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
                 onClick={handleLogout}
                 className="w-full flex items-center justify-center gap-2 p-3 bg-red-500/10 text-red-500 rounded-xl font-medium hover:bg-red-500/20 transition-colors"
               >
-                <LogOut size={18} /> Logout
+                <LogOut size={18} /> Déconnexion
               </button>
             </div>
           </div>
@@ -263,3 +265,4 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     </div>
   );
 }
+

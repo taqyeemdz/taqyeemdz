@@ -24,7 +24,7 @@ export default function BusinessesPage() {
   async function handleDelete(e: any, businessId: string) {
     e.stopPropagation();
 
-    if (!confirm("Delete this business? All feedback & QR codes will be deleted.")) return;
+    if (!confirm("Supprimer cette entreprise ? Tous les avis et codes QR seront supprimés.")) return;
 
     {/* Optimistic UI update */ }
     setBusinesses((prev) => prev.filter((b) => b.id !== businessId));
@@ -35,7 +35,7 @@ export default function BusinessesPage() {
       .eq("id", businessId);
 
     if (error) {
-      alert("Deletion failed: " + error.message);
+      alert("Échec de la suppression : " + error.message);
       // Revert if failed (optional, simplified here)
     }
   }
@@ -73,9 +73,9 @@ export default function BusinessesPage() {
         .select(`
           id, name, phone, address, created_at,
           user_business (
-             profiles (
-               full_name
-             )
+            profiles (
+              full_name
+            )
           )
         `)
         .order("created_at", { ascending: false });
@@ -87,7 +87,7 @@ export default function BusinessesPage() {
         const owner = b.user_business?.[0]?.profiles;
         return {
           ...b,
-          owner_name: owner?.full_name || "Unknown"
+          owner_name: owner?.full_name || "Inconnu"
         };
       }) || [];
 
@@ -108,10 +108,10 @@ export default function BusinessesPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
-            All Businesses
+            Toutes les entreprises
           </h1>
           <p className="text-gray-500 mt-1">
-            Manage all registered venues and shops.
+            Gérez tous les lieux et magasins enregistrés.
           </p>
         </div>
 
@@ -124,7 +124,7 @@ export default function BusinessesPage() {
           "
         >
           <Plus size={18} />
-          Add Business
+          Ajouter une entreprise
         </button>
       </div>
 
@@ -134,7 +134,7 @@ export default function BusinessesPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or owner..."
+          placeholder="Rechercher par nom ou propriétaire..."
           className="
             w-full bg-white border border-gray-200 
             rounded-xl pl-12 pr-4 py-3 text-base outline-none
@@ -156,9 +156,9 @@ export default function BusinessesPage() {
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-gray-400">
             <Building2 size={24} />
           </div>
-          <h3 className="text-gray-900 font-medium mb-1">No businesses found</h3>
+          <h3 className="text-gray-900 font-medium mb-1">Aucune entreprise trouvée</h3>
           <p className="text-gray-500 text-sm">
-            Try adjusting your search terms.
+            Essayez d'ajuster vos termes de recherche.
           </p>
         </div>
       ) : (
@@ -182,7 +182,7 @@ export default function BusinessesPage() {
                   <h3 className="font-bold text-gray-900 text-lg truncate">{b.name}</h3>
                   <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
                     <MapPin size={14} className="shrink-0" />
-                    <span className="truncate">{b.address || "No address"}</span>
+                    <span className="truncate">{b.address || "Aucune adresse"}</span>
                   </div>
                 </div>
               </div>
@@ -195,7 +195,7 @@ export default function BusinessesPage() {
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-medium">
                   <MessageCircle size={12} />
-                  12 Reviews {/* Placeholder */}
+                  12 Avis {/* Placeholder */}
                 </span>
                 {b.owner_name && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 text-xs font-medium ml-auto">
@@ -208,7 +208,7 @@ export default function BusinessesPage() {
               {/* BOTTOM ROW: Date */}
               <div className="pt-3 border-t border-gray-50 flex items-center justify-between">
                 <span className="text-xs text-gray-400">
-                  Added {new Date(b.created_at).toLocaleDateString()}
+                  Ajoutée le {new Date(b.created_at).toLocaleDateString("fr-FR")}
                 </span>
               </div>
 
@@ -220,7 +220,7 @@ export default function BusinessesPage() {
                   hover:bg-red-50 p-2 rounded-lg transition-colors
                   opacity-0 group-hover:opacity-100
                 "
-                title="Delete Business"
+                title="Supprimer l'entreprise"
               >
                 <Trash2 size={18} />
               </button>
@@ -231,3 +231,4 @@ export default function BusinessesPage() {
     </div>
   );
 }
+

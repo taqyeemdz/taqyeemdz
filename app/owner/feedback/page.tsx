@@ -1,38 +1,56 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import {
-  MessageCircle,
   Search,
-  Filter,
-  ChevronRight,
   User,
-  Calendar,
   Star,
   Ghost,
-  Building2
+  MessageCircle,
+  Loader2,
+  ChevronRight,
+  QrCode as QrIcon,
+  Calendar,
+  Phone,
+  Mail,
+  Trash2,
+  AlertCircle,
+  Building2,
+  Image as ImageIcon
 } from "lucide-react";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { toast } from "sonner";
+
+const RATING_CONFIG: Record<string, { label: string, color: string, dot: string }> = {
+  all: { label: "Tous", color: "text-slate-400", dot: "bg-slate-300" },
+  positive: { label: "Positifs", color: "text-emerald-500", dot: "bg-emerald-400" },
+  negative: { label: "Négatifs", color: "text-rose-500", dot: "bg-rose-400" },
+};
 
 export default function FeedbackPage() {
-  const supabase = supabaseBrowser; const router = useRouter();
+  const supabase = supabaseBrowser;
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
-  const [filter, setFilter] = useState("all"); // all, positive, negative
   const [selectedBusinessId, setSelectedBusinessId] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    const fetchFeedback = async () => {
+    const fetchInitialData = async () => {
       setLoading(true);
-
-      // 1. Session check
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
       if (!user) return router.replace("/auth/login");
 
-      // 2. Get business IDs
       const { data: links } = await supabase
         .from("user_business")
         .select("business_id")
@@ -45,187 +63,286 @@ export default function FeedbackPage() {
         return;
       }
 
-      // 3. Fetch businesses and feedback
       const [busRes, fbRes] = await Promise.all([
-        supabase
-          .from("businesses")
-          .select("id, name")
-          .in("id", businessIds),
-        supabase
-          .from("feedback")
-          .select("*, businesses(name)")
-          .in("business_id", businessIds)
-          .order("created_at", { ascending: false })
+        supabase.from("businesses").select("id, name, address, phone").in("id", businessIds),
+        supabase.from("feedback").select("*, businesses(*)").in("business_id", businessIds).order("created_at", { ascending: false })
       ]);
-
-      if (busRes.error) console.error("Error fetching businesses:", busRes.error);
-      if (fbRes.error) console.error("Error fetching feedback:", fbRes.error);
 
       setBusinesses(busRes.data || []);
       setFeedbacks(fbRes.data || []);
       setLoading(false);
     };
 
-    fetchFeedback();
+    fetchInitialData();
   }, [router, supabase]);
 
-  // FILTER LOGIC
-  const filteredFeedbacks = feedbacks.filter(fb => {
-    // Rating filter
-    const matchesRating = filter === "all" ||
-      (filter === "positive" && fb.rating >= 4) ||
-      (filter === "negative" && fb.rating <= 2);
+  const handleDelete = async () => {
+    if (!selectedFeedback) return;
+    setDeletingId(selectedFeedback.id);
+    try {
+      const { error } = await supabase
+        .from("feedback")
+        .delete()
+        .eq("id", selectedFeedback.id);
 
-    // Business filter
+      if (error) throw error;
+
+      toast.success("Avis supprimé");
+      setFeedbacks(prev => prev.filter(f => f.id !== selectedFeedback.id));
+      setSelectedFeedback(null);
+      setShowDeleteConfirm(false);
+    } catch (error: any) {
+      toast.error("Erreur lors de la suppression");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const filtered = feedbacks.filter(fb => {
+    const matchesRating = statusFilter === "all" ||
+      (statusFilter === "positive" && fb.rating >= 4) ||
+      (statusFilter === "negative" && fb.rating <= 2);
+
     const matchesBusiness = selectedBusinessId === "all" || fb.business_id === selectedBusinessId;
 
-    return matchesRating && matchesBusiness;
+    const matchesSearch = search === "" ||
+      (fb.full_name?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (fb.message?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (fb.businesses?.name?.toLowerCase() || "").includes(search.toLowerCase());
+
+    return matchesRating && matchesBusiness && matchesSearch;
   });
 
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3 animate-pulse">
-          <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-          <div className="h-4 w-32 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  const translateSex = (sex: string) => {
+    if (!sex) return "";
+    const s = sex.toLowerCase();
+    return s === 'male' ? 'Homme' : s === 'female' ? 'Femme' : sex;
+  };
 
   return (
-    <div className=" mx-auto p-6 space-y-8">
-
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="max-w-6xl mx-auto p-8 space-y-10">
+      {/* Header */}
+      <div className="border-b border-slate-100 pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">All Feedback</h1>
-          <p className="text-gray-500 mt-1">Review feedback across all your businesses.</p>
+          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Flux d'Avis</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Consultez et gérez les retours de vos clients.</p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* BUSINESS SELECT */}
-          <div className="relative">
-            <select
-              value={selectedBusinessId}
-              onChange={(e) => setSelectedBusinessId(e.target.value)}
-              className="appearance-none bg-white border border-gray-200 rounded-xl px-4 py-2 pr-10 text-sm font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-            >
-              <option value="all">All Businesses</option>
-              {businesses.map(b => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-              <ChevronRight size={16} className="rotate-90" />
-            </div>
-          </div>
+        {/* Business Selector directly in header style */}
+        <div className="relative group min-w-[200px]">
+          <select
+            value={selectedBusinessId}
+            onChange={(e) => setSelectedBusinessId(e.target.value)}
+            className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 px-4 pr-10 rounded-xl text-sm font-medium focus:border-slate-400 outline-none transition-all cursor-pointer appearance-none shadow-sm"
+          >
+            <option value="all">Tous les produits</option>
+            {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+          <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors rotate-90" size={16} />
+        </div>
+      </div>
 
-          {/* RATING FILTERS */}
-          <div className="flex p-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-            {[
-              { id: "all", label: "All" },
-              { id: "positive", label: "Positive" },
-              { id: "negative", label: "Negative" },
-            ].map((f) => (
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+
+        {/* List Side */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Status Filters */}
+          <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar">
+            {["all", "positive", "negative"].map(s => (
               <button
-                key={f.id}
-                onClick={() => setFilter(f.id)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${filter === f.id
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-gray-600 hover:bg-gray-50"
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all border
+                                    ${statusFilter === s
+                    ? "bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-200"
+                    : "bg-white border-slate-100 text-slate-400 hover:border-slate-200 hover:text-slate-600"
                   }`}
               >
-                {f.label}
+                {RATING_CONFIG[s].label}
               </button>
             ))}
           </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+            <input
+              placeholder="Rechercher par client, message ou produit..."
+              className="w-full bg-transparent border-b border-slate-100 pl-8 pr-4 py-3 text-sm outline-none focus:border-slate-900 transition-colors"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {loading ? (
+            <div className="py-24 flex flex-col items-center gap-3">
+              <Loader2 className="animate-spin text-slate-200" size={20} />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="py-24 text-center">
+              <p className="text-sm text-slate-400">Aucun avis trouvé.</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filtered.map((fb) => (
+                <div
+                  key={fb.id}
+                  onClick={() => setSelectedFeedback(fb)}
+                  className={`p-4 rounded-xl transition-all cursor-pointer flex items-center justify-between group relative overflow-hidden
+                                        ${selectedFeedback?.id === fb.id
+                      ? 'bg-indigo-50/50 ring-1 ring-inset ring-indigo-100'
+                      : 'hover:bg-slate-50/50'}
+                                    `}
+                >
+                  {selectedFeedback?.id === fb.id && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
+                  )}
+
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0
+                                            ${fb.rating >= 4 ? 'bg-emerald-50 text-emerald-600' : fb.rating >= 3 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
+                      {fb.rating}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">
+                        {fb.anonymous ? "Anonyme" : fb.full_name || "Client"}
+                      </p>
+                      <p className="text-[11px] text-slate-400 truncate flex items-center gap-1.5">
+                        {fb.businesses?.name} • {format(new Date(fb.created_at), "dd/MM")}
+                        {fb.media_url && <ImageIcon size={10} className="text-indigo-400" />}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 shrink-0">
+                    <p className="text-[11px] text-slate-500 italic hidden sm:block max-w-[150px] truncate">
+                      "{fb.message || "Sans commentaire"}"
+                    </p>
+                    <ChevronRight size={14} className="text-slate-200 group-hover:text-slate-400 transition-colors" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Detail Side */}
+        <div className="lg:col-span-5">
+          {selectedFeedback ? (
+            <div className="sticky top-8 space-y-8 animate-in mt-10 lg:mt-0 fade-in duration-300">
+              <div className="flex items-center justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-0.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} size={14} className={s <= selectedFeedback.rating ? "fill-amber-400 text-amber-400" : "fill-slate-100 text-slate-100"} />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">{selectedFeedback.rating}.0 / 5</span>
+                  </div>
+                  <h3 className="text-2xl font-semibold text-slate-900 leading-tight">
+                    {selectedFeedback.anonymous ? "Avis Anonyme" : selectedFeedback.full_name || "Client"}
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                >
+                  <Trash2 size={18} />
+                </button>
+              </div>
+
+              <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100/50 italic text-slate-700 text-sm leading-relaxed">
+                {selectedFeedback.message ? `"${selectedFeedback.message}"` : "Aucun commentaire écrit fourni."}
+              </div>
+
+              <div className="space-y-4 py-8 border-y border-slate-50 text-sm">
+                <DetailItem icon={Building2} label="Établissement" value={selectedFeedback.businesses?.name} />
+                <DetailItem icon={Calendar} label="Date" value={format(new Date(selectedFeedback.created_at), "PPP 'à' HH:mm", { locale: fr })} />
+                {!selectedFeedback.anonymous && (
+                  <>
+                    <DetailItem icon={Phone} label="Contact" value={selectedFeedback.phone} />
+                    <DetailItem icon={Mail} label="Email" value={selectedFeedback.email} />
+                    <DetailItem icon={User} label="Genre" value={translateSex(selectedFeedback.sex)} />
+                  </>
+                )}
+              </div>
+
+              {/* Custom Form Data */}
+              {selectedFeedback.custom_responses && Object.keys(selectedFeedback.custom_responses).length > 0 && selectedFeedback.businesses?.form_config && (
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Questionnaire</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    {selectedFeedback.businesses.form_config.map((field: any) => {
+                      const res = selectedFeedback.custom_responses[field.id];
+                      if (res === undefined || res === "" || res === null) return null;
+                      return (
+                        <div key={field.id} className="flex justify-between items-center p-3 bg-white border border-slate-100 rounded-xl shadow-sm">
+                          <span className="text-xs font-medium text-slate-500">{field.label}</span>
+                          <span className="text-xs font-bold text-slate-900">{field.type === 'boolean' ? (res ? "Oui" : "Non") : field.type === 'rating' ? `${res}/5` : res}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {selectedFeedback.media_url && (
+                <div className="pt-6">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Média Joint</h4>
+                  <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-lg group relative aspect-square max-w-[200px]">
+                    <img src={selectedFeedback.media_url} alt="Media" className="w-full h-full object-cover" />
+                    <a href={selectedFeedback.media_url} target="_blank" rel="noreferrer" className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
+                      <span className="bg-white text-slate-900 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase">Voir Plein Écran</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          ) : (
+            <div className="h-full min-h-[400px] border border-dashed border-slate-100 rounded-3xl flex flex-col items-center justify-center text-slate-300 gap-4 mt-10 lg:mt-0">
+              <MessageCircle size={40} className="opacity-20" />
+              <p className="text-xs font-medium uppercase tracking-widest">Sélectionnez un avis</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* LIST */}
-      <div className="space-y-4">
-        {filteredFeedbacks.length > 0 ? (
-          filteredFeedbacks.map((fb) => (
-            <FeedbackItem key={fb.id} feedback={fb} onClick={() => router.push(`/owner/feedback/${fb.id}`)} />
-          ))
-        ) : (
-          <div className="bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm text-gray-400">
-              <MessageCircle size={24} />
+      {/* Delete Confirm */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative bg-white rounded-3xl p-10 max-w-sm w-full shadow-2xl animate-in zoom-in-95 duration-200 text-center space-y-8">
+            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
+              <AlertCircle size={32} />
             </div>
-            <h3 className="text-gray-900 font-medium mb-1">No feedback found</h3>
-            <p className="text-gray-500 text-sm">
-              {filter !== "all" ? "Try adjusting your filters." : "Wait for customers to submit reviews."}
-            </p>
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-slate-900">Supprimer ?</h3>
+              <p className="text-slate-500 text-sm leading-relaxed">Cette action est irréversible.</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-xl transition-colors text-sm">Annuler</button>
+              <button onClick={handleDelete} disabled={deletingId !== null} className="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-100 transition-all flex items-center justify-center text-sm">
+                {deletingId !== null ? <Loader2 size={16} className="animate-spin" /> : "Confirmer"}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function FeedbackItem({ feedback, onClick }: { feedback: any, onClick: () => void }) {
-  const isAnonymous = feedback.anonymous;
-  const date = new Date(feedback.created_at).toLocaleDateString("en-US", {
-    month: "short", day: "numeric"
-  });
-
+function DetailItem({ icon: Icon, label, value }: any) {
+  if (!value) return null;
   return (
-    <div
-      onClick={onClick}
-      className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col md:flex-row gap-5 items-start"
-    >
-      {/* Rating Box */}
-      <div className={`shrink-0 w-16 h-16 rounded-xl flex flex-col items-center justify-center border ${feedback.rating >= 4 ? 'bg-green-50 border-green-100 text-green-700' :
-        feedback.rating >= 3 ? 'bg-yellow-50 border-yellow-100 text-yellow-700' :
-          'bg-red-50 border-red-100 text-red-700'
-        }`}>
-        <span className="text-xl font-bold">{feedback.rating}</span>
-        <div className="flex gap-0.5">
-          <Star size={10} className="fill-current" />
-          <Star size={10} className="fill-current" />
-          <Star size={10} className="fill-current" />
-        </div>
+    <div className="flex items-center gap-4">
+      <div className="w-5 h-5 text-slate-300 shrink-0">
+        <Icon size={16} />
       </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0 space-y-2">
-
-        {/* Top Row: Business Badge & Date */}
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
-            <Building2 size={12} />
-            {feedback.businesses?.name || "Business"}
-          </span>
-          <span className="text-xs text-gray-400">{date}</span>
-        </div>
-
-        {/* Message & User */}
-        <div>
-          <p className="text-gray-900 font-medium line-clamp-2 leading-relaxed">
-            {feedback.message || <span className="italic text-gray-400 font-normal">No written comment provided.</span>}
-          </p>
-
-          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-50">
-            {isAnonymous ? (
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <Ghost size={14} /> Anonymous
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                <User size={14} className="text-indigo-500" /> {feedback.full_name}
-              </div>
-            )}
-
-            {/* Tags if needed later */}
-          </div>
-        </div>
-      </div>
-
-      {/* Arrow */}
-      <div className="hidden md:flex self-center text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all">
-        <ChevronRight size={20} />
+      <div className="flex justify-between flex-1 items-center">
+        <span className="text-[11px] font-medium text-slate-400">{label}</span>
+        <span className="text-sm font-medium text-slate-900 truncate ml-4">{value}</span>
       </div>
     </div>
   );

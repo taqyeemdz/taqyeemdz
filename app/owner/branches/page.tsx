@@ -84,20 +84,20 @@ export default function BranchesPage() {
   }
 
   function handleDelete(id: string) {
-    if (confirm("Are you sure you want to delete this branch?")) {
+    if (confirm("Êtes-vous sûr de vouloir supprimer cette succursale ?")) {
       dbOperations.deleteBranch(id)
       setBranches(branches.filter((b) => b.id !== id))
     }
   }
 
-  if (!business) return <div>Loading...</div>
+  if (!business) return <div>Chargement...</div>
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">Branches</h1>
-          <p className="text-muted-foreground">Manage your business locations</p>
+          <h1 className="text-4xl font-bold text-foreground mb-2">Succursales</h1>
+          <p className="text-muted-foreground">Gérez les emplacements de votre entreprise</p>
         </div>
         <Button
           onClick={() => {
@@ -110,40 +110,40 @@ export default function BranchesPage() {
           }}
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
-          {showForm && !editingId ? "Cancel" : "Add Branch"}
+          {showForm && !editingId ? "Annuler" : "Ajouter une succursale"}
         </Button>
       </div>
 
       {showForm && (
         <Card className="p-6">
-          <h2 className="text-2xl font-bold text-foreground mb-6">{editingId ? "Edit Branch" : "New Branch"}</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-6">{editingId ? "Modifier la succursale" : "Nouvelle succursale"}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="name">Branch Name</Label>
+              <Label htmlFor="name">Nom de la succursale</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Downtown Location"
+                placeholder="Emplacement centre-ville"
                 required
               />
             </div>
 
             <div>
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Adresse</Label>
               <Input
                 id="address"
                 value={formData.address}
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                placeholder="Street address"
+                placeholder="Adresse de la rue"
                 required
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">Téléphone</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
@@ -154,12 +154,12 @@ export default function BranchesPage() {
               </div>
 
               <div>
-                <Label htmlFor="manager">Manager Name</Label>
+                <Label htmlFor="manager">Nom du responsable</Label>
                 <Input
                   id="manager"
                   value={formData.manager}
                   onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-                  placeholder="Manager name"
+                  placeholder="Nom du responsable"
                   required
                 />
               </div>
@@ -167,10 +167,10 @@ export default function BranchesPage() {
 
             <div className="flex gap-2">
               <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
-                {editingId ? "Update Branch" : "Create Branch"}
+                {editingId ? "Mettre à jour la succursale" : "Créer la succursale"}
               </Button>
               <Button type="button" onClick={resetForm} variant="outline" className="flex-1 bg-transparent">
-                Cancel
+                Annuler
               </Button>
             </div>
           </form>
@@ -187,31 +187,30 @@ export default function BranchesPage() {
                 <p className="text-sm text-muted-foreground">{branch.address}</p>
               </div>
               <span
-                className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  branch.isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                }`}
+                className={`px-3 py-1 rounded-full text-xs font-semibold ${branch.isActive ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                  }`}
               >
-                {branch.isActive ? "Active" : "Inactive"}
+                {branch.isActive ? "Actif" : "Inactif"}
               </span>
             </div>
 
             <div className="space-y-2 mb-6 pb-6 border-b border-border">
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Phone</span>
+                <span className="text-sm text-muted-foreground">Téléphone</span>
                 <span className="font-semibold text-foreground">{branch.phone}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Manager</span>
+                <span className="text-sm text-muted-foreground">Responsable</span>
                 <span className="font-semibold text-foreground">{branch.manager}</span>
               </div>
             </div>
 
             <div className="flex gap-2">
               <Button onClick={() => handleEdit(branch)} variant="outline" className="flex-1">
-                Edit
+                Modifier
               </Button>
               <Button onClick={() => handleDelete(branch.id)} variant="outline" className="flex-1 text-destructive">
-                Delete
+                Supprimer
               </Button>
             </div>
           </Card>
@@ -220,12 +219,13 @@ export default function BranchesPage() {
 
       {branches.length === 0 && !showForm && (
         <Card className="p-12 text-center">
-          <p className="text-muted-foreground mb-4">No branches added yet</p>
+          <p className="text-muted-foreground mb-4">Aucune succursale ajoutée pour le moment</p>
           <Button onClick={() => setShowForm(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            Add Your First Branch
+            Ajoutez votre première succursale
           </Button>
         </Card>
       )}
     </div>
   )
 }
+

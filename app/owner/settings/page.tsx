@@ -5,29 +5,22 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import {
   User,
-  CreditCard,
-  Building2,
-  MapPin,
   Phone,
   Mail,
-  Star,
-  CheckCircle2,
-  AlertCircle,
   Loader2,
-  Save
+  Save,
+  Zap
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function SettingsPage() {
   const supabase = supabaseBrowser;
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<"profile" | "plan">("profile");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [ownerPlan, setOwnerPlan] = useState<any>(null);
@@ -51,9 +44,9 @@ export default function SettingsPage() {
       const { data: profile } = await supabase
         .from("profiles")
         .select(`
-          *,
-          subscription_plans(*)
-        `)
+                    *,
+                    subscription_plans(*)
+                `)
         .eq("id", user.id)
         .single();
 
@@ -86,12 +79,11 @@ export default function SettingsPage() {
 
       setLoading(false);
     })();
-  }, []);
+  }, [router, supabase]);
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setMessage(null);
 
     const { error } = await supabase
       .from("profiles")
@@ -102,9 +94,9 @@ export default function SettingsPage() {
       .eq("id", ownerProfile.id);
 
     if (error) {
-      setMessage({ type: "error", text: "Failed to update profile." });
+      toast.error("Échec de la mise à jour du profil.");
     } else {
-      setMessage({ type: "success", text: "Profile updated successfully!" });
+      toast.success("Profil mis à jour avec succès !");
       setOwnerProfile({ ...ownerProfile, ...formData });
     }
     setSaving(false);
@@ -112,198 +104,149 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="animate-spin text-slate-200" size={32} />
       </div>
     );
   }
 
-
-
   return (
-    <div className="max-w-5xl mx-auto space-y-8 p-6 md:p-8">
-      {/* HEADER */}
-      <div className="space-y-4">
-        <h1 className="text-4xl font-black text-gray-900 tracking-tight">Settings</h1>
-        <p className="text-gray-500 font-medium">Manage your personal information and subscription plan.</p>
-
-        {/* TAB SWITCHER */}
-        <div className={`flex p-1.5 bg-gray-100/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-sm mt-6 transition-all duration-500 ${activeTab === "profile" ? " mx-auto" : "w-full"}`}>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setActiveTab("profile")}
-              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === "plan"
-                ? "bg-white text-gray-900 shadow-md ring-1 ring-gray-200"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                }`}
-            >
-              <User size={18} />
-              Coordonnées
-            </button>
-            <button
-              onClick={() => setActiveTab("plan")}
-              className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${activeTab === "plan"
-                ? "bg-white text-gray-900 shadow-md ring-1 ring-gray-200"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-                }`}
-            >
-              <CreditCard size={18} />
-              Active Plan
-            </button>
-          </div>
-        </div>
+    <div className="max-w-5xl mx-auto p-8 space-y-12">
+      {/* Header */}
+      <div className="border-b border-slate-100 pb-8">
+        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Paramètres</h1>
+        <p className="text-slate-500 text-sm mt-0.5">Gérez votre identité et contrôlez votre consommation.</p>
       </div>
 
-      {/* CONTENT */}
-      <div className="mt-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        {activeTab === "profile" ? (
-          <div className="w-full">
-            {/* PROFILE INFO */}
-            <Card className="p-8 md:p-10 rounded-[2.5rem] border-gray-200 shadow-sm space-y-8">
-              <div className="space-y-1">
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Personal Details</h2>
-                <p className="text-gray-500 text-sm font-medium">Update your account information.</p>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {/* Left Side: Profile Form */}
+        <div className="lg:col-span-7 space-y-10">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 text-slate-900">
+              <User size={18} className="text-slate-400" />
+              <h2 className="text-sm font-bold uppercase tracking-widest">Informations Personnelles</h2>
+            </div>
 
-              <form onSubmit={handleSaveProfile} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="full_name" className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <Input
-                        id="full_name"
-                        value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        className="pl-12 py-6 bg-gray-50 border-gray-100 rounded-2xl font-bold focus:ring-black"
-                        placeholder="John Doe"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="phone" className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="pl-12 py-6 bg-gray-50 border-gray-100 rounded-2xl font-bold focus:ring-black"
-                        placeholder="+213..."
-                      />
-                    </div>
-                  </div>
-                </div>
-
+            <form onSubmit={handleSaveProfile} className="space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-xs font-black uppercase tracking-widest text-gray-400 ml-1">Email Address</Label>
-                  <div className="relative opacity-60">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <Input
-                      id="email"
-                      value={formData.email}
-                      readOnly
-                      className="pl-12 py-6 bg-gray-100 border-gray-200 rounded-2xl font-bold cursor-not-allowed"
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Nom Complet</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                    <input
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm font-medium outline-none focus:border-slate-400 transition-all shadow-sm"
+                      placeholder="Votre nom"
                     />
                   </div>
-                  <p className="text-[10px] text-gray-400 ml-1">* Email cannot be changed here.</p>
                 </div>
-
-                {message && (
-                  <div className={`p-4 rounded-2xl flex items-center gap-3 ${message.type === "success" ? "bg-green-50 text-green-700 border border-green-100" : "bg-red-50 text-red-700 border border-red-100"
-                    }`}>
-                    {message.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                    <span className="text-sm font-bold">{message.text}</span>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Téléphone</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                    <input
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm font-medium outline-none focus:border-slate-400 transition-all shadow-sm"
+                      placeholder="+213..."
+                    />
                   </div>
-                )}
-
-                <div className="flex justify-end pt-4">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="group flex items-center gap-2 px-8 py-3 bg-black text-white rounded-2xl font-black text-sm shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-                  >
-                    {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                    SAVE CHANGES
-                  </button>
                 </div>
-              </form>
-            </Card>
-          </div>
-        ) : (
-          <div className="space-y-8">
-
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* USAGE DETAILS */}
-              <div className="lg:col-span-2">
-                <Card className="p-8 rounded-[2.5rem] border-gray-200 shadow-sm space-y-8">
-                  <h3 className="text-lg font-black text-gray-900 tracking-tight flex items-center gap-3">
-                    <Building2 size={24} className="text-gray-400" />
-                    Limits & Usage
-                  </h3>
-                  <div className="space-y-6">
-                    <UsageBar label="Businesses" current={businesses.length} total={ownerPlan?.max_businesses} />
-                  </div>
-
-                  <div className="pt-6 border-t border-gray-50 text-center">
-                    <h3 className="text-sm font-black text-gray-900 tracking-tight mb-2">Need a customized plan?</h3>
-                    <p className="text-gray-500 text-xs font-medium leading-relaxed max-w-md mx-auto">
-                      If your business requires more branches, higher limits, or enterprise-grade features, contact our support team.
-                    </p>
-                    <button className="mt-4 px-6 py-2.5 bg-gray-50 border border-gray-100 text-gray-600 rounded-xl font-black text-[10px] hover:bg-gray-100 transition-all active:scale-95 uppercase tracking-widest">
-                      Contact Support
-                    </button>
-                  </div>
-                </Card>
               </div>
 
-              {/* ACCOUNT STATUS (Moved here) */}
-              <div className="space-y-6">
-                <Card className="p-6 rounded-[2.5rem] border-gray-200 shadow-sm bg-gray-50/50">
-                  <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">Account Status</h3>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-gray-600">Current Plan</span>
-                      <span className="px-3 py-1 bg-white border border-indigo-100 text-indigo-700 rounded-full text-[10px] font-black uppercase shadow-sm">
-                        {ownerPlan?.name || "No Plan"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-gray-600">User Role</span>
-                      <span className="text-sm font-black text-gray-900">Owner</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-gray-600">Status</span>
-                      <span className="flex items-center gap-1.5 text-green-600 text-xs font-black uppercase">
-                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                        Active
-                      </span>
-                    </div>
-                  </div>
-                </Card>
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email (Lecture seule)</label>
+                <div className="relative opacity-60">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                  <input
+                    value={formData.email}
+                    readOnly
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl pl-10 pr-4 py-3 text-sm font-medium cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-start">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black active:scale-[0.98] transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                  Enregistrer les modifications
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Right Side: Usage & Plan */}
+        <div className="lg:col-span-5 space-y-12">
+          {/* Usage Section */}
+          <div className="space-y-8">
+            <div className="flex items-center gap-3 text-slate-900">
+              <Zap size={18} className="text-slate-400" />
+              <h2 className="text-sm font-bold uppercase tracking-widest">Utilisation du Plan</h2>
+            </div>
+
+            <div className="p-8 bg-white border border-slate-100 rounded-2xl shadow-sm space-y-8">
+              <UsageBar label="Nombre de produits" current={businesses.length} total={ownerPlan?.max_businesses} />
+
+              <div className="pt-6 border-t border-slate-50">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Abonnement Actuel</p>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-slate-900">{ownerPlan?.name || "Standard"}</h3>
+                  <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-widest border border-emerald-100">Actif</span>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <FeatureItem label="Statistiques" value={ownerPlan?.allow_stats ? "Illimitées" : "Non inclus"} />
+                  <FeatureItem label="Médias" value={ownerPlan?.allow_media ? "Inclus" : "Non inclus"} />
+                  <FeatureItem label="Tamboola" value={ownerPlan?.allow_tamboola ? "Inclus" : "Non inclus"} />
+                  {ownerProfile?.subscription_start && (
+                    <FeatureItem
+                      label="Début"
+                      value={format(new Date(ownerProfile.subscription_start), "dd MMMM yyyy", { locale: fr })}
+                    />
+                  )}
+                  {ownerProfile?.subscription_end && (
+                    <FeatureItem
+                      label="Fin"
+                      value={format(new Date(ownerProfile.subscription_end), "dd MMMM yyyy", { locale: fr })}
+                    />
+                  )}
+                </div>
+
+                <div className="pt-6">
+                  <button className="w-full bg-slate-50 border border-slate-200 text-slate-600 rounded-xl py-3 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-100 transition-all active:scale-[0.98]">
+                    Changer de plan
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
 }
 
 function UsageBar({ label, current, total }: { label: string, current: number, total: number }) {
-  const percentage = total >= 999999 ? 0 : Math.min((current / total) * 100, 100);
-
+  const percentage = total >= 999999 ? 0 : Math.min((current / (total || 1)) * 100, 100);
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-xs font-black uppercase tracking-widest">
-        <span className="text-gray-500">{label}</span>
-        <span className="text-gray-900">{current} / {total >= 999999 ? '∞' : total}</span>
+    <div className="space-y-4">
+      <div className="flex justify-between items-end">
+        <div className="space-y-1">
+          <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">{label}</p>
+        </div>
+        <p className="text-xs font-bold text-slate-900">
+          {current} <span className="text-slate-300 font-medium">/</span> {total >= 999999 ? '∞' : total}
+        </p>
       </div>
-      <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
         <div
-          className="h-full bg-indigo-600 rounded-full transition-all duration-1000 ease-out"
+          className="h-full bg-slate-900 rounded-full transition-all duration-1000 ease-out"
           style={{ width: `${total >= 999999 ? 5 : percentage}%` }}
         />
       </div>
@@ -311,21 +254,11 @@ function UsageBar({ label, current, total }: { label: string, current: number, t
   );
 }
 
-function ChevronDown({ className, size }: { className?: string; size?: number }) {
+function FeatureItem({ label, value }: { label: string, value: string | number }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size || 16}
-      height={size || 16}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
+    <div className="flex items-center justify-between py-1 border-b border-slate-50 last:border-0 border-dotted">
+      <span className="text-[11px] font-medium text-slate-500">{label}</span>
+      <span className="text-[11px] font-bold text-slate-900">{value}</span>
+    </div>
   );
 }

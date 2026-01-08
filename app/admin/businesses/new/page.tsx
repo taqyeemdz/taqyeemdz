@@ -33,11 +33,11 @@ export default function NewBusinessPage() {
     }
 
     // 2️⃣ Call admin API
-    const res = await fetch("/api/admin/create-owner", {
+    const res = await fetch("/api/admin/create-business-and-owner", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: form.owner_email,
+        owner_email: form.owner_email,
         business_name: form.business_name,
         category: form.category,
       }),
@@ -46,7 +46,7 @@ export default function NewBusinessPage() {
     const result = await res.json();
 
     if (!res.ok) {
-      setErrorMsg(result.error || "Failed to create owner.");
+      setErrorMsg(result.error || "Failed to create business and owner.");
       setLoading(false);
       return;
     }

@@ -1,20 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginForm() {
-  const supabase = supabaseBrowser; const router = useRouter();
+  const supabase = supabaseBrowser;
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<"login" | "forgot">("login");
+
+  const redirectTo = searchParams.get("redirectTo");
 
   // AUTO REDIRECT if already logged in
   useEffect(() => {
     async function checkSession() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
+
+      if (redirectTo) {
+        return router.replace(redirectTo);
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -27,21 +39,27 @@ export default function LoginForm() {
     }
 
     checkSession();
-  }, []);
+  }, [router, supabase, redirectTo]);
 
-  async function handleLogin(e: any) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
+    setLoading(true);
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return setErr(error.message);
+    if (error) {
+      setErr(error.message);
+      setLoading(false);
+      return;
+    }
 
     const user = data.user;
+    if (redirectTo) {
+      return router.replace(redirectTo);
+    }
 
-    // Check role from user_metadata first
     let role = user.user_metadata?.role;
 
-    // Fallback to profiles table
     if (!role) {
       const { data: profile } = await supabase
         .from("profiles")
@@ -50,45 +68,142 @@ export default function LoginForm() {
         .maybeSingle();
 
       role = profile?.role;
-      if (!role) return setErr("No profile found. Contact administrator.");
     }
 
-    // Redirect by role
     if (role === "admin") return router.replace("/admin");
     if (role === "owner") return router.replace("/owner");
 
-    setErr("Invalid account role.");
+    setErr("Rôle utilisateur invalide.");
+    setLoading(false);
   }
 
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    setErr("");
+    setMsg("");
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/update-password`,
+    });
+
+    if (error) {
+      setErr(error.message);
+    } else {
+      setMsg("Un lien de réinitialisation a été envoyé à votre email.");
+    }
+    setLoading(false);
+  }
+
+  if (view === "forgot") {
+    return (
+      <form
+        onSubmit={handleResetPassword}
+        className="bg-white border border-slate-100 shadow-2xl p-8 rounded-[2rem] w-full max-w-md animate-in fade-in zoom-in duration-500 space-y-6"
+      >
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Réinitialisation</h1>
+          <p className="text-slate-400 text-sm font-medium">Saisissez votre email pour recevoir un lien.</p>
+        </div>
+
+        {err && <p className="text-rose-500 bg-rose-50 p-3 rounded-xl text-xs font-bold text-center border border-rose-100">{err}</p>}
+        {msg && <p className="text-emerald-600 bg-emerald-50 p-3 rounded-xl text-xs font-bold text-center border border-emerald-100">{msg}</p>}
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email</label>
+            <input
+              type="email"
+              placeholder="votre@email.com"
+              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-xl text-sm font-medium outline-none focus:border-indigo-400 focus:bg-white transition-all"
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        <button
+          disabled={loading}
+          className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50"
+        >
+          {loading ? "Envoi..." : "Envoyer le lien"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => { setView("login"); setErr(""); setMsg(""); }}
+          className="w-full text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+        >
+          Retour à la connexion
+        </button>
+      </form>
+    );
+  }
 
   return (
     <form
       onSubmit={handleLogin}
-      className="bg-white border shadow p-6 rounded-xl w-full max-w-sm"
+      className="bg-white border border-slate-100 shadow-2xl p-8 rounded-[2.5rem] w-full max-w-md animate-in fade-in zoom-in duration-500 space-y-8"
     >
-      <h1 className="text-xl font-bold text-center mb-4">Login</h1>
+      <div className="space-y-2 text-center">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Connexion</h1>
+        <p className="text-slate-400 text-sm font-medium">Bon retour sur TaqyeemDZ.</p>
+      </div>
 
-      {err && <p className="text-red-600 text-center mb-2">{err}</p>}
+      {err && <p className="text-rose-500 bg-rose-50 p-3 rounded-xl text-xs font-bold text-center border border-rose-100">{err}</p>}
 
-      <input
-        type="email"
-        placeholder="Email"
-        className="w-full border p-2 rounded mb-3"
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
+      <div className="space-y-5">
+        <div className="space-y-1.5">
+          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Email</label>
+          <input
+            type="email"
+            placeholder="votre@email.com"
+            className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-medium outline-none focus:border-indigo-400 focus:bg-white transition-all"
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
-      <input
-        type="password"
-        placeholder="Password"
-        className="w-full border p-2 rounded mb-4"
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center px-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mot de passe</label>
+            <button
+              type="button"
+              onClick={() => { setView("forgot"); setErr(""); setMsg(""); }}
+              className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest hover:underline"
+            >
+              Oublié ?
+            </button>
+          </div>
+          <input
+            type="password"
+            placeholder="••••••••"
+            className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-medium outline-none focus:border-indigo-400 focus:bg-white transition-all"
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+      </div>
 
-      <button className="w-full bg-black text-white py-2 rounded">
-        Login
+      <button
+        disabled={loading}
+        className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50"
+      >
+        {loading ? "Connexion..." : "Se connecter"}
       </button>
+
+      <div className="text-center pt-2">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          Pas encore de compte ?{" "}
+          <button
+            type="button"
+            onClick={() => router.push("/auth/request")}
+            className="text-indigo-600 hover:underline"
+          >
+            S'inscrire
+          </button>
+        </p>
+      </div>
     </form>
   );
 }

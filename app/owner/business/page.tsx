@@ -1,49 +1,49 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import {
-  Building2,
-  MapPin,
-  Phone,
   Plus,
-  QrCode,
+  Search,
   ChevronRight,
-  MoreHorizontal,
-  Star
+  QrCode,
+  MessageSquare,
+  Filter,
+  Loader2,
+  Calendar,
+  MapPin
 } from "lucide-react";
-import { QRCodeSVG as QRCode } from "qrcode.react";
 import { UpgradeModal } from "@/components/owner/UpgradeModal";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function OwnerBusinessPage() {
-  const supabase = supabaseBrowser; const router = useRouter();
+  const supabase = supabaseBrowser;
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [ownerPlan, setOwnerPlan] = useState<any>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
 
       if (!user) return router.replace("/auth/login");
 
-      // 1. Fetch Owner Profile + Plan
       const { data: profile } = await supabase
         .from("profiles")
-        .select(`
-          *,
-          subscription_plans(*)
-        `)
+        .select(`*, subscription_plans(*)`)
         .eq("id", user.id)
         .single();
 
-      if (profile) {
-        setOwnerPlan(profile.subscription_plans);
-      }
-      // 2) Get all business IDs for this user
+      if (profile) setOwnerPlan(profile.subscription_plans);
+
       const { data: links } = await supabase
         .from("user_business")
         .select("business_id")
@@ -55,45 +55,40 @@ export default function OwnerBusinessPage() {
         setLoading(false);
         return;
       }
-      // 2. Fetch Businesses
+
+      // Fetch businesses AND feedback count
       const { data: businessList, error } = await supabase
         .from("businesses")
-        .select("*")
+        .select(`
+                    *,
+                    feedback:feedback(count)
+                `)
         .in("id", businessIds)
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
 
-
-      if (error) {
-        console.error("Error fetching businesses:", error);
-      } else if (businessList) {
-        setBusinesses(businessList || []);
+      if (businessList) {
+        const formatted = businessList.map(b => ({
+          ...b,
+          feedback_count: b.feedback?.[0]?.count || 0
+        }));
+        setBusinesses(formatted);
       }
-
       setLoading(false);
     })();
-  }, []);
+  }, [router, supabase]);
 
-  if (loading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="flex flex-col items-center gap-3 animate-pulse">
-          <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-          <div className="h-4 w-32 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
-
-  const totalBranches = businesses.reduce((acc, b) => acc + (b.branch_count || 0), 0);
-  const totalQRs = businesses.reduce((acc, b) => acc + (b.qr_count || 0), 0);
+  const filtered = businesses.filter((b) => {
+    const s = search.toLowerCase();
+    return (b.name?.toLowerCase() || "").includes(s);
+  });
 
   return (
-    <div className=" mx-auto p-6 space-y-8">
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto p-8 space-y-10">
+      {/* Minimalist Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Manage your businesses and view feedback.</p>
+          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Vos Produits</h1>
+          <p className="text-slate-500 text-sm mt-0.5">Gérez vos produits et vos codes QR.</p>
         </div>
         <button
           onClick={() => {
@@ -103,151 +98,111 @@ export default function OwnerBusinessPage() {
               router.push("/owner/business/new");
             }
           }}
-          className="group flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-full font-medium shadow-lg shadow-gray-200 hover:shadow-xl hover:scale-105 transition-all active:scale-95"
+          className="bg-black text-white text-sm px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-medium active:scale-95"
         >
-          <Plus size={18} className="group-hover:rotate-90 transition-transform duration-300" />
-          <span>New Business</span>
+          <Plus size={16} />
+          Nouveau Produit
         </button>
       </div>
 
-      {/* CONTENT */}
-      {businesses.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {businesses.map((b) => (
-            <BusinessRow key={b.id} business={b} router={router} ownerPlan={ownerPlan} />
-          ))}
+      {/* Search Bar */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Rechercher un produit..."
+            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:border-slate-400 transition-colors"
+          />
         </div>
-      ) : (
-        <EmptyState
-          router={router}
-          onNewBusiness={() => {
-            if (ownerPlan && businesses.length >= (ownerPlan.max_businesses || 0)) {
-              setShowUpgradeModal(true);
-            } else {
-              router.push("/owner/business/new");
-            }
-          }}
-        />
-      )}
+        <button className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
+          <Filter size={16} />
+        </button>
+      </div>
+
+      {/* Minimalist Table/List */}
+      <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-sm shadow-slate-200/50">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-3">
+            <Loader2 className="animate-spin text-slate-300" size={24} />
+            <span className="text-xs text-slate-400 font-medium tracking-wide">Chargement...</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="py-24 text-center space-y-4">
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
+              <QrCode size={24} />
+            </div>
+            <p className="text-sm text-slate-400 font-medium">Aucun produit trouvé.</p>
+            {businesses.length === 0 && (
+              <button
+                onClick={() => router.push("/owner/business/new")}
+                className="text-xs font-bold text-indigo-600 uppercase tracking-widest hover:underline"
+              >
+                Créer votre premier produit
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-50 text-slate-400 text-[11px] uppercase tracking-wider font-semibold">
+                  <th className="px-6 py-4">Produit</th>
+                  <th className="px-6 py-4 text-center">Avis reçus</th>
+                  <th className="px-6 py-4 text-center">Statut</th>
+                  <th className="px-6 py-4 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {filtered.map((b) => (
+                  <tr
+                    key={b.id}
+                    onClick={() => router.push(`/owner/business/${b.id}`)}
+                    className="group hover:bg-slate-50/80 transition-all cursor-pointer"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 group-hover:bg-black group-hover:text-white transition-all">
+                          <QrCode size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-900 leading-tight">{b.name}</span>
+                          <span className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                            Créé le {format(new Date(b.created_at), "dd/MM/yyyy")}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-semibold text-slate-900">{b.feedback_count}</span>
+                        <span className="text-[10px] text-slate-400 font-medium lowercase">feedbacks</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                        <span className="text-[11px] font-medium text-emerald-500">Actif</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <ChevronRight size={16} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         maxLimit={ownerPlan?.max_businesses}
       />
-    </div>
-  );
-}
-
-function BusinessRow({ business, router, ownerPlan }: { business: any, router: any, ownerPlan: any }) {
-  const [showQr, setShowQr] = useState(false);
-  const feedbackLink = `${window.location.origin}/client/feedback/${business.id}`;
-
-  return (
-    <div className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
-      <div className="p-5 flex flex-col md:flex-row items-start md:items-center gap-6">
-
-        {/* ICON / AVATAR */}
-        <div
-          onClick={() => router.push(`/owner/business/${business.id}`)}
-          className="w-16 h-16 shrink-0 bg-gradient-to-br from-blue-50 to-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center cursor-pointer transform group-hover:scale-105 transition-transform"
-        >
-          <Building2 size={32} strokeWidth={1.5} />
-        </div>
-
-        {/* INFO */}
-        <div
-          onClick={() => router.push(`/owner/business/${business.id}`)}
-          className="flex-1 cursor-pointer min-w-0"
-        >
-          <h3 className="text-xl font-bold text-gray-900 truncate group-hover:text-indigo-600 transition-colors">
-            {business.name}
-          </h3>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-sm text-gray-500">
-            {business.address && (
-              <div className="flex items-center gap-1.5">
-                <MapPin size={14} className="shrink-0" />
-                <span className="truncate max-w-[200px]">{business.address}</span>
-              </div>
-            )}
-            {business.phone && (
-              <div className="flex items-center gap-1.5">
-                <Phone size={14} className="shrink-0" />
-                <span>{business.phone}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1.5 ml-auto md:ml-0">
-              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">
-                {business.branch_count || 0} Branches
-              </span>
-              <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-bold">
-                {business.qr_count || 0} QR Codes
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0 pt-4 md:pt-0 border-t md:border-0 border-gray-100">
-
-          <div className="flex items-center gap-3 ml-auto md:ml-0">
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowQr(!showQr); }}
-              className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${showQr ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
-              title="Show Details"
-            >
-              <QrCode size={18} />
-            </button>
-
-            <button
-              onClick={() => router.push(`/owner/business/${business.id}`)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors"
-            >
-              <span>Manage</span>
-              <ChevronRight size={16} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* EXPANDABLE QR AREA */}
-      {showQr && (
-        <div className="bg-gray-50 border-t border-gray-100 p-6 flex flex-col items-center animate-in slide-in-from-top-2 duration-200">
-          <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100">
-            <QRCode value={feedbackLink} size={160} />
-          </div>
-          <p className="mt-3 text-sm font-medium text-gray-600">Scan to give feedback</p>
-          <a
-            href={feedbackLink}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 text-xs text-indigo-500 hover:underline"
-          >
-            {feedbackLink}
-          </a>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EmptyState({ router, onNewBusiness }: { router: any, onNewBusiness: () => void }) {
-  return (
-    <div className="bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 p-12 text-center flex flex-col items-center">
-      <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mb-6 text-gray-400">
-        <Building2 size={32} />
-      </div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">No businesses yet</h2>
-      <p className="text-gray-500 max-w-sm mx-auto mb-8">
-        Get started by adding your first business. You'll be able to collect feedback and manage your profile.
-      </p>
-      <button
-        onClick={onNewBusiness}
-        className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl transition-all"
-      >
-        <Plus size={20} />
-        <span>Create Business</span>
-      </button>
     </div>
   );
 }

@@ -6,8 +6,7 @@ import { createSupabaseServer } from "@/lib/supabase/server";
 type BusinessBody = {
   name: string;
   category: string;
-  phone?: string;
-  address?: string;
+  description?: string;
 };
 
 export async function POST(request: Request) {
@@ -92,8 +91,7 @@ export async function POST(request: Request) {
         {
           name: body.name,
           category: body.category,
-          phone: body.phone || null,
-          address: body.address || null,
+          description: body.description || null,
           owner_id: user.id, // ✅ essential for RLS
         },
       ])

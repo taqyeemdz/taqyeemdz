@@ -1,41 +1,89 @@
 "use client";
 
 import { useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client"; import { useRouter } from "next/navigation";
+import { supabaseBrowser } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const router = useRouter();
   const supabase = supabaseBrowser;
-  async function handleUpdate(e: any) {
+
+  async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
+    setLoading(true);
+    setErr("");
+    setMsg("");
 
     const { error } = await supabase.auth.updateUser({ password });
 
-    if (error) return setMsg(error.message);
+    if (error) {
+      setErr(error.message);
+      setLoading(false);
+      return;
+    }
 
-    setMsg("Password successfully updated.");
-    router.push("/auth/owner/login");
+    setMsg("Votre mot de passe a été mis à jour avec succès.");
+    setTimeout(() => {
+      router.push("/auth/login");
+    }, 2000);
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <form onSubmit={handleUpdate} className="bg-white p-6 rounded-xl shadow w-full max-w-sm">
-        <h1 className="text-xl font-bold mb-4">Set New Password</h1>
+    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
+      <form
+        onSubmit={handleUpdate}
+        className="bg-white border border-slate-100 shadow-2xl p-10 rounded-[2.5rem] w-full max-w-md animate-in fade-in zoom-in duration-500 space-y-8"
+      >
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Nouveau mot de passe</h1>
+          <p className="text-slate-400 text-sm font-medium">Sécurisez votre compte dès maintenant.</p>
+        </div>
 
-        {msg && <p className="mb-3">{msg}</p>}
+        {err && (
+          <div className="flex items-center gap-3 p-3 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold border border-rose-100">
+            <AlertCircle size={14} />
+            {err}
+          </div>
+        )}
 
-        <input
-          type="password"
-          placeholder="New password"
-          className="input mb-4 w-full"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        {msg && (
+          <div className="flex items-center gap-3 p-3 bg-emerald-50 text-emerald-600 rounded-xl text-xs font-bold border border-emerald-100">
+            <CheckCircle2 size={14} />
+            {msg}
+          </div>
+        )}
 
-        <button className="btn-primary w-full">Update Password</button>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nouveau mot de passe</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl text-sm font-medium outline-none focus:border-indigo-400 focus:bg-white transition-all"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        <button
+          disabled={loading || !!msg}
+          className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Mettre à jour"}
+        </button>
+
+        {msg && (
+          <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">
+            Redirection vers la connexion...
+          </p>
+        )}
       </form>
     </div>
   );
