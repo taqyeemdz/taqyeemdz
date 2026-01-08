@@ -9,12 +9,31 @@ import {
   ArrowRight,
   Menu,
   X,
-  Star
+  Star,
+  Loader2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const supabase = supabaseBrowser;
+
+  useEffect(() => {
+    async function fetchPlans() {
+      const { data } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("price", { ascending: true });
+
+      if (data) setPlans(data);
+      setLoadingPlans(false);
+    }
+    fetchPlans();
+  }, [supabase]);
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] selection:bg-[var(--chart-2)] selection:text-white">
@@ -219,51 +238,39 @@ export default function LandingPage() {
               <p className="text-[var(--muted-foreground)]">Choisissez le forfait qui correspond aux besoins de votre entreprise.</p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-              {/* STARTER */}
-              <PricingCard
-                title="Starter"
-                price="Gratuit"
-                description="Pour les petites entreprises qui débutent."
-                features={[
-                  "1 Emplacement commercial",
-                  "100 Entrées de feedback/mois",
-                  "Analyses de base",
-                  "Support par e-mail"
-                ]}
-              />
-
-              {/* PRO */}
-              <PricingCard
-                title="Pro"
-                price="2 500 DZD"
-                period="/mois"
-                description="Pour les entreprises en croissance nécessitant plus d'informations."
-                features={[
-                  "Jusqu'à 3 emplacements",
-                  "Feedback illimité",
-                  "Analyses avancées",
-                  "Support prioritaire",
-                  "Exporter les données",
-                  "Codes QR personnalisés"
-                ]}
-                highlighted={true}
-              />
-
-              {/* ENTERPRISE */}
-              <PricingCard
-                title="Entreprise"
-                price="Sur mesure"
-                description="Pour les grandes organisations ayant des besoins spécifiques."
-                features={[
-                  "Emplacements illimités",
-                  "Gestionnaire de compte dédié",
-                  "Accès API",
-                  "Marque blanche",
-                  "Intégration personnalisée"
-                ]}
-              />
-            </div>
+            {loadingPlans ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="animate-spin text-indigo-600" size={40} />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+                {plans.map((plan) => (
+                  <PricingCard
+                    key={plan.id}
+                    title={plan.name}
+                    price={plan.price === 0 ? "Gratuit" : `${new Intl.NumberFormat('fr-DZ').format(plan.price)} ${plan.currency}`}
+                    period={plan.price === 0 ? "" : "/mois"}
+                    description={
+                      plan.name === "Starter" ? "L'essentiel pour commencer." :
+                        plan.name === "Pro" ? "Pour les entreprises en croissance." :
+                          "Contrôle total pour les réseaux."
+                    }
+                    features={
+                      plan.features && Array.isArray(plan.features) && plan.features.length > 0
+                        ? plan.features
+                        : [
+                          `${plan.max_businesses} Produit${plan.max_businesses > 1 ? 's' : ''}`,
+                          plan.allow_stats ? "Statistiques incluses" : "Stats de base",
+                          plan.allow_tamboola ? "Fonction Tamboola" : "",
+                          plan.allow_media ? "Upload de médias" : "",
+                        ].filter(Boolean)
+                    }
+                    maxQrCodes={plan.max_qr_codes}
+                    highlighted={plan.name === "Pro"}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -337,7 +344,7 @@ function FeatureItem({ text }: { text: string }) {
   );
 }
 
-function PricingCard({ title, price, period, features, description, highlighted = false }: any) {
+function PricingCard({ title, price, period, features, description, maxQrCodes, highlighted = false }: any) {
   return (
     <div className={`
       relative p-8 rounded-2xl border transition-all duration-300
@@ -352,12 +359,18 @@ function PricingCard({ title, price, period, features, description, highlighted 
         </div>
       )}
 
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-[var(--muted-foreground)] text-sm mb-6 h-10">{description}</p>
+      <h3 className="text-2xl font-black mb-2 tracking-tight text-slate-900">{title}</h3>
+      <p className="text-slate-400 text-sm mb-6 h-10 leading-relaxed">{description}</p>
 
-      <div className="mb-8">
-        <span className="text-4xl font-bold">{price}</span>
-        {period && <span className="text-[var(--muted-foreground)]">{period}</span>}
+      <div className="mb-2">
+        <span className="text-4xl font-black text-slate-900 tracking-tight">{price}</span>
+        {period && <span className="text-slate-400 font-bold ml-1">{period}</span>}
+      </div>
+
+      <div className="mb-8 flex items-center gap-2">
+        <div className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100/50">
+          {maxQrCodes >= 99999 ? "QR Codes illimités" : `${maxQrCodes} QR Code${maxQrCodes > 1 ? 's' : ''} inclus`}
+        </div>
       </div>
 
       <ul className="space-y-4 mb-8">

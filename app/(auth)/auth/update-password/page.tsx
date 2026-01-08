@@ -1,17 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default function UpdatePasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Chargement...</div>}>
+      <UpdatePasswordInner />
+    </Suspense>
+  );
+}
+
+function UpdatePasswordInner() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = supabaseBrowser;
+
+  // IMPORTANT: Échanger le code contre une session dès l'arrivée sur la page
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+        if (error) {
+          setErr("Le lien a expiré ou est invalide. Veuillez recommencer.");
+          console.error("Session exchange error:", error);
+        }
+      });
+    }
+  }, [searchParams, supabase]);
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
@@ -19,6 +41,7 @@ export default function UpdatePasswordPage() {
     setErr("");
     setMsg("");
 
+    // updateUser nécessite une session active (établie par exchangeCodeForSession)
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
@@ -28,6 +51,7 @@ export default function UpdatePasswordPage() {
     }
 
     setMsg("Votre mot de passe a été mis à jour avec succès.");
+    setLoading(false);
     setTimeout(() => {
       router.push("/auth/login");
     }, 2000);

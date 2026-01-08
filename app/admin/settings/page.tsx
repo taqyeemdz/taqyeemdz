@@ -182,7 +182,7 @@ export default function AdminSettings() {
               <button
                 onClick={() => {
                   const id = `new-${crypto.randomUUID()}`;
-                  setPlans([...plans, { id, name: "Nouveau Plan", price: 0, currency: "DZD", features: [], max_businesses: 1, is_active: true }]);
+                  setPlans([...plans, { id, name: "Nouveau Plan", price: 0, currency: "DZD", features: [], max_businesses: 1, max_qr_codes: 3, is_active: true }]);
                   setExpandedPlanIds([...expandedPlanIds, id]);
                 }}
                 className="bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2"
@@ -203,14 +203,15 @@ export default function AdminSettings() {
                       <span className="font-medium text-slate-900">{plan.name}</span>
                       {!plan.is_active && <span className="text-[10px] bg-slate-100 text-slate-400 px-2 py-0.5 rounded font-bold uppercase">Masqué</span>}
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-6">
+                      <span className="text-[10px] bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded font-bold uppercase">{plan.max_qr_codes} QR</span>
                       <span className="text-sm font-mono font-semibold text-slate-600">{plan.price} {plan.currency}</span>
                     </div>
                   </div>
 
                   {expandedPlanIds.includes(plan.id) && (
                     <div className="p-6 border-t border-slate-50 bg-slate-50/20 space-y-8 animate-in slide-in-from-top-2 duration-200">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nom</label>
                           <input
@@ -220,12 +221,21 @@ export default function AdminSettings() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prix</label>
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prix (DZD)</label>
                           <input
                             type="number"
                             value={plan.price}
                             onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, price: parseFloat(e.target.value) } : p))}
                             className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">QR Codes inclus</label>
+                          <input
+                            type="number"
+                            value={plan.max_qr_codes}
+                            onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, max_qr_codes: parseInt(e.target.value) } : p))}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400 font-bold text-indigo-600"
                           />
                         </div>
                       </div>
