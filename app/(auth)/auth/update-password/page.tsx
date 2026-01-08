@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import Link from "next/link";
 
 export default function UpdatePasswordPage() {
   return (
@@ -23,13 +24,22 @@ function UpdatePasswordInner() {
   const supabase = supabaseBrowser;
 
   // IMPORTANT: Échanger le code contre une session dès l'arrivée sur la page
+  // IMPORTANT: Analyser l'URL pour des erreurs ou échanger le code contre une session
   useEffect(() => {
+    const error = searchParams.get("error");
+    const errorCode = searchParams.get("error_code");
+
+    if (error === "access_denied" || errorCode === "otp_expired") {
+      setErr("Le lien de réinitialisation a expiré ou a déjà été utilisé. Veuillez demander un nouveau lien.");
+      return;
+    }
+
     const code = searchParams.get("code");
     if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-        if (error) {
-          setErr("Le lien a expiré ou est invalide. Veuillez recommencer.");
-          console.error("Session exchange error:", error);
+      supabase.auth.exchangeCodeForSession(code).then(({ error: exchangeError }) => {
+        if (exchangeError) {
+          setErr("Session invalide ou expirée. Veuillez recommencer la procédure.");
+          console.error("Session exchange error:", exchangeError);
         }
       });
     }
@@ -107,6 +117,16 @@ function UpdatePasswordInner() {
           <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">
             Redirection vers la connexion...
           </p>
+        )}
+        {err && (
+          <div className="pt-4 border-t border-slate-50">
+            <Link
+              href="/auth/login"
+              className="text-center block text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline"
+            >
+              Retour à la connexion
+            </Link>
+          </div>
         )}
       </form>
     </div>
