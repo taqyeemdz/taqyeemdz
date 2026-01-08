@@ -244,16 +244,16 @@ export default function RequestAccountPage() {
                                 <CreditCard size={14} /> Offre souhaitée
                             </label>
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                {plans.map((p) => (
+                                {plans.sort((a, b) => a.price - b.price).map((p) => (
                                     <label
                                         key={p.id}
                                         className={`
-                      relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all
-                      ${form.plan_id === p.id
-                                                ? 'border-indigo-600 bg-indigo-50/50'
-                                                : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                                            relative flex flex-col p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all h-full
+                                            ${form.plan_id === p.id
+                                                ? 'border-indigo-600 bg-indigo-50/50 shadow-lg shadow-indigo-100'
+                                                : 'border-slate-100 bg-slate-50 hover:border-slate-200'
                                             }
-                    `}
+                                        `}
                                     >
                                         <input
                                             type="radio"
@@ -263,8 +263,33 @@ export default function RequestAccountPage() {
                                             checked={form.plan_id === p.id}
                                             onChange={() => setForm({ ...form, plan_id: p.id })}
                                         />
-                                        <span className="text-sm font-black text-gray-900">{p.name}</span>
-                                        <span className="text-lg font-black text-indigo-600">{p.price} {p.currency}</span>
+
+                                        {p.name === "Pro" && (
+                                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-[8px] font-black text-white rounded-full uppercase tracking-widest shadow-md">
+                                                Populaire
+                                            </span>
+                                        )}
+
+                                        <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${form.plan_id === p.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                            {p.name}
+                                        </span>
+                                        <div className="flex flex-col">
+                                            <span className="text-xl font-black text-slate-900 leading-tight">
+                                                {p.price === 0 ? "Gratuit" : `${new Intl.NumberFormat('fr-DZ').format(p.price)}`}
+                                            </span>
+                                            {p.price > 0 && (
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                    {p.currency} / mois
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-3 flex items-center gap-1.5">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${form.plan_id === p.id ? 'bg-indigo-600 animate-pulse' : 'bg-slate-300'}`} />
+                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight">
+                                                {p.max_qr_codes} QR Code{p.max_qr_codes > 1 ? 's' : ''}
+                                            </span>
+                                        </div>
                                     </label>
                                 ))}
                             </div>

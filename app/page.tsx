@@ -75,7 +75,7 @@ export default function LandingPage() {
                 href="/auth/request"
                 className="px-4 py-2 rounded-full bg-[var(--chart-2)] text-white text-sm font-medium hover:opacity-90 transition-opacity shadow-lg shadow-[var(--chart-2)]/25"
               >
-                Commencer
+                S'inscrire
               </Link>
             </div>
 
@@ -116,7 +116,7 @@ export default function LandingPage() {
                   className="block text-center w-full py-2 text-sm font-medium bg-[var(--chart-2)] text-white rounded-lg"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Commencer
+                  S'inscrire
                 </Link>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function LandingPage() {
                 href="/auth/request"
                 className="px-8 py-3.5 rounded-full bg-[var(--foreground)] text-[var(--background)] font-medium text-base hover:opacity-90 transition-all flex items-center gap-2"
               >
-                Commencer gratuitement <ArrowRight size={18} />
+                S'inscrire <ArrowRight size={18} />
               </Link>
               <Link
                 href="#how-it-works"
@@ -347,7 +347,7 @@ function FeatureItem({ text }: { text: string }) {
 function PricingCard({ title, price, period, features, description, maxQrCodes, highlighted = false }: any) {
   return (
     <div className={`
-      relative p-8 rounded-2xl border transition-all duration-300
+      relative p-8 rounded-2xl border transition-all duration-300 flex flex-col h-full
       ${highlighted
         ? 'border-[var(--chart-2)] bg-[var(--card)] shadow-2xl scale-105 z-10'
         : 'border-[var(--border)] bg-[var(--card)] hover:border-[var(--chart-2)]/50'
@@ -373,10 +373,10 @@ function PricingCard({ title, price, period, features, description, maxQrCodes, 
         </div>
       </div>
 
-      <ul className="space-y-4 mb-8">
+      <ul className="space-y-4 mb-8 flex-grow">
         {features.map((feature: string, idx: number) => (
-          <li key={idx} className="flex items-start gap-3 text-sm">
-            <CheckCircle2 size={16} className={`mt-0.5 ${highlighted ? 'text-[var(--chart-2)]' : 'text-[var(--muted-foreground)]'}`} />
+          <li key={idx} className="flex items-start gap-3 text-sm text-slate-600">
+            <CheckCircle2 size={16} className={`mt-0.5 shrink-0 ${highlighted ? 'text-[var(--chart-2)]' : 'text-slate-300'}`} />
             <span>{feature}</span>
           </li>
         ))}
@@ -385,10 +385,10 @@ function PricingCard({ title, price, period, features, description, maxQrCodes, 
       <Link
         href="/auth/request"
         className={`
-          block w-full py-3 rounded-xl text-center font-semibold transition-all
+          block w-full py-4 rounded-xl text-center font-bold text-xs uppercase tracking-widest transition-all mt-auto
           ${highlighted
             ? 'bg-[var(--chart-2)] text-white hover:opacity-90 shadow-lg shadow-blue-500/25'
-            : 'bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--border)]'
+            : 'bg-slate-50 text-slate-900 hover:bg-slate-100 border border-slate-100'
           }
         `}
       >
