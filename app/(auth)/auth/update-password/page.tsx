@@ -48,7 +48,12 @@ function UpdatePasswordInner() {
           setSessionLoading(false);
           return;
         } else if (exchangeError) {
-          setErr(`Erreur de session : ${exchangeError.message}`);
+          // Détection spécifique de l'erreur de changement d'appareil (PKCE verifier missing)
+          if (exchangeError.message.includes("code verifier")) {
+            setErr("Sécurité : Veuillez cliquer sur le lien depuis l'appareil (PC ou Mobile) qui a servi à faire la demande de nouveau mot de passe.");
+          } else {
+            setErr(`Erreur de session : ${exchangeError.message}`);
+          }
           setSessionLoading(false);
           return;
         }
