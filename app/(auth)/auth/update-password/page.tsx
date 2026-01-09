@@ -8,7 +8,7 @@ import Link from "next/link";
 
 export default function UpdatePasswordPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Chargement sécurisé...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-400 font-bold uppercase tracking-widest text-[10px]">Vérification du lien...</div>}>
       <UpdatePasswordInner />
     </Suspense>
   );
@@ -25,70 +25,44 @@ function UpdatePasswordInner() {
   const searchParams = useSearchParams();
   const supabase = supabaseBrowser;
 
-  // IMPORTANT: Analyser l'URL pour des erreurs ou échanger le code contre une session
   useEffect(() => {
-    async function initSession() {
-      // 1. Extraire les erreurs (Query params ET Fragment)
-      const error = searchParams.get("error");
-      const errorCode = searchParams.get("error_code");
-
-      // Sur mobile, Supabase met parfois les erreurs derrière le fragment #
-      const hashParams = typeof window !== "undefined" ? new URLSearchParams(window.location.hash.substring(1)) : null;
-      const fragmentError = hashParams?.get("error") || hashParams?.get("error_code");
-
-      const code = searchParams.get("code");
-
-      console.log("Update Password Init:", { error, errorCode, fragmentError, hasCode: !!code });
-
-      // 2. Tenter d'échanger le code s'il est présent (PKCE Flow)
-      if (code) {
-        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (!exchangeError && data?.session) {
-          setHasSession(true);
-          setSessionLoading(false);
-          return;
-        } else if (exchangeError) {
-          // Détection spécifique de l'erreur de changement d'appareil (PKCE verifier missing)
-          if (exchangeError.message.includes("code verifier")) {
-            setErr("Sécurité : Veuillez cliquer sur le lien depuis l'appareil (PC ou Mobile) qui a servi à faire la demande de nouveau mot de passe.");
-          } else {
-            setErr(`Erreur de session : ${exchangeError.message}`);
-          }
-          setSessionLoading(false);
-          return;
-        }
-      }
-
-      // 3. Vérifier s'il y a déjà une session active ou un access_token dans le fragment (Implicit Flow)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setHasSession(true);
+    async function checkSession() {
+      // 1. Vérifier les erreurs directes
+      const error = searchParams.get("error") || searchParams.get("error_description");
+      if (error) {
+        setErr("Le lien est invalide ou a expiré. Veuillez recommencer la procédure.");
         setSessionLoading(false);
-        setErr("");
         return;
       }
 
-      // 4. Si on arrive ici, c'est une erreur de lien
-      if (errorCode === "otp_expired" || fragmentError === "otp_expired") {
-        setErr("Le jeton de sécurité a expiré. Cela arrive souvent si le lien a été pré-cliqué par votre service de messagerie. Veuillez demander un nouveau lien.");
-      } else if (error || fragmentError) {
-        setErr(`Erreur de lien : ${error || fragmentError}`);
-      } else if (!code) {
-        setErr("Aucun code de session trouvé dans le lien. Utilisez bien le lien reçu par email.");
-      }
+      // 2. Vérifier si une session est active (établie par le callback serveur)
+      const { data: { session } } = await supabase.auth.getSession();
 
+      if (session) {
+        setHasSession(true);
+      } else {
+        // Si pas de session, on regarde si on a un code PKCE au cas où le callback a été sauté
+        const code = searchParams.get("code");
+        if (code) {
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (!exchangeError && data.session) {
+            setHasSession(true);
+          } else {
+            setErr("Impossible d'activer votre session. Veuillez redemander un lien.");
+          }
+        } else {
+          setErr("Session sécurisée introuvable. Veuillez utiliser le lien reçu par email.");
+        }
+      }
       setSessionLoading(false);
     }
 
-    initSession();
+    checkSession();
   }, [searchParams, supabase]);
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
-    if (!hasSession) {
-      setErr("Votre session est manquante. Rechargez la page ou demandez un nouveau lien.");
-      return;
-    }
+    if (!hasSession) return;
 
     setLoading(true);
     setErr("");
@@ -102,7 +76,7 @@ function UpdatePasswordInner() {
       return;
     }
 
-    setMsg("Votre mot de passe a été mis à jour avec succès.");
+    setMsg("Mot de passe mis à jour avec succès !");
     setLoading(false);
     setTimeout(() => {
       router.push("/auth/login");
@@ -116,28 +90,28 @@ function UpdatePasswordInner() {
         className="bg-white border border-slate-100 shadow-2xl p-10 rounded-[2.5rem] w-full max-w-md animate-in fade-in zoom-in duration-500 space-y-8"
       >
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Mot de passe</h1>
-          <p className="text-slate-400 text-sm font-medium">Réinitialisation sécurisée</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Sécurité</h1>
+          <p className="text-slate-400 text-sm font-medium">Nouveau mot de passe</p>
         </div>
 
         {sessionLoading ? (
-          <div className="flex flex-col items-center gap-4 py-8">
+          <div className="flex flex-col items-center gap-4 py-8 text-center text-slate-400">
             <Loader2 className="animate-spin text-indigo-600" size={32} />
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse text-center">
-              Établissement du tunnel sécurisé...
+            <p className="text-[10px] font-black uppercase tracking-widest animate-pulse">
+              Sécurisation de la connexion...
             </p>
           </div>
         ) : (
           <>
             {err && (
-              <div className="flex items-center gap-3 p-4 bg-rose-50 text-rose-600 rounded-2xl text-xs font-bold border border-rose-100 animate-in slide-in-from-top-2">
+              <div className="flex items-center gap-3 p-4 bg-rose-50 text-rose-600 rounded-2xl text-xs font-bold border border-rose-100 italic">
                 <AlertCircle size={16} className="shrink-0" />
-                <p className="leading-relaxed">{err}</p>
+                <p>{err}</p>
               </div>
             )}
 
             {msg && (
-              <div className="flex items-center gap-3 p-4 bg-emerald-50 text-emerald-600 rounded-2xl text-xs font-bold border border-emerald-100 animate-in slide-in-from-top-2">
+              <div className="flex items-center gap-3 p-4 bg-emerald-50 text-emerald-600 rounded-2xl text-xs font-bold border border-emerald-100">
                 <CheckCircle2 size={16} className="shrink-0" />
                 <p>{msg}</p>
               </div>
@@ -146,7 +120,7 @@ function UpdatePasswordInner() {
             {!msg && !err && hasSession && (
               <div className="space-y-6">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nouveau mot de passe</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Choissisez un mot de passe fort</label>
                   <input
                     type="password"
                     placeholder="••••••••"
@@ -162,7 +136,7 @@ function UpdatePasswordInner() {
                   disabled={loading}
                   className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-slate-200 hover:bg-black active:scale-[0.98] transition-all disabled:opacity-50"
                 >
-                  {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Mettre à jour"}
+                  {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : "Confirmer"}
                 </button>
               </div>
             )}
@@ -171,17 +145,11 @@ function UpdatePasswordInner() {
               <div className="pt-4 border-t border-slate-50">
                 <Link
                   href="/auth/login"
-                  className="w-full block py-4 text-center text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+                  className="w-full block py-4 text-center text-[10px] font-black text-indigo-600 uppercase tracking-widest bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm"
                 >
-                  Redemander un lien
+                  Retour / Demander un nouveau lien
                 </Link>
               </div>
-            )}
-
-            {msg && (
-              <p className="text-center text-[10px] font-bold text-slate-400 uppercase tracking-widest animate-pulse">
-                Redirection automatique...
-              </p>
             )}
           </>
         )}
