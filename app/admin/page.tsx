@@ -118,15 +118,7 @@ export default function AdminDashboardPage() {
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">C'est un plaisir de vous revoir 👋</h1>
           <p className="text-slate-500 font-medium mt-1">Gérez la croissance et les revenus de TaqyeemDZ.</p>
         </div>
-        <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
-          <div className="flex flex-col text-right px-4">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Statut Système</span>
-            <span className="text-xs font-bold text-emerald-600">Tout est opérationnel</span>
-          </div>
-          <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-emerald-500 border border-emerald-50">
-            <ShieldCheck size={24} />
-          </div>
-        </div>
+
       </div>
 
       {/* STATS TILES (3 Columns as requested) */}

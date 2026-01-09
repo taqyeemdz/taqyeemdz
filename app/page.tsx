@@ -12,6 +12,7 @@ import {
   Star,
   Loader2
 } from "lucide-react";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 
@@ -43,11 +44,16 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
+            {/* Logo */}
             <div className="flex-shrink-0 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[var(--chart-2)] flex items-center justify-center text-white">
-                <MessageSquare size={20} className="fill-white/20" />
+              <div className="relative w-32 h-12">
+                <Image
+                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/Feedback%20logo.png`}
+                  alt="TaqyeemDZ Logo"
+                  fill
+                  className="object-contain object-left"
+                />
               </div>
-              <span className="font-bold text-xl tracking-tight">TaqyeemDZ</span>
             </div>
 
             {/* Desktop Nav */}
@@ -298,10 +304,14 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-6 h-6 rounded bg-[var(--chart-2)] flex items-center justify-center text-white">
-                  <MessageSquare size={14} className="fill-white/20" />
+                <div className="relative w-80 h-12">
+                  <Image
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/Feedback%20logo.png`}
+                    alt="TaqyeemDZ Logo"
+                    fill
+                    className="object-contain object-left"
+                  />
                 </div>
-                <span className="font-bold text-lg">TaqyeemDZ</span>
               </div>
               <p className="text-[var(--muted-foreground)] text-sm max-w-xs">
                 Donner aux entreprises les moyens d'offrir de meilleures expériences grâce à des commentaires honnêtes et privés.
@@ -327,7 +337,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-[var(--border)] text-center text-sm text-[var(--muted-foreground)]">
-            © {new Date().getFullYear()} TaqyeemDZ. Tous droits réservés.
+            © {new Date().getFullYear()} Feedback by Jobber. Tous droits réservés.
           </div>
         </div>
       </footer>
