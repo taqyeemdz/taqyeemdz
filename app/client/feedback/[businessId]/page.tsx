@@ -170,8 +170,13 @@ export default function ClientFeedbackPage() {
             };
 
             mediaRecorderRef.current.onstop = () => {
-                const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-                const file = new File([blob], "recording.webm", { type: 'audio/webm' });
+                const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+                // Determine extension based on mimeType
+                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+                const blob = new Blob(chunksRef.current, { type: mimeType });
+                const file = new File([blob], `recording.${ext}`, { type: mimeType });
+
                 setMediaFile(file);
                 setMediaPreview(URL.createObjectURL(file));
 
