@@ -34,7 +34,6 @@ export default function ClientFeedbackPage() {
     const [recordingTime, setRecordingTime] = useState(0);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const chunksRef = useRef<Blob[]>([]);
-    const timerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Personal Info
     const [fullName, setFullName] = useState("");
@@ -47,13 +46,27 @@ export default function ClientFeedbackPage() {
     const [customResponses, setCustomResponses] = useState<Record<string, any>>({});
 
     useEffect(() => {
+        let interval: NodeJS.Timeout;
+
+        if (isRecording) {
+            interval = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+        }
+
         return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-            if (mediaRecorderRef.current && isRecording) {
+            if (interval) clearInterval(interval);
+        };
+    }, [isRecording]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
                 mediaRecorderRef.current.stop();
             }
         };
-    }, [isRecording]);
+    }, []);
 
     useEffect(() => {
         if (!businessId) return;
@@ -170,11 +183,6 @@ export default function ClientFeedbackPage() {
             setIsRecording(true);
             setRecordingTime(0);
 
-            // Timer
-            timerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
-            }, 1000);
-
         } catch (err) {
             console.error("Error accessing microphone:", err);
             setError("Could not access microphone. Please allow permission.");
@@ -185,10 +193,6 @@ export default function ClientFeedbackPage() {
         if (mediaRecorderRef.current && isRecording) {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
-            if (timerRef.current) {
-                clearInterval(timerRef.current);
-                timerRef.current = null;
-            }
         }
     };
 
@@ -196,12 +200,14 @@ export default function ClientFeedbackPage() {
         setMediaFile(null);
         if (mediaPreview) URL.revokeObjectURL(mediaPreview);
         setMediaPreview(null);
+
+        // If we are currently recording, stop it
+        if (isRecording && mediaRecorderRef.current) {
+            mediaRecorderRef.current.stop();
+        }
+
         setIsRecording(false);
         setRecordingTime(0);
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-            timerRef.current = null;
-        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
