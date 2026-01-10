@@ -65,6 +65,7 @@ export async function POST(req: Request) {
             max_qr_codes: Math.max(1, Number(p.max_qr_codes) || 1),
             max_feedback_monthly: Math.max(0, Number(p.max_feedback_monthly) || 0),
             allow_media: !!p.allow_media,
+            allow_audio: !!p.allow_audio,
             allow_stats: !!p.allow_stats,
             allow_tamboola: !!p.allow_tamboola,
             is_active: p.is_active !== false,

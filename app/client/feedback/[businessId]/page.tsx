@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, X } from "lucide-react";
+import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, Mic, X, Square } from "lucide-react";
+import imageCompression from 'browser-image-compression';
 
 export default function ClientFeedbackPage() {
     const supabase = supabaseBrowser;
@@ -15,6 +16,7 @@ export default function ClientFeedbackPage() {
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState("");
     const [allowMedia, setAllowMedia] = useState(false);
+    const [allowAudio, setAllowAudio] = useState(false);
 
     // Feedback form state
     const [rating, setRating] = useState(0);
@@ -27,6 +29,13 @@ export default function ClientFeedbackPage() {
     const [mediaPreview, setMediaPreview] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
 
+    // Audio Recording State
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const chunksRef = useRef<Blob[]>([]);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
     // Personal Info
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
@@ -36,6 +45,15 @@ export default function ClientFeedbackPage() {
     // Custom Fields State
     const [customFields, setCustomFields] = useState<any[]>([]);
     const [customResponses, setCustomResponses] = useState<Record<string, any>>({});
+
+    useEffect(() => {
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+            if (mediaRecorderRef.current && isRecording) {
+                mediaRecorderRef.current.stop();
+            }
+        };
+    }, [isRecording]);
 
     useEffect(() => {
         if (!businessId) return;
@@ -70,11 +88,12 @@ export default function ClientFeedbackPage() {
                     if (profile?.plan_id) {
                         const { data: plan } = await supabase
                             .from("subscription_plans")
-                            .select("allow_media")
+                            .select("allow_media, allow_audio")
                             .eq("id", profile.plan_id)
                             .single();
 
                         setAllowMedia(!!plan?.allow_media);
+                        setAllowAudio(!!plan?.allow_audio);
                     }
                 }
 
@@ -104,8 +123,8 @@ export default function ClientFeedbackPage() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (file.size > 10 * 1024 * 1024) { // 10MB limit
-            setError("File size too large (max 10MB)");
+        if (file.size > 20 * 1024 * 1024) { // 20MB limit
+            setError("File size too large (max 20MB)");
             return;
         }
 
@@ -114,10 +133,75 @@ export default function ClientFeedbackPage() {
         setError(""); // Clear error if any
     };
 
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            const options: MediaRecorderOptions = {
+                audioBitsPerSecond: 32000,
+                mimeType: 'audio/webm;codecs=opus'
+            };
+
+            if (!MediaRecorder.isTypeSupported(options.mimeType!)) {
+                // simple fallback
+                delete options.mimeType;
+            }
+
+            mediaRecorderRef.current = new MediaRecorder(stream, options);
+            chunksRef.current = [];
+
+            mediaRecorderRef.current.ondataavailable = (e) => {
+                if (e.data.size > 0) {
+                    chunksRef.current.push(e.data);
+                }
+            };
+
+            mediaRecorderRef.current.onstop = () => {
+                const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+                const file = new File([blob], "recording.webm", { type: 'audio/webm' });
+                setMediaFile(file);
+                setMediaPreview(URL.createObjectURL(file));
+
+                // Stop all tracks
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorderRef.current.start();
+            setIsRecording(true);
+            setRecordingTime(0);
+
+            // Timer
+            timerRef.current = setInterval(() => {
+                setRecordingTime(prev => prev + 1);
+            }, 1000);
+
+        } catch (err) {
+            console.error("Error accessing microphone:", err);
+            setError("Could not access microphone. Please allow permission.");
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+        }
+    };
+
     const removeMedia = () => {
         setMediaFile(null);
         if (mediaPreview) URL.revokeObjectURL(mediaPreview);
         setMediaPreview(null);
+        setIsRecording(false);
+        setRecordingTime(0);
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -151,12 +235,28 @@ export default function ClientFeedbackPage() {
 
             // Upload Media if exists
             if (mediaFile) {
-                const ext = mediaFile.name.split('.').pop();
+                let fileToUpload = mediaFile;
+
+                // Compress if image
+                if (fileToUpload.type.startsWith('image')) {
+                    try {
+                        const options = {
+                            maxSizeMB: 1,
+                            maxWidthOrHeight: 1920,
+                            useWebWorker: true
+                        };
+                        fileToUpload = await imageCompression(fileToUpload, options);
+                    } catch (error) {
+                        console.error("Compression ended with error:", error);
+                    }
+                }
+
+                const ext = fileToUpload.name.split('.').pop() || 'media';
                 const fileName = `${businessId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('feedback-media')
-                    .upload(fileName, mediaFile);
+                    .upload(fileName, fileToUpload);
 
                 if (uploadError) {
                     throw new Error(`Upload failed: ${uploadError.message}`);
@@ -367,23 +467,62 @@ export default function ClientFeedbackPage() {
                             </div>
                         )}
 
-                        {allowMedia && (
+                        {(allowMedia || allowAudio) && (
                             <div className="space-y-4 border-t border-b border-gray-100 py-4">
-                                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Photo or Video</h3>
+                                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
+                                    {allowMedia && allowAudio ? "Photo, Video or Audio" : allowMedia ? "Photo or Video" : "Audio"}
+                                </h3>
 
-                                {!mediaPreview ? (
-                                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                            <Camera className="w-8 h-8 text-gray-400 mb-2" />
-                                            <p className="text-sm text-gray-500">Click to upload photo or video</p>
+                                {!mediaPreview && !isRecording ? (
+                                    <div className={`grid ${allowMedia && allowAudio ? "grid-cols-2" : "grid-cols-1"} gap-3`}>
+                                        {allowMedia && (
+                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <Camera className="w-8 h-8 text-indigo-400 mb-2" />
+                                                    <p className="text-sm font-medium text-gray-600">Upload File</p>
+                                                    <p className="text-xs text-gray-400 mt-1">Image, Video{allowAudio ? ", Audio" : ""}</p>
+                                                </div>
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept={allowAudio ? "image/*,video/*,audio/*" : "image/*,video/*"}
+                                                    onChange={handleMediaChange}
+                                                />
+                                            </label>
+                                        )}
+
+                                        {allowAudio && (
+                                            <button
+                                                type="button"
+                                                onClick={startRecording}
+                                                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-red-50 hover:border-red-200 transition-colors group"
+                                            >
+                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                                        <Mic className="w-6 h-6 text-red-500" />
+                                                    </div>
+                                                    <p className="text-sm font-medium text-gray-600 group-hover:text-red-500">Record Audio</p>
+                                                </div>
+                                            </button>
+                                        )}
+                                    </div>
+                                ) : isRecording ? (
+                                    <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-red-200 border-dashed rounded-xl bg-red-50 animate-pulse">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-4 h-4 rounded-full bg-red-500 animate-ping" />
+                                            <span className="text-red-600 font-bold text-lg">
+                                                Recording... {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
+                                            </span>
                                         </div>
-                                        <input
-                                            type="file"
-                                            className="hidden"
-                                            accept="image/*,video/*"
-                                            onChange={handleMediaChange}
-                                        />
-                                    </label>
+                                        <button
+                                            type="button"
+                                            onClick={stopRecording}
+                                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors shadow-sm"
+                                        >
+                                            <Square size={16} fill="currentColor" />
+                                            Stop Recording
+                                        </button>
+                                    </div>
                                 ) : (
                                     <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
                                         <button
@@ -396,13 +535,21 @@ export default function ClientFeedbackPage() {
 
                                         {mediaFile?.type.startsWith('video') ? (
                                             <video
-                                                src={mediaPreview}
+                                                src={mediaPreview || ""}
                                                 controls
                                                 className="w-full max-h-64 object-contain"
                                             />
+                                        ) : mediaFile?.type.startsWith('audio') ? (
+                                            <div className="w-full p-6 bg-gray-100 flex items-center justify-center min-h-[100px]">
+                                                <audio
+                                                    src={mediaPreview || ""}
+                                                    controls
+                                                    className="w-full"
+                                                />
+                                            </div>
                                         ) : (
                                             <img
-                                                src={mediaPreview}
+                                                src={mediaPreview || ""}
                                                 alt="Preview"
                                                 className="w-full max-h-64 object-contain"
                                             />
