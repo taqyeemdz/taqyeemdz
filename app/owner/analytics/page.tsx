@@ -33,6 +33,8 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [businesses, setBusinesses] = useState<any[]>([]);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("all");
+  const [selectedAge, setSelectedAge] = useState<string>("all");
+  const [selectedSex, setSelectedSex] = useState<string>("all");
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [customFieldsAnalytics, setCustomFieldsAnalytics] = useState<any[]>([]);
   const [stats, setStats] = useState({
@@ -110,6 +112,14 @@ export default function AnalyticsPage() {
         query = query.in("business_id", businessIds);
       }
 
+      if (selectedAge !== "all") {
+        query = query.eq("age_range", selectedAge);
+      }
+
+      if (selectedSex !== "all") {
+        query = query.eq("sex", selectedSex);
+      }
+
       const { data } = await query;
 
       if (data) {
@@ -128,7 +138,8 @@ export default function AnalyticsPage() {
     };
 
     fetchFeedback();
-  }, [selectedBusinessId, businesses, supabase]);
+    fetchFeedback();
+  }, [selectedBusinessId, selectedAge, selectedSex, businesses, supabase]);
 
   const calculateStats = (feedbackData: any[]) => {
     const total = feedbackData.length;
@@ -154,17 +165,62 @@ export default function AnalyticsPage() {
 
   const analyzeCustomFields = (fields: any[], feedbackData: any[]) => {
     const analytics = fields.map(field => {
-      const responses = feedbackData.map(f => f.custom_responses?.[field.id]).filter(r => r !== undefined && r !== null && r !== "");
-      const resCount = responses.length;
+      const relevantFeedbacks = feedbackData.filter(f =>
+        f.custom_responses?.[field.id] !== undefined &&
+        f.custom_responses?.[field.id] !== null &&
+        f.custom_responses?.[field.id] !== ""
+      );
+
+      const resCount = relevantFeedbacks.length;
       const completion = feedbackData.length > 0 ? (resCount / feedbackData.length) * 100 : 0;
 
-      let res: any = { label: field.label, type: field.type, count: resCount, completion };
+      const getDemographics = (data: any[]) => {
+        const total = data.length;
+        if (total === 0) return { sex: { male: 0, female: 0 }, age: {} };
+
+        const male = data.filter(f => f.sex === 'male').length;
+        const female = data.filter(f => f.sex === 'female').length;
+
+        const ageGroups: any = {};
+        data.forEach(f => {
+          if (f.age_range) ageGroups[f.age_range] = (ageGroups[f.age_range] || 0) + 1;
+        });
+
+        // Convert age counts to percentages
+        const agePerc: any = {};
+        Object.keys(ageGroups).forEach(k => {
+          agePerc[k] = (ageGroups[k] / total) * 100;
+        });
+
+        return {
+          sex: {
+            male: (male / total) * 100,
+            female: (female / total) * 100
+          },
+          age: agePerc
+        };
+      };
+
+      let res: any = {
+        label: field.label,
+        type: field.type,
+        count: resCount,
+        completion,
+        overallDemographics: getDemographics(relevantFeedbacks)
+      };
+
       if (field.type === 'boolean') {
-        const t = responses.filter(r => r === true).length;
-        res.truePerc = resCount > 0 ? (t / resCount) * 100 : 0;
-        res.falsePerc = resCount > 0 ? ((resCount - t) / resCount) * 100 : 0;
+        const trueFeedbacks = relevantFeedbacks.filter(f => f.custom_responses[field.id] === true);
+        const falseFeedbacks = relevantFeedbacks.filter(f => f.custom_responses[field.id] === false);
+
+        res.truePerc = resCount > 0 ? (trueFeedbacks.length / resCount) * 100 : 0;
+        res.falsePerc = resCount > 0 ? (falseFeedbacks.length / resCount) * 100 : 0;
+
+        res.trueDemographics = getDemographics(trueFeedbacks);
+        res.falseDemographics = getDemographics(falseFeedbacks);
+
       } else if (field.type === 'rating') {
-        const nums = responses.filter(r => typeof r === 'number');
+        const nums = relevantFeedbacks.map(f => f.custom_responses[field.id]).filter(r => typeof r === 'number');
         res.avg = nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : 0;
         const dist: any = {};
         nums.forEach(r => dist[r] = (dist[r] || 0) + 1);
@@ -221,16 +277,53 @@ export default function AnalyticsPage() {
             <p className="text-slate-500 text-sm">Vue d'ensemble de la performance de vos produits.</p>
           </div>
 
-          <div className="relative group min-w-[220px]">
-            <select
-              value={selectedBusinessId}
-              onChange={(e) => setSelectedBusinessId(e.target.value)}
-              className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 pl-4 pr-10 rounded-lg text-sm font-medium focus:border-slate-400 outline-none transition-all cursor-pointer shadow-sm appearance-none"
-            >
-              <option value="all">Tous les produits</option>
-              {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors" size={16} />
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Sex Filter */}
+            <div className="relative group min-w-[140px]">
+              <select
+                value={selectedSex}
+                onChange={(e) => setSelectedSex(e.target.value)}
+                className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 pl-4 pr-10 rounded-lg text-sm font-medium focus:border-slate-400 outline-none transition-all cursor-pointer shadow-sm appearance-none"
+              >
+                <option value="all">Tous Sexes</option>
+                <option value="male">Hommes</option>
+                <option value="female">Femmes</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors" size={16} />
+            </div>
+
+            {/* Age Filter */}
+            <div className="relative group min-w-[140px]">
+              <select
+                value={selectedAge}
+                onChange={(e) => setSelectedAge(e.target.value)}
+                className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 pl-4 pr-10 rounded-lg text-sm font-medium focus:border-slate-400 outline-none transition-all cursor-pointer shadow-sm appearance-none"
+              >
+                <option value="all">Tous Âges</option>
+                <option value="-18">-18 ans</option>
+                <option value="18-24">18-24 ans</option>
+                <option value="25-34">25-34 ans</option>
+                <option value="35-44">35-44 ans</option>
+                <option value="45-54">45-54 ans</option>
+                <option value="55-64">55-64 ans</option>
+                <option value="65+">65+ ans</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors" size={16} />
+            </div>
+
+            {/* Business Filter */}
+            <div className="relative group min-w-[220px]">
+              <select
+                value={selectedBusinessId}
+                onChange={(e) => setSelectedBusinessId(e.target.value)}
+                className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 pl-4 pr-10 rounded-lg text-sm font-medium focus:border-slate-400 outline-none transition-all cursor-pointer shadow-sm appearance-none"
+              >
+                <option value="all">Tous les produits</option>
+                {businesses.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors" size={16} />
+            </div>
           </div>
         </div>
 
@@ -243,83 +336,163 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Secondary Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
           {/* Rating Distribution */}
-          <div className="lg:col-span-8 space-y-6">
-            <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-8">
-              <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <Star size={16} className="text-slate-300" />
+          <div className="lg:col-span-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                <Star size={14} className="text-slate-300" />
                 Répartition des notes
               </h3>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {[5, 4, 3, 2, 1].map((rating) => {
                   const count = stats.ratingDistribution[rating as keyof typeof stats.ratingDistribution];
                   const perc = stats.totalFeedback > 0 ? (count / stats.totalFeedback) * 100 : 0;
                   return (
-                    <div key={rating} className="flex items-center gap-4">
-                      <div className="w-8 text-xs font-bold text-slate-400">{rating}★</div>
-                      <div className="flex-1 h-3 bg-slate-50 rounded-full overflow-hidden">
+                    <div key={rating} className="flex items-center gap-3">
+                      <div className="w-6 text-[10px] font-bold text-slate-400">{rating}★</div>
+                      <div className="flex-1 h-2 bg-slate-50 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-slate-900 rounded-full transition-all duration-1000 ease-out"
                           style={{ width: `${perc}%` }}
                         />
                       </div>
-                      <div className="w-12 text-right">
-                        <span className="text-xs font-semibold text-slate-900">{count}</span>
+                      <div className="w-8 text-right">
+                        <span className="text-[10px] font-semibold text-slate-900">{count}</span>
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+          </div>
+
+          {/* Custom Fields & Content */}
+          <div className="lg:col-span-8 space-y-6">
 
             {/* Custom Fields Analytics */}
             {customFieldsAnalytics.length > 0 && (
-              <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-8">
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                    <ListChecks size={16} className="text-slate-300" />
+                  <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2 uppercase tracking-wide">
+                    <ListChecks size={14} className="text-slate-300" />
                     Champs personnalisés
                   </h3>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selectedBusinessName}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate max-w-[150px]">{selectedBusinessName}</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {customFieldsAnalytics.map((field) => (
-                    <div key={field.label} className="space-y-4 p-5 bg-slate-50 rounded-xl border border-slate-100/50">
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-slate-900 leading-tight">{field.label}</p>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-tight">{field.count} réponses • {field.completion.toFixed(0)}%</p>
+                    <div key={field.label} className="space-y-2 p-3 bg-slate-50 rounded-xl border border-slate-100/50">
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-bold text-slate-900 leading-tight truncate" title={field.label}>{field.label}</p>
+                        <p className="text-[9px] text-slate-400 uppercase tracking-tight">{field.count} réponses • {field.completion.toFixed(0)}%</p>
                       </div>
 
                       {field.type === 'boolean' && (
-                        <div className="flex gap-2">
-                          <div className="flex-1 space-y-1">
+                        <div className="space-y-2.5 pt-1">
+                          {/* YES Stat */}
+                          <div className="space-y-1">
+                            <div className="flex items-end justify-between text-[9px] uppercase font-bold text-slate-500">
+                              <span>Oui</span>
+                              <span>{field.truePerc.toFixed(0)}%</span>
+                            </div>
                             <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                               <div className="h-full bg-emerald-500" style={{ width: `${field.truePerc}%` }} />
                             </div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase">Oui {field.truePerc.toFixed(0)}%</p>
+                            {/* Demographics for Yes */}
+                            <div className="flex flex-wrap gap-1 pt-0.5">
+                              {field.trueDemographics.sex.male > 0 && (
+                                <span className="inline-flex items-center text-[7px] bg-blue-50 text-blue-600 px-1 rounded-sm font-bold">
+                                  H: {field.trueDemographics.sex.male.toFixed(0)}%
+                                </span>
+                              )}
+                              {field.trueDemographics.sex.female > 0 && (
+                                <span className="inline-flex items-center text-[7px] bg-pink-50 text-pink-600 px-1 rounded-sm font-bold">
+                                  F: {field.trueDemographics.sex.female.toFixed(0)}%
+                                </span>
+                              )}
+                              {Object.entries(field.trueDemographics.age).length > 0 &&
+                                (Object.entries(field.trueDemographics.age) as [string, number][])
+                                  .sort((a, b) => b[1] - a[1])
+                                  .slice(0, 1)
+                                  .map(([age, p]) => (
+                                    <span key={age} className="inline-flex items-center text-[7px] bg-slate-100 text-slate-600 px-1 rounded-sm font-bold truncate">
+                                      {age}: {p.toFixed(0)}%
+                                    </span>
+                                  ))
+                              }
+                            </div>
                           </div>
-                          <div className="flex-1 space-y-1">
+
+                          {/* NO Stat */}
+                          <div className="space-y-1">
+                            <div className="flex items-end justify-between text-[9px] uppercase font-bold text-slate-500">
+                              <span>Non</span>
+                              <span>{field.falsePerc.toFixed(0)}%</span>
+                            </div>
                             <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
                               <div className="h-full bg-rose-500" style={{ width: `${field.falsePerc}%` }} />
                             </div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase">Non {field.falsePerc.toFixed(0)}%</p>
+                            {/* Demographics for No */}
+                            <div className="flex flex-wrap gap-1 pt-0.5">
+                              {field.falseDemographics.sex.male > 0 && (
+                                <span className="inline-flex items-center text-[7px] bg-blue-50 text-blue-600 px-1 rounded-sm font-bold">
+                                  H: {field.falseDemographics.sex.male.toFixed(0)}%
+                                </span>
+                              )}
+                              {field.falseDemographics.sex.female > 0 && (
+                                <span className="inline-flex items-center text-[7px] bg-pink-50 text-pink-600 px-1 rounded-sm font-bold">
+                                  F: {field.falseDemographics.sex.female.toFixed(0)}%
+                                </span>
+                              )}
+                              {Object.entries(field.falseDemographics.age).length > 0 &&
+                                (Object.entries(field.falseDemographics.age) as [string, number][])
+                                  .sort((a, b) => b[1] - a[1])
+                                  .slice(0, 1)
+                                  .map(([age, p]) => (
+                                    <span key={age} className="inline-flex items-center text-[7px] bg-slate-100 text-slate-600 px-1 rounded-sm font-bold truncate">
+                                      {age}: {p.toFixed(0)}%
+                                    </span>
+                                  ))
+                              }
+                            </div>
                           </div>
                         </div>
                       )}
 
                       {field.type === 'rating' && (
-                        <div className="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-100 shadow-sm">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase">Moyenne</span>
-                          <span className="text-sm font-black text-slate-900">{field.avg.toFixed(1)} ★</span>
+                        <div className="space-y-2 pt-1">
+                          <div className="flex items-center justify-between bg-white px-2 py-1.5 rounded-lg border border-slate-100 shadow-sm">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Moyenne</span>
+                            <span className="text-xs font-black text-slate-900">{field.avg.toFixed(1)} ★</span>
+                          </div>
+                          {/* Overall Demographics for this field */}
+                          <div className="flex flex-wrap gap-1">
+                            {field.overallDemographics.sex.male > 0 && (
+                              <span className="text-[7px] text-blue-500 font-bold">H: {field.overallDemographics.sex.male.toFixed(0)}%</span>
+                            )}
+                            {field.overallDemographics.sex.female > 0 && (
+                              <span className="text-[7px] text-pink-500 font-bold ml-1">F: {field.overallDemographics.sex.female.toFixed(0)}%</span>
+                            )}
+                            {Object.entries(field.overallDemographics.age).length > 0 &&
+                              (Object.entries(field.overallDemographics.age) as [string, number][])
+                                .sort((a, b) => b[1] - a[1])
+                                .slice(0, 1)
+                                .map(([age, p]) => (
+                                  <span key={age} className="text-[7px] text-slate-500 font-bold ml-1 truncate">
+                                    {age}: {p.toFixed(0)}%
+                                  </span>
+                                ))
+                            }
+                          </div>
                         </div>
                       )}
 
-                      {field.type === 'text' && (
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase">
+                      {(field.type === 'text' || field.type === 'textarea') && (
+                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase">
                           <MessageCircle size={10} />
                           Contenu Textuel
                         </div>
@@ -329,56 +502,6 @@ export default function AnalyticsPage() {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Activity Sidebar */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-slate-900 p-8 rounded-2xl text-white space-y-8">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Aperçu Global</p>
-                <h4 className="text-xl font-semibold tracking-tight">Performance</h4>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/10">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">Satisfaction</p>
-                  <p className="text-lg font-bold">{(stats.averageRating * 20).toFixed(0)}%</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] text-slate-400 uppercase font-bold">Positifs</p>
-                  <p className="text-lg font-bold">
-                    {stats.totalFeedback > 0 ? (((stats.ratingDistribution[4] + stats.ratingDistribution[5]) / stats.totalFeedback) * 100).toFixed(0) : 0}%
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                <Clock size={14} className="text-slate-300" />
-                Activités
-              </h3>
-              <div className="space-y-1">
-                {feedbacks.slice(0, 5).map(fb => (
-                  <div key={fb.id} className="p-3 hover:bg-slate-50 transition-colors rounded-xl flex items-center justify-between group">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">
-                        {fb.anonymous ? <Ghost size={12} /> : <User size={12} />}
-                      </div>
-                      <div className="flex flex-col">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] font-bold text-slate-900">{fb.rating}★</span>
-                          <span className="text-[10px] text-slate-400 truncate max-w-[80px]">{fb.message || "Avis"}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-[9px] font-bold text-slate-300">
-                      {format(new Date(fb.created_at), "dd/MM")}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
       </div>

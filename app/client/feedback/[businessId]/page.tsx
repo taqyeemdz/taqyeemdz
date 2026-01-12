@@ -9,7 +9,9 @@ import imageCompression from 'browser-image-compression';
 export default function ClientFeedbackPage() {
     const supabase = supabaseBrowser;
     const params = useParams();
-    const businessId = params.businessId as string;
+    // The parameter in the URL is now expected to be the owner's email
+    // We handle it safely as a string
+    const identifier = (Array.isArray(params?.businessId) ? params.businessId[0] : params?.businessId) as string;
 
     const [business, setBusiness] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -17,12 +19,14 @@ export default function ClientFeedbackPage() {
     const [error, setError] = useState("");
     const [allowMedia, setAllowMedia] = useState(false);
     const [allowAudio, setAllowAudio] = useState(false);
+    const [ownerEmail, setOwnerEmail] = useState("");
 
     // Feedback form state
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [message, setMessage] = useState("");
     const [anonymous, setAnonymous] = useState(true);
+    const [consent, setConsent] = useState(false);
 
     // Media Upload State
     const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -40,6 +44,7 @@ export default function ClientFeedbackPage() {
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
     const [sex, setSex] = useState("male");
+    const [ageRange, setAgeRange] = useState("");
 
     // Custom Fields State
     const [customFields, setCustomFields] = useState<any[]>([]);
@@ -69,34 +74,78 @@ export default function ClientFeedbackPage() {
     }, []);
 
     useEffect(() => {
-        if (!businessId) return;
+        if (!identifier) return;
 
         const loadBusiness = async () => {
             setLoading(true);
-            const { data, error } = await supabase
-                .from("businesses")
-                .select("*")
-                .eq("id", businessId)
-                .single();
+            try {
+                const decodedId = decodeURIComponent(identifier);
+                let userId: string | null = null;
 
-            if (error || !data) {
-                setError("Business not found.");
-            } else {
-                setBusiness(data);
+                // Strategy 1: Check if it's a UUID (Business ID)
+                const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedId);
 
-                // Fetch owner's plan features
-                const { data: ownerLink } = await supabase
-                    .from("user_business")
-                    .select("user_id")
-                    .eq("business_id", businessId)
-                    .single();
-
-                if (ownerLink) {
-                    const { data: profile } = await supabase
-                        .from("profiles")
-                        .select("plan_id")
-                        .eq("id", ownerLink.user_id)
+                if (isUuid) {
+                    // It is likely a business ID, load directly
+                    const { data: bData, error: bError } = await supabase
+                        .from("businesses")
+                        .select("*")
+                        .eq("id", decodedId)
                         .single();
+
+                    if (!bError && bData) {
+                        setBusiness(bData);
+                        // Find owner to set limits
+                        const { data: ub } = await supabase.from('user_business').select('user_id').eq('business_id', decodedId).single();
+                        if (ub) userId = ub.user_id;
+                    } // If error, continue to try profile lookup just in case? No, UUID is specific.
+                }
+
+                if (!business && !userId) {
+                    // Strategy 2: Lookup Business DIRECTLY by Name
+                    const { data: businesses, error: bsError } = await supabase
+                        .from("businesses")
+                        .select("*")
+                        .ilike("name", decodedId);
+
+                    if (!bsError && businesses && businesses.length > 0) {
+                        // Found by name
+                        const foundBusiness = businesses[0];
+                        setBusiness(foundBusiness);
+                        // Find owner
+                        const { data: ub } = await supabase.from('user_business').select('user_id').eq('business_id', foundBusiness.id).single();
+                        if (ub) userId = ub.user_id;
+                    }
+                }
+
+                if (!business && !userId) {
+                    // Strategy 3: Lookup Profile by Email or Full Name
+                    let query = supabase.from("profiles").select("id, plan_id, email, full_name");
+
+                    if (decodedId.includes('@')) {
+                        // Assume email
+                        query = query.eq("email", decodedId);
+                    } else {
+                        // Assume full_name
+                        query = query.ilike("full_name", decodedId);
+                    }
+
+                    const { data: profiles, error: pError } = await query;
+
+                    if (!pError && profiles && profiles.length > 0) {
+                        const profile = profiles[0];
+                        userId = profile.id;
+                        if (profile.email) setOwnerEmail(profile.email);
+                    }
+                }
+
+                if (!business && !userId) {
+                    throw new Error("Impossible de trouver le propriétaire ou le business.");
+                }
+
+                if (userId) {
+                    // We have a User ID, let's load plan and business if not loaded
+                    const { data: profile } = await supabase.from('profiles').select('plan_id').eq('id', userId).single();
 
                     if (profile?.plan_id) {
                         const { data: plan } = await supabase
@@ -104,29 +153,45 @@ export default function ClientFeedbackPage() {
                             .select("allow_media, allow_audio")
                             .eq("id", profile.plan_id)
                             .single();
-
                         setAllowMedia(!!plan?.allow_media);
                         setAllowAudio(!!plan?.allow_audio);
                     }
                 }
 
-                // Initialize Custom Fields
-                if (data.form_config && Array.isArray(data.form_config)) {
-                    setCustomFields(data.form_config);
-                    // Init responses
-                    const initials: Record<string, any> = {};
-                    data.form_config.forEach((f: any) => {
-                        if (f.type === 'boolean') initials[f.id] = false;
-                        else initials[f.id] = "";
-                    });
-                    setCustomResponses(initials);
+                if (!business) {
+                    const { data: ub } = await supabase.from('user_business').select('business_id').eq('user_id', userId).single();
+                    if (!ub) throw new Error("Aucun business associé.");
+
+                    const { data: b } = await supabase.from('businesses').select('*').eq('id', ub.business_id).single();
+                    if (!b) throw new Error("Business introuvable.");
+                    setBusiness(b);
                 }
+
+                // Initialize Custom Fields (if business loaded)
+                setLoading(false);
+
+            } catch (err: any) {
+                console.error("Load Error:", err);
+                setError(err.message || "Erreur de chargement.");
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         loadBusiness();
-    }, [businessId]);
+    }, [identifier]);
+
+    // Separate effect to init custom fields when business is set
+    useEffect(() => {
+        if (business && business.form_config && Array.isArray(business.form_config)) {
+            setCustomFields(business.form_config);
+            const initials: Record<string, any> = {};
+            business.form_config.forEach((f: any) => {
+                if (f.type === 'boolean') initials[f.id] = false;
+                else initials[f.id] = "";
+            });
+            setCustomResponses(initials);
+        }
+    }, [business]);
 
     const handleCustomResponseChange = (id: string, value: any) => {
         setCustomResponses(prev => ({ ...prev, [id]: value }));
@@ -224,6 +289,11 @@ export default function ClientFeedbackPage() {
             return;
         }
 
+        if (!consent) {
+            setError("Veuillez accepter le traitement de vos données.");
+            return;
+        }
+
         // Validate required custom fields
         for (const field of customFields) {
             if (field.required && !customResponses[field.id]) {
@@ -238,7 +308,7 @@ export default function ClientFeedbackPage() {
             }
         }
 
-        if (!businessId) return;
+        if (!business) return;
         setUploading(true);
 
         try {
@@ -263,7 +333,7 @@ export default function ClientFeedbackPage() {
                 }
 
                 const ext = fileToUpload.name.split('.').pop() || 'media';
-                const fileName = `${businessId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+                const fileName = `${business.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
 
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('feedback-media')
@@ -281,7 +351,7 @@ export default function ClientFeedbackPage() {
             }
 
             const payload = {
-                business_id: businessId,
+                business_id: business.id,
                 rating,
                 message,
                 anonymous,
@@ -289,7 +359,7 @@ export default function ClientFeedbackPage() {
                 phone: anonymous ? null : phone || null,
                 email: anonymous ? null : email || null,
                 sex: anonymous ? null : sex,
-                custom_responses: customResponses,
+                custom_responses: { ...customResponses, age_range: anonymous ? null : ageRange },
                 media_url: mediaUrl
             };
 
@@ -375,6 +445,14 @@ export default function ClientFeedbackPage() {
                     <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
                         {business.name}
                     </h1>
+                    {ownerEmail && (
+                        <div className="flex justify-center mt-1">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                <User size={10} className="text-slate-400" />
+                                {ownerEmail}
+                            </span>
+                        </div>
+                    )}
                     <p className="mt-2 text-gray-500">
                         We value your opinion. Please rate your experience.
                     </p>
@@ -384,292 +462,331 @@ export default function ClientFeedbackPage() {
                 <div className="bg-white py-8 px-6 shadow-xl rounded-3xl border border-gray-100 sm:px-10 relative overflow-hidden">
                     <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
 
-                    <form onSubmit={handleSubmit} className="space-y-8">
+                    <form onSubmit={handleSubmit} className="space-y-5">
 
-                        {/* STAR RATING */}
-                        <div className="flex flex-col items-center space-y-2">
-                            <div className="flex items-center gap-2">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                        key={star}
-                                        type="button"
-                                        onClick={() => setRating(star)}
-                                        onMouseEnter={() => setHoverRating(star)}
-                                        onMouseLeave={() => setHoverRating(0)}
-                                        className="focus:outline-none transition-transform hover:scale-110 active:scale-95 p-1"
-                                    >
-                                        <Star
-                                            size={42}
-                                            className={`${(hoverRating || rating) >= star
-                                                ? "fill-amber-400 text-amber-400"
-                                                : "text-gray-200 fill-gray-50"
-                                                } transition-colors duration-200`}
-                                            strokeWidth={1.5}
-                                        />
-                                    </button>
-                                ))}
-                            </div>
-                            <p className="text-sm font-medium text-amber-500 min-h-[1.25rem]">
-                                {rating > 0 ? (
-                                    ["Terrible", "Bad", "Okay", "Good", "Excellent"][rating - 1]
-                                ) : (
-                                    "Tap a star to rate"
-                                )}
-                            </p>
-                        </div>
-
-                        {/* CUSTOM FORM FIELDS */}
-                        {customFields.length > 0 && (
-                            <div className="space-y-4 border-t border-b border-gray-100 py-4">
-                                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Additional Questions</h3>
-                                {customFields.map((field) => (
-                                    <div key={field.id} className="space-y-1">
-                                        <label className="block text-sm font-medium text-gray-700">
-                                            {field.label} {field.required && <span className="text-red-500">*</span>}
-                                        </label>
-
-                                        {field.type === 'text' && (
-                                            <input
-                                                type="text"
-                                                value={customResponses[field.id] || ""}
-                                                onChange={(e) => handleCustomResponseChange(field.id, e.target.value)}
-                                                className="block w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
-                                            />
-                                        )}
-
-                                        {field.type === 'textarea' && (
-                                            <textarea
-                                                value={customResponses[field.id] || ""}
-                                                onChange={(e) => handleCustomResponseChange(field.id, e.target.value)}
-                                                rows={3}
-                                                className="block w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
-                                            />
-                                        )}
-
-                                        {field.type === 'boolean' && (
-                                            <div className="flex items-center gap-2 mt-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleCustomResponseChange(field.id, !customResponses[field.id])}
-                                                    className={`w-12 h-6 rounded-full transition-colors flex items-center p-1 ${customResponses[field.id] ? 'bg-indigo-600 justify-end' : 'bg-gray-200 justify-start'}`}
-                                                >
-                                                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                                                </button>
-                                                <span className="text-sm text-gray-600">{customResponses[field.id] ? "Yes" : "No"}</span>
-                                            </div>
-                                        )}
-
-                                        {field.type === 'rating' && (
-                                            <div className="flex gap-1">
-                                                {[1, 2, 3, 4, 5].map((val) => (
-                                                    <button
-                                                        key={val}
-                                                        type="button"
-                                                        onClick={() => handleCustomResponseChange(field.id, val)}
-                                                        className={`w-8 h-8 rounded-lg text-sm font-bold flex items-center justify-center transition-colors ${customResponses[field.id] === val ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
-                                                    >
-                                                        {val}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {(allowMedia || allowAudio) && (
-                            <div className="space-y-4 border-t border-b border-gray-100 py-4">
-                                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-                                    {allowMedia && allowAudio ? "Photo, Video or Audio" : allowMedia ? "Photo or Video" : "Audio"}
-                                </h3>
-
-                                {!mediaPreview && !isRecording ? (
-                                    <div className={`grid ${allowMedia && allowAudio ? "grid-cols-2" : "grid-cols-1"} gap-3`}>
-                                        {allowMedia && (
-                                            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <Camera className="w-8 h-8 text-indigo-400 mb-2" />
-                                                    <p className="text-sm font-medium text-gray-600">Upload File</p>
-                                                    <p className="text-xs text-gray-400 mt-1">Image, Video{allowAudio ? ", Audio" : ""}</p>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    className="hidden"
-                                                    accept={allowAudio ? "image/*,video/*,audio/*" : "image/*,video/*"}
-                                                    onChange={handleMediaChange}
-                                                />
-                                            </label>
-                                        )}
-
-                                        {allowAudio && (
-                                            <button
-                                                type="button"
-                                                onClick={startRecording}
-                                                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-200 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-red-50 hover:border-red-200 transition-colors group"
-                                            >
-                                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                                        <Mic className="w-6 h-6 text-red-500" />
-                                                    </div>
-                                                    <p className="text-sm font-medium text-gray-600 group-hover:text-red-500">Record Audio</p>
-                                                </div>
-                                            </button>
-                                        )}
-                                    </div>
-                                ) : isRecording ? (
-                                    <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-red-200 border-dashed rounded-xl bg-red-50 animate-pulse">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="w-4 h-4 rounded-full bg-red-500 animate-ping" />
-                                            <span className="text-red-600 font-bold text-lg">
-                                                Recording... {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}
-                                            </span>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={stopRecording}
-                                            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors shadow-sm"
-                                        >
-                                            <Square size={16} fill="currentColor" />
-                                            Stop Recording
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="relative rounded-xl overflow-hidden border border-gray-200 bg-black">
-                                        <button
-                                            type="button"
-                                            onClick={removeMedia}
-                                            className="absolute top-2 right-2 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors z-10"
-                                        >
-                                            <X size={16} />
-                                        </button>
-
-                                        {mediaFile?.type.startsWith('video') ? (
-                                            <video
-                                                src={mediaPreview || ""}
-                                                controls
-                                                className="w-full max-h-64 object-contain"
-                                            />
-                                        ) : mediaFile?.type.startsWith('audio') ? (
-                                            <div className="w-full p-6 bg-gray-100 flex items-center justify-center min-h-[100px]">
-                                                <audio
-                                                    src={mediaPreview || ""}
-                                                    controls
-                                                    className="w-full"
-                                                />
-                                            </div>
-                                        ) : (
-                                            <img
-                                                src={mediaPreview || ""}
-                                                alt="Preview"
-                                                className="w-full max-h-64 object-contain"
-                                            />
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* ANONYMOUS TOGGLE */}
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center justify-between">
-                            <div className="flex flex-col">
-                                <span className="text-sm font-semibold text-gray-900">Stay Anonymous</span>
-                                <span className="text-xs text-gray-500">Review won't show your name</span>
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => setAnonymous(!anonymous)}
-                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${anonymous ? 'bg-indigo-600' : 'bg-gray-200'
-                                    }`}
-                            >
-                                <span
-                                    aria-hidden="true"
-                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${anonymous ? 'translate-x-5' : 'translate-x-0'
-                                        }`}
-                                />
-                            </button>
-                        </div>
-
-                        {/* USER DETAILS (Expandable) */}
-                        <div className={`space-y-4 overflow-hidden transition-all duration-300 ease-in-out ${!anonymous ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider ml-1">Full Name</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                            <User size={18} />
-                                        </div>
-                                        <input
-                                            type="text"
-                                            value={fullName}
-                                            onChange={(e) => setFullName(e.target.value)}
-                                            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
-                                            placeholder="John Doe"
-                                        />
-                                    </div>
+                        {/* 1. IDENTITY SECTION - FIRST */}
+                        <div className="space-y-4">
+                            {/* ANONYMOUS TOGGLE */}
+                            <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-gray-900">Rester Anonyme</span>
+                                    <span className="text-xs text-gray-500">Votre identité sera masquée</span>
                                 </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setAnonymous(!anonymous)}
+                                    className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${anonymous ? 'bg-slate-700' : 'bg-gray-200'
+                                        }`}
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${anonymous ? 'translate-x-4' : 'translate-x-0'
+                                            }`}
+                                    />
+                                </button>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                            {/* USER DETAILS */}
+                            <div className={`space-y-3 overflow-hidden transition-all duration-300 ease-in-out ${!anonymous ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                <div className="grid grid-cols-1 gap-3">
                                     <div className="space-y-1">
-                                        <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider ml-1">Phone</label>
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Nom complet</label>
                                         <div className="relative">
                                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                                <Phone size={18} />
+                                                <User size={16} />
                                             </div>
                                             <input
-                                                type="tel"
-                                                value={phone}
-                                                onChange={(e) => setPhone(e.target.value)}
-                                                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
-                                                placeholder="05..."
+                                                type="text"
+                                                value={fullName}
+                                                onChange={(e) => setFullName(e.target.value)}
+                                                className="block w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                                                placeholder="Votre nom"
                                             />
                                         </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider ml-1">Gender</label>
-                                        <select
-                                            value={sex}
-                                            onChange={(e) => setSex(e.target.value)}
-                                            className="block w-full px-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
-                                        >
-                                            <option value="male">Male</option>
-                                            <option value="female">Female</option>
-                                        </select>
-                                    </div>
-                                </div>
 
-                                <div className="space-y-1">
-                                    <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider ml-1">Email (Optional)</label>
-                                    <div className="relative">
-                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                            <Mail size={18} />
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Téléphone</label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                                    <Phone size={16} />
+                                                </div>
+                                                <input
+                                                    type="tel"
+                                                    value={phone}
+                                                    onChange={(e) => setPhone(e.target.value)}
+                                                    className="block w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                                                    placeholder="05..."
+                                                />
+                                            </div>
                                         </div>
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
-                                            placeholder="you@example.com"
-                                        />
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Age</label>
+                                            <select
+                                                value={ageRange}
+                                                onChange={(e) => setAgeRange(e.target.value)}
+                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
+                                            >
+                                                <option value="">Sél.</option>
+                                                <option value="-18">-18</option>
+                                                <option value="18-24">18-24</option>
+                                                <option value="25-34">25-34</option>
+                                                <option value="35-44">35-44</option>
+                                                <option value="45-54">45-54</option>
+                                                <option value="55-64">55-64</option>
+                                                <option value="65+">65+</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Genre</label>
+                                            <select
+                                                value={sex}
+                                                onChange={(e) => setSex(e.target.value)}
+                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
+                                            >
+                                                <option value="male">Homme</option>
+                                                <option value="female">Femme</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Email</label>
+                                            <div className="relative">
+                                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                                    <Mail size={16} />
+                                                </div>
+                                                <input
+                                                    type="email"
+                                                    value={email}
+                                                    onChange={(e) => setEmail(e.target.value)}
+                                                    className="block w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white"
+                                                    placeholder="Email"
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* MESSAGE */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider ml-1">Your Message (Optional)</label>
-                            <div className="relative">
-                                <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
-                                    <MessageSquare size={18} />
+
+                        {/* 3. MESSAGE & EXTRAS */}
+                        <div className="space-y-4 pt-2">
+                            {/* CUSTOM FORM FIELDS */}
+                            {customFields.length > 0 && (
+                                <div className="space-y-3">
+                                    {customFields.map((field) => (
+                                        <div key={field.id} className="space-y-0.5">
+                                            <label className="block text-xs font-semibold text-gray-600">
+                                                {field.label} {field.required && <span className="text-red-500">*</span>}
+                                            </label>
+
+                                            {field.type === 'text' && (
+                                                <input
+                                                    type="text"
+                                                    value={customResponses[field.id] || ""}
+                                                    onChange={(e) => handleCustomResponseChange(field.id, e.target.value)}
+                                                    className="block w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                                />
+                                            )}
+
+                                            {field.type === 'textarea' && (
+                                                <textarea
+                                                    value={customResponses[field.id] || ""}
+                                                    onChange={(e) => handleCustomResponseChange(field.id, e.target.value)}
+                                                    rows={2}
+                                                    className="block w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                                />
+                                            )}
+
+                                            {field.type === 'boolean' && (
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCustomResponseChange(field.id, !customResponses[field.id])}
+                                                        className={`w-10 h-5 rounded-full transition-colors flex items-center p-0.5 ${customResponses[field.id] ? 'bg-indigo-600 justify-end' : 'bg-gray-200 justify-start'}`}
+                                                    >
+                                                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                                    </button>
+                                                    <span className="text-xs text-gray-500">{customResponses[field.id] ? "Oui" : "Non"}</span>
+                                                </div>
+                                            )}
+
+                                            {field.type === 'rating' && (
+                                                <div className="flex gap-1">
+                                                    {[1, 2, 3, 4, 5].map((val) => (
+                                                        <button
+                                                            key={val}
+                                                            type="button"
+                                                            onClick={() => handleCustomResponseChange(field.id, val)}
+                                                            className={`w-7 h-7 rounded-md text-xs font-bold flex items-center justify-center transition-colors ${customResponses[field.id] === val ? 'bg-indigo-100 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                                                        >
+                                                            {val}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
-                                <textarea
-                                    value={message}
-                                    onChange={(e) => setMessage(e.target.value)}
-                                    rows={4}
-                                    className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
-                                    placeholder="Tell us about your experience..."
-                                />
+                            )}
+
+                            {/* MESSAGE */}
+                            <div className="space-y-1">
+                                <div className="relative">
+                                    <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
+                                        <MessageSquare size={18} />
+                                    </div>
+                                    <textarea
+                                        value={message}
+                                        onChange={(e) => setMessage(e.target.value)}
+                                        rows={4}
+                                        className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
+                                        placeholder="Racontez-nous votre expérience..."
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+
+                        {/* MEDIA UPLOAD SECTION */}
+                        {(allowMedia || allowAudio) && (
+                            <div className="space-y-1">
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    {/* PHOTO / VIDEO UPLOAD */}
+                                    {allowMedia && (
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept="image/*,video/*"
+                                                onChange={handleMediaChange}
+                                                className="hidden"
+                                                id="media-upload"
+                                            />
+                                            {!mediaPreview && !mediaFile ? (
+                                                <label
+                                                    htmlFor="media-upload"
+                                                    className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-indigo-300 transition-all group h-full"
+                                                >
+                                                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
+                                                        <Camera size={20} />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-gray-500">Photo/Vidéo</span>
+                                                </label>
+                                            ) : (
+                                                <div className="relative rounded-xl overflow-hidden border border-gray-200 h-28 bg-black/5 group">
+                                                    {mediaFile?.type.startsWith('video') ? (
+                                                        <div className="w-full h-full flex items-center justify-center text-gray-500">
+                                                            <span className="text-xs">Vidéo sélectionnée</span>
+                                                        </div>
+                                                    ) : (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img src={mediaPreview || ""} alt="Preview" className="w-full h-full object-cover" />
+                                                    )}
+                                                    <button
+                                                        type="button"
+                                                        onClick={removeMedia}
+                                                        className="absolute top-1 right-1 bg-white/90 p-1 rounded-full text-red-500 shadow-sm hover:bg-red-50"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* AUDIO RECORDING */}
+                                    {allowAudio && (
+                                        <div className="relative">
+                                            {!isRecording && !mediaFile?.type.startsWith('audio') ? (
+                                                <button
+                                                    type="button"
+                                                    onClick={startRecording}
+                                                    className="w-full h-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 hover:border-rose-300 transition-all group"
+                                                >
+                                                    <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
+                                                        <Mic size={20} />
+                                                    </div>
+                                                    <span className="text-xs font-medium text-gray-500">Enregistrer Vocal</span>
+                                                </button>
+                                            ) : isRecording ? (
+                                                <div className="w-full h-full flex flex-col items-center justify-center p-4 border-2 border-rose-500 bg-rose-50 rounded-xl animate-pulse cursor-pointer" onClick={stopRecording}>
+                                                    <div className="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center mb-2 shadow-lg shadow-rose-200">
+                                                        <Square size={16} fill="currentColor" />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-rose-600 font-mono">
+                                                        00:{recordingTime < 10 ? `0${recordingTime}` : recordingTime}
+                                                    </span>
+                                                    <span className="text-[10px] text-rose-400 mt-1">Appuyer pour stop</span>
+                                                </div>
+                                            ) : (
+                                                // Audio Preview (Recorded)
+                                                <div className="relative w-full h-full flex flex-col items-center justify-center p-4 border border-rose-200 bg-rose-50 rounded-xl">
+                                                    <div className="text-rose-600 font-bold text-xs mb-1">Audio Enregistré</div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={removeMedia}
+                                                        className="absolute top-1 right-1 bg-white/50 p-1 rounded-full text-red-500 hover:bg-white"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* RATING (AFTER MESSAGE) */}
+                        <div className="space-y-1">
+                            <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider ml-1">Note Générale</label>
+                            <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-700">Notez votre expérience</span>
+                                <div className="flex items-center gap-1">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setRating(star)}
+                                            onMouseEnter={() => setHoverRating(star)}
+                                            onMouseLeave={() => setHoverRating(0)}
+                                            className="focus:outline-none transition-transform hover:scale-110 active:scale-95 p-1"
+                                        >
+                                            <Star
+                                                size={24}
+                                                className={`${(hoverRating || rating) >= star
+                                                    ? "fill-amber-400 text-amber-400"
+                                                    : "text-gray-200 fill-gray-50"
+                                                    } transition-colors duration-200`}
+                                                strokeWidth={1.5}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* CONSENT CHECKBOX */}
+                        <div className="flex items-start gap-3 p-2">
+                            <div className="flex h-6 items-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setConsent(!consent)}
+                                    className={`h-5 w-5 rounded border flex items-center justify-center transition-colors ${consent ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300 bg-white'}`}
+                                >
+                                    {consent && <CheckCircle2 size={12} className="text-white" />}
+                                </button>
+                            </div>
+                            <div className="text-sm">
+                                <label onClick={() => setConsent(!consent)} className="font-medium text-gray-700 cursor-pointer select-none">
+                                    J'accepte que mes données soient traitées
+                                </label>
+                                <p className="text-gray-500 text-xs">Ces informations sont transmises uniquement au propriétaire du commerce.</p>
                             </div>
                         </div>
 
@@ -684,18 +801,17 @@ export default function ClientFeedbackPage() {
                         <button
                             type="submit"
                             disabled={uploading}
-                            className={`w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-4 px-4 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-md ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-4 px-4 rounded-xl font-bold shadow-lg shadow-slate-200 hover:bg-slate-800 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 active:translate-y-0 active:shadow-md ${uploading ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
-                            <span>{uploading ? 'Sending...' : 'Send Feedback'}</span>
+                            <span>{uploading ? 'Envoi...' : 'Envoyer'}</span>
                             <Send size={18} />
                         </button>
-
                     </form>
                 </div>
 
 
                 <p className="text-center text-xs text-gray-400">
-                    Powered by TaqyeemDZ
+                    Powered Feedback by Jobber
                 </p>
             </div>
         </div>
