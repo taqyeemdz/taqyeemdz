@@ -46,10 +46,10 @@ export default function LandingPage() {
             {/* Logo */}
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center gap-2">
-              <div className="relative w-32 h-12">
+              <div className="relative w-64 h-16">
                 <Image
-                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/Feedback%20logo.png`}
-                  alt="TaqyeemDZ Logo"
+                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
+                  alt="Feedback by Jobber Logo"
                   fill
                   className="object-contain object-left"
                 />
@@ -148,7 +148,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-lg md:text-xl text-[var(--muted-foreground)] max-w-2xl mx-auto mb-10">
-              TaqyeemDZ offre un canal privé et fluide permettant à vos clients de partager leurs expériences, vous aidant ainsi à améliorer vos services et à fidéliser votre clientèle.
+              Feedback by Jobber offre un canal privé et fluide permettant à vos clients de partager leurs expériences, vous aidant ainsi à améliorer vos services et à fidéliser votre clientèle.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -185,10 +185,10 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid md:grid-cols-2 gap-16 items-center">
               <div>
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">Qu'est-ce que Taqyeem ?</h2>
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">Qu'est-ce que Feedback by Jobber ?</h2>
                 <div className="space-y-6 text-[var(--muted-foreground)]">
                   <p>
-                    Taqyeem est une plateforme numérique conçue pour combler le fossé entre les propriétaires d'entreprises et leurs clients. Nous remplaçons les boîtes à suggestions en papier obsolètes par une solution numérique intelligente et instantanée.
+                    Feedback by Jobber est une plateforme numérique conçue pour combler le fossé entre les propriétaires d'entreprises et leurs clients. Nous remplaçons les boîtes à suggestions en papier obsolètes par une solution numérique intelligente et instantanée.
                   </p>
                   <p>
                     En scannant un code QR, vos clients peuvent instantanément évaluer leur expérience et laisser des commentaires détaillés. Ces retours vous sont envoyés en privé, vous permettant de répondre immédiatement aux préoccupations — avant qu'elles ne deviennent des avis négatifs publics.
@@ -285,7 +285,7 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">Prêt à améliorer votre expérience client ?</h2>
             <p className="text-blue-100 text-lg mb-10">
-              Rejoignez des centaines d'entreprises utilisant TaqyeemDZ pour écouter, apprendre et grandir.
+              Rejoignez des centaines d'entreprises utilisant Feedback by Jobber pour écouter, apprendre et grandir.
             </p>
             <Link
               href="/auth/request"
@@ -304,10 +304,10 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="relative w-80 h-12">
+                <div className="relative w-96 h-16">
                   <Image
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/Feedback%20logo.png`}
-                    alt="TaqyeemDZ Logo"
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
+                    alt="Feedback by Jobber Logo"
                     fill
                     className="object-contain object-left"
                   />

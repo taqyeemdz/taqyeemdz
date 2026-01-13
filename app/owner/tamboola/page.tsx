@@ -22,10 +22,31 @@ import {
 } from "lucide-react";
 import { UpgradeModal } from "@/components/owner/UpgradeModal";
 import { useRouter } from "next/navigation";
+import Confetti from 'react-confetti';
+
+function useWindowSize() {
+    const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+        function handleResize() {
+            setWindowSize({
+                width: window.innerWidth,
+                height: window.innerHeight,
+            });
+        }
+
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    return windowSize;
+}
 
 export default function TamboolaPage() {
     const supabase = supabaseBrowser;
     const router = useRouter();
+    const { width, height } = useWindowSize();
     const [loading, setLoading] = useState(true);
     const [businesses, setBusinesses] = useState<any[]>([]);
     const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
@@ -37,6 +58,7 @@ export default function TamboolaPage() {
     const [allowTamboola, setAllowTamboola] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [showWinnerModal, setShowWinnerModal] = useState(false);
+    const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
         const fetchBusinesses = async () => {
@@ -142,6 +164,10 @@ export default function TamboolaPage() {
                 setWinners(selected);
                 setIsDrawing(false);
                 setShowWinnerModal(true);
+                setShowConfetti(true);
+
+                // Stop confetti after 5 seconds
+                setTimeout(() => setShowConfetti(false), 5000);
             }
         }, 100);
     };
@@ -204,23 +230,17 @@ export default function TamboolaPage() {
                     </div>
                 </div>
 
-                {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <StatCard label="Candidats éligibles" value={eligibleFeedbacks.length} icon={Users} />
-                    <StatCard label="Gagnants prévus" value={numberOfWinners} icon={Trophy} />
-                    <StatCard label="Statut" value={winners.length > 0 ? "Terminé" : "Prêt"} icon={Sparkles} />
-                </div>
-
-                {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-
+                {/* Main Content */}
+                <div className="max-w-4xl mx-auto w-full">
                     {/* Draw Controller */}
-                    <div className="lg:col-span-8 space-y-6">
+                    <div className="space-y-6">
                         <div className="bg-white p-10 rounded-2xl border border-slate-100 shadow-sm space-y-10">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                                 <div className="space-y-2">
                                     <h2 className="text-xl font-semibold text-slate-900 tracking-tight">Lancer le tirage</h2>
-                                    <p className="text-slate-500 text-sm">Sélection aléatoire parmi les avis avec coordonnées.</p>
+                                    <p className="text-slate-500 text-sm">
+                                        Sélection aléatoire parmi les <span className="font-bold text-slate-900">{eligibleFeedbacks.length}</span> participants éligibles.
+                                    </p>
                                 </div>
 
                                 <div className="flex items-center gap-4">
@@ -267,7 +287,7 @@ export default function TamboolaPage() {
 
                             {/* Winners List */}
                             {winners.length > 0 && (
-                                <div className="space-y-6 pt-10 border-t border-slate-50 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                                <div className="space-y-6 pt-1 border-t border-slate-50 animate-in fade-in slide-in-from-bottom-5 duration-700">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                             <Trophy size={14} className="text-amber-500" />
@@ -300,82 +320,103 @@ export default function TamboolaPage() {
                             )}
                         </div>
                     </div>
-
-                    {/* Participant Pool Sidebar */}
-                    <div className="lg:col-span-4 space-y-6">
-                        <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm space-y-6">
-                            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <Users size={12} />
-                                Pool de participants
-                            </h3>
-
-                            <div className="space-y-3 max-h-[600px] overflow-y-auto no-scrollbar pr-1">
-                                {eligibleFeedbacks.length > 0 ? (
-                                    eligibleFeedbacks.map((fb) => (
-                                        <div key={fb.id} className="p-3.5 bg-slate-50/50 rounded-xl border border-transparent hover:border-slate-100 hover:bg-white transition-all flex items-center gap-4 group">
-                                            <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300 group-hover:bg-slate-900 group-hover:text-white transition-all">
-                                                <User size={16} />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-slate-900 truncate uppercase tracking-tight">{fb.full_name}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 tracking-widest">{fb.phone}</p>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-100">
-                                        <p className="text-[10px] font-bold text-slate-300 uppercase italic">Aucun participant</p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
             {/* Winner Celebration Modal */}
             {showWinnerModal && (
-                <div className="fixed inset-0 z-[120] flex items-start justify-center p-6 sm:p-10 pt-12 sm:pt-24 animate-in fade-in duration-300">
-                    <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowWinnerModal(false)} />
-                    <div className="relative bg-white rounded-[2.5rem] p-12 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-500 text-center space-y-10 overflow-hidden">
-                        {/* Decorative Background */}
-                        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200" />
+                <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-lg animate-in fade-in duration-500">
+                    {/* Close on background click */}
+                    <button
+                        onClick={() => setShowWinnerModal(false)}
+                        className="absolute top-2 right-6 z-30 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+                    >
+                        <X size={20} />
+                    </button>
 
-                        <div className="relative">
-                            <div className="w-24 h-24 bg-amber-50 text-amber-500 rounded-[2rem] flex items-center justify-center mx-auto shadow-xl shadow-amber-100/50 animate-bounce">
-                                <Trophy size={48} />
+                    {/* Modal Content - Fullscreen with Contained Confetti */}
+                    <div className="relative w-full h-full flex items-start justify-center p-4 sm:p-6 overflow-y-auto pt-10 sm:pt-20">
+                        {/* React Confetti - Contained */}
+                        {showConfetti && (
+                            <div className="absolute inset-0 pointer-events-none">
+                                <Confetti
+                                    width={width}
+                                    height={height}
+                                    recycle={false}
+                                    numberOfPieces={400}
+                                    gravity={0.25}
+                                    colors={['#fbbf24', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981']}
+                                    tweenDuration={5000}
+                                />
                             </div>
-                            <div className="absolute -top-2 -right-2 text-amber-400 animate-pulse">
-                                <Sparkles size={24} />
+                        )}
+
+                        {/* Content Card - Centered */}
+                        <div className="relative bg-white rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 max-w-xl w-full shadow-2xl text-center space-y-5 sm:space-y-8 animate-boom z-10 my-auto">
+                            {/* Decorative Background */}
+                            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 animate-pulse" />
+
+                            {/* Radial Burst Effect */}
+                            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                                {[...Array(16)].map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className="absolute top-1/2 left-1/2 w-1 sm:w-1.5 h-16 sm:h-24 bg-gradient-to-t from-amber-400/30 to-transparent origin-bottom animate-burst"
+                                        style={{
+                                            transform: `rotate(${i * 22.5}deg) translateY(-50%)`,
+                                            animationDelay: `${i * 0.05}s`
+                                        }}
+                                    />
+                                ))}
                             </div>
-                        </div>
 
-                        <div className="space-y-3">
-                            <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Félicitations !</h2>
-                            <p className="text-slate-500 text-sm font-medium">Le tirage au sort a désigné vos gagnants.</p>
-                        </div>
-
-                        <div className="space-y-3 max-h-[200px] overflow-y-auto no-scrollbar py-2">
-                            {winners.map((w, i) => (
-                                <div key={w.id} className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                                    <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-black text-sm shrink-0">
-                                        {i + 1}
-                                    </div>
-                                    <div className="text-left flex-1">
-                                        <p className="text-sm font-bold text-slate-900 uppercase tracking-tight ">{w.full_name}</p>
-                                        <p className="text-[10px] font-bold text-slate-400">{w.phone}</p>
-                                    </div>
-                                    <Star size={16} className="text-amber-400 fill-amber-400" />
+                            <div className="relative z-10">
+                                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-amber-400 to-amber-600 text-white rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-amber-500/50 animate-trophy-bounce">
+                                    <Trophy size={40} className="sm:w-12 sm:h-12" />
                                 </div>
-                            ))}
-                        </div>
+                                {/* Floating Sparkles */}
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 sm:-translate-y-3 text-amber-400 animate-float">
+                                    <Sparkles size={20} className="sm:w-6 sm:h-6" />
+                                </div>
+                                <div className="absolute top-6 sm:top-8 right-1/4 text-amber-300 animate-float-delayed">
+                                    <Sparkles size={16} className="sm:w-[18px] sm:h-[18px]" />
+                                </div>
+                                <div className="absolute top-6 sm:top-8 left-1/4 text-amber-200 animate-float-delayed-2">
+                                    <Sparkles size={18} className="sm:w-5 sm:h-5" />
+                                </div>
+                            </div>
 
-                        <button
-                            onClick={() => setShowWinnerModal(false)}
-                            className="w-full bg-slate-900 text-white rounded-2xl py-4 font-bold text-sm tracking-widest uppercase hover:bg-black transition-all active:scale-95 shadow-xl shadow-slate-200"
-                        >
-                            C'est super !
-                        </button>
+                            <div className="space-y-1 sm:space-y-2 relative z-10">
+                                <h2 className="text-2xl sm:text-4xl font-black text-slate-900 tracking-tight animate-in slide-in-from-bottom-5">🎉 Félicitations ! 🎉</h2>
+                                <p className="text-xs sm:text-sm text-slate-500 font-medium">Le tirage au sort a désigné vos gagnants</p>
+                            </div>
+
+                            <div className="space-y-2 sm:space-y-3 max-h-[300px] sm:max-h-[350px] overflow-y-auto no-scrollbar py-2 relative z-10">
+                                {winners.map((w, i) => (
+                                    <div
+                                        key={w.id}
+                                        className="flex items-center gap-3 sm:gap-4 bg-gradient-to-r from-amber-50 to-amber-100/50 p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 border-amber-200 animate-in slide-in-from-right-5 shadow-sm"
+                                        style={{ animationDelay: `${i * 0.1}s` }}
+                                    >
+                                        <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center font-black text-sm sm:text-base shrink-0 shadow-lg">
+                                            {i + 1}
+                                        </div>
+                                        <div className="text-left flex-1 min-w-0">
+                                            <p className="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-tight truncate">{w.full_name}</p>
+                                            <p className="text-[9px] sm:text-[10px] font-bold text-slate-500 mt-0.5">{w.phone}</p>
+                                        </div>
+                                        <Star size={18} className="text-amber-500 fill-amber-500 animate-pulse sm:w-[22px] sm:h-[22px] shrink-0" />
+                                    </div>
+                                ))}
+                            </div>
+
+                            <button
+                                onClick={() => setShowWinnerModal(false)}
+                                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg sm:rounded-xl py-3 sm:py-4 font-black text-xs sm:text-sm tracking-widest uppercase hover:from-amber-600 hover:to-amber-700 transition-all active:scale-95 shadow-2xl shadow-amber-500/30 relative z-10"
+                            >
+                                C'est super ! 🎊
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TaqyeemDZ",
+  title: "Feedback by Jobber",
   description: "Internal feedback collection system for businesses",
 };
 
