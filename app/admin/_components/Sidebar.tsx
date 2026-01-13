@@ -57,7 +57,7 @@ export default function Sidebar({
             <div className="w-10 h-10 bg-primary-600 rounded-xl text-white flex items-center justify-center font-bold">
               TDZ
             </div>
-            <span className="text-lg font-semibold text-gray-900">TaqyeemDZ</span>
+            <span className="text-lg font-semibold text-gray-900">Feedback by jobber</span>
           </div>
 
           <button className="md:hidden" onClick={onClose}>

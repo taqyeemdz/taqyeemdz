@@ -21,7 +21,7 @@ export default function AccountPendingPage() {
                 <div className="p-8 sm:p-12 space-y-8">
                     <div className="text-center space-y-3">
                         <p className="text-gray-600 font-medium text-lg leading-relaxed">
-                            Merci d'avoir créé votre compte TaqyeemDZ !
+                            Merci d'avoir créé votre compte Feedback !
                         </p>
                         <p className="text-gray-500 font-medium">
                             Votre compte est actuellement <span className="text-amber-600 font-bold">en attente d'activation</span>.

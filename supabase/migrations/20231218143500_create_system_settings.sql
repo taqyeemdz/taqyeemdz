@@ -20,8 +20,8 @@ CREATE POLICY "Allow admin to manage settings" ON public.system_settings
 -- Insert default settings
 INSERT INTO public.system_settings (key, value, description)
 VALUES 
-    ('platform_name', '"TaqyeemDZ"', 'The name of the platform displayed in emails and page titles.'),
-    ('support_email', '"support@taqyeemdz.com"', 'The email address where user inquiries are sent.'),
+    ('platform_name', '"Feedbackbyjobber"', 'The name of the platform displayed in emails and page titles.'),
+    ('support_email', '"feedback@jobber.dz"', 'The email address where user inquiries are sent.'),
     ('registrations_enabled', 'true', 'Whether new business owners can sign up.'),
     ('maintenance_mode', 'false', 'If true, only admins can access the platform.')
 ON CONFLICT (key) DO UPDATE 

@@ -316,7 +316,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                 </h2>
 
                 <p className="text-slate-500 font-medium leading-relaxed mb-10 text-sm">
-                  Votre espace propriétaire est en cours de configuration. Un conseiller TaqyeemDZ finalise votre accès. Vous recevrez une notification d'activation sous 24h.
+                  Votre espace propriétaire est en cours de configuration. Un conseiller Feedback finalise votre accès. Vous recevrez une notification d'activation sous 24h.
                 </p>
 
                 <div className="space-y-4">

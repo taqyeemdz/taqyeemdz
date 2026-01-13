@@ -449,7 +449,7 @@ export default function BusinessDetailPage() {
               </div>
             </div>
 
-            <p className="text-center text-[10px] text-gray-300 font-black uppercase tracking-[0.3em]">Powered by TaqyeemDZ</p>
+            <p className="text-center text-[10px] text-gray-300 font-black uppercase tracking-[0.3em]">Powered by Feedback by jobber</p>
           </div>
         )
       }

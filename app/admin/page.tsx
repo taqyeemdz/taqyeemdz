@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
             <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">Console Administration</span>
           </div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">C'est un plaisir de vous revoir 👋</h1>
-          <p className="text-slate-500 font-medium mt-1">Gérez la croissance et les revenus de TaqyeemDZ.</p>
+          <p className="text-slate-500 font-medium mt-1">Gérez la croissance et les revenus de Feedback by jobber.</p>
         </div>
 
       </div>

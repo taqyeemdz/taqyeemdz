@@ -87,7 +87,7 @@ export default function LoginForm() {
 
     // Détecter l'URL actuelle de manière robuste
     const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-      (typeof window !== "undefined" ? window.location.origin : "https://taqyeemdz.vercel.app");
+      (typeof window !== "undefined" ? window.location.origin : "https://feedbackbyjobber.vercel.app");
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${baseUrl}/auth/callback?next=/auth/update-password`,
