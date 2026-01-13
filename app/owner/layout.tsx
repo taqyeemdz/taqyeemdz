@@ -104,7 +104,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         {/* Header/Logo */}
         <div className={`h-16 flex items-center justify-between border-b border-slate-100/60 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
           <div className={`flex items-center transition-all duration-300 ${sidebarOpen ? 'opacity-100 px-2' : 'opacity-0 scale-50 pointer-events-none absolute'}`}>
-            <div className="relative w-66 h-18">
+            <div className="relative w-66 h-20">
               <Image
                 src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
                 alt="Logo"
