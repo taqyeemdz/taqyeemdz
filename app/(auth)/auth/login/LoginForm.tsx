@@ -174,7 +174,7 @@ export default function LoginForm() {
 
         <div className="space-y-2 text-center pt-4">
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Connexion</h1>
-          <p className="text-slate-400 text-sm font-medium">Bon retour sur TaqyeemDZ.</p>
+          <p className="text-slate-400 text-sm font-medium">Bon retour sur Feedback by Jobber.</p>
         </div>
 
         {err && <p className="text-rose-500 bg-rose-50 p-3 rounded-xl text-xs font-bold text-center border border-rose-100">{err}</p>}

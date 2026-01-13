@@ -43,6 +43,7 @@ export default function RequestAccountPage() {
         activity_type: "",
         email: "",
         password: "",
+        confirmPassword: "",
         plan_id: ""
     });
 
@@ -56,6 +57,12 @@ export default function RequestAccountPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (form.password !== form.confirmPassword) {
+            alert("Les mots de passe ne correspondent pas");
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -117,7 +124,7 @@ export default function RequestAccountPage() {
                         <ArrowLeft size={16} /> Retour
                     </Link>
                     <h1 className="text-4xl font-black text-gray-900 tracking-tight">
-                        Rejoignez <span className="text-indigo-600">TaqyeemDZ</span>
+                        Rejoignez <span className="text-indigo-600">Feedback by Jobber</span>
                     </h1>
                     <p className="text-gray-500 font-medium text-lg">
                         Demandez l'ouverture de votre compte professionnel et commencez à écouter vos clients.
@@ -175,9 +182,10 @@ export default function RequestAccountPage() {
                             </div>
                             <div className="space-y-2">
                                 <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 ml-1">
-                                    <Mail size={14} /> Email (Optionnel)
+                                    <Mail size={14} /> Email
                                 </label>
                                 <input
+                                    required
                                     type="email"
                                     placeholder="votre@email.com"
                                     className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:font-medium placeholder:text-gray-300"
@@ -185,8 +193,10 @@ export default function RequestAccountPage() {
                                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                                 />
                             </div>
+                        </div>
 
-                            {/* Password Field */}
+                        {/* Password Fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 ml-1">
                                     <Lock size={14} /> Mot de passe
@@ -200,11 +210,27 @@ export default function RequestAccountPage() {
                                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                                     minLength={6}
                                 />
-                                <p className="text-[10px] text-gray-400 font-medium ml-1">
-                                    Minimum 6 caractères. Ce sera votre mot de passe de connexion.
-                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 ml-1">
+                                    <Lock size={14} /> Confirmer mot de passe
+                                </label>
+                                <input
+                                    required
+                                    type="password"
+                                    placeholder="Confirmez votre mot de passe"
+                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:font-medium placeholder:text-gray-300"
+                                    value={form.confirmPassword}
+                                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                                    minLength={6}
+                                />
                             </div>
                         </div>
+
+                        <p className="text-[10px] text-gray-400 font-medium ml-1">
+                            Minimum 6 caractères. Ce sera votre mot de passe de connexion.
+                        </p>
 
                         {/* Location & Activity */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

@@ -99,11 +99,11 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
       {/* ================= SIDEBAR (DESKTOP) ================= */}
       <aside
-        className={`hidden md:flex flex-col bg-white border-r border-slate-200/60 transition-all duration-500 ease-in-out sticky top-0 h-screen z-50 ${sidebarOpen ? 'w-72' : 'w-20'}`}
+        className={`hidden md:flex flex-col bg-white border-r border-slate-200/60 transition-all duration-300 ease-in-out sticky top-0 h-screen z-50 ${sidebarOpen ? 'w-64' : 'w-[62px]'}`}
       >
         {/* Header/Logo */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100/60">
-          <div className={`flex items-center gap-3 transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 scale-50 pointer-events-none'}`}>
+        <div className={`h-16 flex items-center justify-between border-b border-slate-100/60 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
+          <div className={`flex items-center gap-3 transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 scale-50 pointer-events-none absolute'}`}>
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-100">
               <Sparkles size={16} />
             </div>
@@ -165,7 +165,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         </nav>
 
         {/* User Footer */}
-        <div className={`p-6 border-t border-slate-100/60 ${!sidebarOpen && 'flex justify-center'}`}>
+        <div className={`border-t border-slate-100/60 ${!sidebarOpen ? 'p-3 flex justify-center' : 'p-6'}`}>
           {sidebarOpen ? (
             <div className="flex items-center gap-3 p-1.5 bg-slate-50 rounded-2xl border border-slate-100/50">
               <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
@@ -281,32 +281,8 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
       {/* ================= MAIN CONTENT ================= */}
       <main className={`flex-1 min-w-0 transition-all duration-300 md:mt-0 mt-20`}>
 
-        {/* BREACRUMBS / TOP LOGO */}
-        <header className="hidden md:flex h-16 items-center justify-between px-10 bg-white/50 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100/60">
-          <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            <Link href="/owner" className="hover:text-slate-900 transition-colors">Dashboard</Link>
-            {pathname !== "/owner" && (
-              <>
-                <ChevronRight size={14} className="mx-3 opacity-30" />
-                <span className="text-slate-900 capitalize">
-                  {pathname?.split('/').filter(Boolean).pop()?.length && pathname?.split('/').filter(Boolean).pop()!.length > 20
-                    ? "Détails"
-                    : pathname?.split('/').filter(Boolean).pop()?.replace('-', ' ')}
-                </span>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-6">
-            <button className="relative w-11 h-11 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-100 hover:bg-indigo-50/50 transition-all shadow-sm">
-              <Bell size={20} />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-indigo-600 rounded-full ring-2 ring-white animate-pulse"></span>
-            </button>
-            <div className="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white font-black text-xs shadow-lg shadow-slate-200">
-              {user?.full_name?.charAt(0) || 'P'}
-            </div>
-          </div>
-        </header>
+        {/* TOP SPACE (Minimal) */}
+        <header className="hidden md:block h-6" />
 
         {/* CONTAINER */}
         <div className="relative animate-in fade-in slide-in-from-bottom-3 duration-1000 min-h-[calc(100vh-5rem)]">
