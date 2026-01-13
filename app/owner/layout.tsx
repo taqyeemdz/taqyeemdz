@@ -16,11 +16,11 @@ import {
   ChevronLeft,
   ChevronRight,
   User,
-  Bell,
+  Sparkles,
   Trophy,
-  Lock,
-  Sparkles
+  Lock
 } from "lucide-react";
+import Image from "next/image";
 
 export default function OwnerDashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -103,17 +103,26 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
       >
         {/* Header/Logo */}
         <div className={`h-16 flex items-center justify-between border-b border-slate-100/60 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
-          <div className={`flex items-center gap-3 transition-all duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0 scale-50 pointer-events-none absolute'}`}>
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-              <Sparkles size={16} />
+          <div className={`flex items-center transition-all duration-300 ${sidebarOpen ? 'opacity-100 px-2' : 'opacity-0 scale-50 pointer-events-none absolute'}`}>
+            <div className="relative w-66 h-18">
+              <Image
+                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
+                alt="Logo"
+                fill
+                className="object-contain object-left"
+              />
             </div>
-            <span className="font-bold text-lg text-slate-900 tracking-tight">Taqyeem</span>
           </div>
 
           {!sidebarOpen && (
             <div className="absolute inset-x-0 h-full flex items-center justify-center">
-              <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                <Sparkles size={18} />
+              <div className="relative w-8 h-8">
+                <Image
+                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
+                  alt="Logo"
+                  fill
+                  className="object-contain"
+                />
               </div>
             </div>
           )}
@@ -193,11 +202,15 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
       {/* ================= MOBILE NAV ================= */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200/60 h-20 flex items-center justify-between px-6">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-            <Sparkles size={20} />
+        <div className="flex items-center">
+          <div className="relative w-80 h-20">
+            <Image
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
+              alt="Logo"
+              fill
+              className="object-contain object-left"
+            />
           </div>
-          <span className="font-bold text-lg text-slate-900 tracking-tight">Taqyeem</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(true)}
