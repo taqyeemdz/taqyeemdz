@@ -328,11 +328,11 @@ export default function LandingPage() {
             </div>
 
             <div>
-              <h3 className="font-semibold mb-4">Entreprise</h3>
+              <h3 className="font-semibold mb-4 text-slate-900">Entreprise</h3>
               <ul className="space-y-2 text-sm text-[var(--muted-foreground)]">
                 <li><Link href="#about" className="hover:text-[var(--foreground)]">À propos de nous</Link></li>
                 <li><Link href="#" className="hover:text-[var(--foreground)]">Contact</Link></li>
-                <li><Link href="#" className="hover:text-[var(--foreground)]">Politique de confidentialité</Link></li>
+                <li><Link href="/terms" className="hover:text-[var(--foreground)] font-medium text-slate-600">Conditions Générales</Link></li>
               </ul>
             </div>
           </div>

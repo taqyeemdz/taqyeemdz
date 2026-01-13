@@ -87,7 +87,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
   const links = [
     { href: "/owner", label: "Tableau de Bord", icon: LayoutDashboard },
-    { href: "/owner/business", label: "Mes Produits", icon: QrCode, locked: isInactive },
+    { href: "/owner/business", label: "Produits", icon: QrCode, locked: isInactive },
     { href: "/owner/analytics", label: "Statistiques", icon: BarChart3, locked: isInactive || !allowStats },
     { href: "/owner/feedback", label: "Avis Clients", icon: MessageCircle, locked: isInactive },
     { href: "/owner/tamboola", label: "Tamboola", icon: Trophy, locked: isInactive || !allowTamboola },
@@ -99,26 +99,26 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
       {/* ================= SIDEBAR (DESKTOP) ================= */}
       <aside
-        className={`hidden md:flex flex-col bg-white border-r border-slate-200/60 transition-all duration-300 ease-in-out sticky top-0 h-screen z-50 ${sidebarOpen ? 'w-64' : 'w-[62px]'}`}
+        className={`hidden md:flex flex-col bg-white border-r border-slate-200/60 transition-all duration-300 ease-in-out sticky top-0 h-screen z-50 ${sidebarOpen ? 'w-64' : 'w-20'}`}
       >
-        {/* Header/Logo */}
-        <div className={`h-16 flex items-center justify-between border-b border-slate-100/60 ${sidebarOpen ? 'px-6' : 'px-3'}`}>
-          <div className={`flex items-center transition-all duration-300 ${sidebarOpen ? 'opacity-100 px-2' : 'opacity-0 scale-50 pointer-events-none absolute'}`}>
-            <div className="relative w-66 h-20">
-              <Image
-                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
-                alt="Logo"
-                fill
-                className="object-contain object-left"
-              />
-            </div>
-          </div>
-
-          {!sidebarOpen && (
-            <div className="absolute inset-x-0 h-full flex items-center justify-center">
-              <div className="relative w-8 h-8">
+        {/* Header */}
+        <div className={`h-16 flex items-center justify-between px-4 border-b border-slate-100/60 ${!sidebarOpen && 'px-2'}`}>
+          {sidebarOpen ? (
+            <div className="flex items-center gap-2 font-bold text-xl tracking-tight px-2">
+              <div className="relative w-32 h-10">
                 <Image
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
+                  alt="Logo"
+                  fill
+                  className="object-contain object-left"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="w-10 h-10 flex items-center justify-center mx-auto">
+              <div className="relative w-8 h-8">
+                <Image
+                  src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo2.png`}
                   alt="Logo"
                   fill
                   className="object-contain"
@@ -129,16 +129,24 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`p-2 rounded-xl text-slate-400 hover:text-slate-900 transition-all ${!sidebarOpen ? 'absolute -right-4 top-20 bg-white border border-slate-200 shadow-xl z-[60] hover:scale-110 active:scale-95' : 'hover:bg-slate-50'}`}
+            className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-colors ${!sidebarOpen && 'hidden'}`}
           >
-            {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={14} className="text-indigo-600" />}
+            <ChevronLeft size={18} />
           </button>
         </div>
 
-
+        {/* Collapsed Toggle */}
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="mx-auto mt-4 p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+          >
+            <ChevronRight size={20} />
+          </button>
+        )}
 
         {/* Navigation */}
-        <nav className="flex-1 py-10 px-4 space-y-1.5 overflow-y-auto">
+        <nav className={`flex-1 py-6 px-3 space-y-1.5 overflow-y-auto no-scrollbar ${!sidebarOpen ? 'flex flex-col items-center' : ''}`}>
           {links.map(({ href, label, icon: Icon, locked }) => {
             const isActive = href === "/owner" ? pathname === "/owner" : pathname?.startsWith(href);
             const isLocked = locked;
@@ -149,24 +157,31 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                 href={isLocked ? "#" : href}
                 onClick={(e) => isLocked && e.preventDefault()}
                 className={`
-                            flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group relative
-                            ${isActive
-                    ? "bg-slate-900 text-white shadow-xl shadow-slate-200 font-medium"
+                  flex transition-all duration-200 group relative w-full
+                  ${sidebarOpen
+                    ? "items-center gap-3 px-3 py-2.5 rounded-xl"
+                    : "flex-col items-center justify-center py-3 rounded-xl gap-1"
+                  }
+                  ${isActive
+                    ? "bg-slate-900 text-white font-medium shadow-xl shadow-slate-200"
                     : isLocked
                       ? "opacity-30 cursor-not-allowed"
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   }
-                            ${!sidebarOpen && "justify-center px-0 mx-2"}
-                        `}
-                title={!sidebarOpen ? label : ""}
+                `}
+                title={!sidebarOpen ? "" : label}
               >
-                <Icon size={20} className={`${isActive ? "text-indigo-400" : (isLocked ? "text-slate-300" : "text-slate-400 group-hover:text-slate-900")} shrink-0 transition-colors`} />
+                <Icon size={sidebarOpen ? 20 : 22} className={`${isActive ? "text-indigo-400" : (isLocked ? "text-slate-300" : "text-slate-400 group-hover:text-slate-900")} shrink-0 transition-colors`} />
 
-                {sidebarOpen && (
+                {sidebarOpen ? (
                   <div className="flex items-center justify-between flex-1">
                     <span className="text-sm tracking-tight">{label}</span>
                     {isLocked && <Lock size={12} className="text-slate-300" />}
                   </div>
+                ) : (
+                  <span className={`text-[9px] font-bold uppercase tracking-tighter transition-opacity ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-900'}`}>
+                    {label.split(' ')[0]}
+                  </span>
                 )}
               </Link>
             );
@@ -174,7 +189,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         </nav>
 
         {/* User Footer */}
-        <div className={`border-t border-slate-100/60 ${!sidebarOpen ? 'p-3 flex justify-center' : 'p-6'}`}>
+        <div className={`p-4 border-t border-slate-100/60 ${!sidebarOpen && 'flex justify-center'}`}>
           {sidebarOpen ? (
             <div className="flex items-center gap-3 p-1.5 bg-slate-50 rounded-2xl border border-slate-100/50">
               <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
@@ -190,7 +205,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
           ) : (
             <button
               onClick={handleLogout}
-              className="w-12 h-12 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100 shadow-sm hover:shadow-md"
+              className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100 shadow-sm"
               title="Logout"
             >
               <LogOut size={20} />

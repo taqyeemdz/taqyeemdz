@@ -17,7 +17,8 @@ export default function ClientFeedbackPage() {
     const [loading, setLoading] = useState(true);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState("");
-    const [allowMedia, setAllowMedia] = useState(false);
+    const [allowPhoto, setAllowPhoto] = useState(false);
+    const [allowVideo, setAllowVideo] = useState(false);
     const [allowAudio, setAllowAudio] = useState(false);
     const [ownerEmail, setOwnerEmail] = useState("");
 
@@ -80,13 +81,13 @@ export default function ClientFeedbackPage() {
             setLoading(true);
             try {
                 const decodedId = decodeURIComponent(identifier);
+                let localBusiness = null;
                 let userId: string | null = null;
 
                 // Strategy 1: Check if it's a UUID (Business ID)
                 const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decodedId);
 
                 if (isUuid) {
-                    // It is likely a business ID, load directly
                     const { data: bData, error: bError } = await supabase
                         .from("businesses")
                         .select("*")
@@ -94,14 +95,13 @@ export default function ClientFeedbackPage() {
                         .single();
 
                     if (!bError && bData) {
-                        setBusiness(bData);
-                        // Find owner to set limits
+                        localBusiness = bData;
                         const { data: ub } = await supabase.from('user_business').select('user_id').eq('business_id', decodedId).single();
                         if (ub) userId = ub.user_id;
-                    } // If error, continue to try profile lookup just in case? No, UUID is specific.
+                    }
                 }
 
-                if (!business && !userId) {
+                if (!localBusiness && !userId) {
                     // Strategy 2: Lookup Business DIRECTLY by Name
                     const { data: businesses, error: bsError } = await supabase
                         .from("businesses")
@@ -109,24 +109,19 @@ export default function ClientFeedbackPage() {
                         .ilike("name", decodedId);
 
                     if (!bsError && businesses && businesses.length > 0) {
-                        // Found by name
-                        const foundBusiness = businesses[0];
-                        setBusiness(foundBusiness);
-                        // Find owner
-                        const { data: ub } = await supabase.from('user_business').select('user_id').eq('business_id', foundBusiness.id).single();
+                        localBusiness = businesses[0];
+                        const { data: ub } = await supabase.from('user_business').select('user_id').eq('business_id', localBusiness.id).single();
                         if (ub) userId = ub.user_id;
                     }
                 }
 
-                if (!business && !userId) {
+                if (!localBusiness && !userId) {
                     // Strategy 3: Lookup Profile by Email or Full Name
                     let query = supabase.from("profiles").select("id, plan_id, email, full_name");
 
                     if (decodedId.includes('@')) {
-                        // Assume email
                         query = query.eq("email", decodedId);
                     } else {
-                        // Assume full_name
                         query = query.ilike("full_name", decodedId);
                     }
 
@@ -139,35 +134,46 @@ export default function ClientFeedbackPage() {
                     }
                 }
 
-                if (!business && !userId) {
+                if (!localBusiness && !userId) {
                     throw new Error("Impossible de trouver le propriétaire ou le business.");
                 }
 
-                if (userId) {
-                    // We have a User ID, let's load plan and business if not loaded
-                    const { data: profile } = await supabase.from('profiles').select('plan_id').eq('id', userId).single();
-
-                    if (profile?.plan_id) {
-                        const { data: plan } = await supabase
-                            .from("subscription_plans")
-                            .select("allow_media, allow_audio")
-                            .eq("id", profile.plan_id)
-                            .single();
-                        setAllowMedia(!!plan?.allow_media);
-                        setAllowAudio(!!plan?.allow_audio);
-                    }
-                }
-
-                if (!business) {
+                if (!localBusiness) {
                     const { data: ub } = await supabase.from('user_business').select('business_id').eq('user_id', userId).single();
                     if (!ub) throw new Error("Aucun business associé.");
 
                     const { data: b } = await supabase.from('businesses').select('*').eq('id', ub.business_id).single();
                     if (!b) throw new Error("Business introuvable.");
-                    setBusiness(b);
+                    localBusiness = b;
                 }
 
-                // Initialize Custom Fields (if business loaded)
+                let planPerms = { allow_photo: false, allow_video: false, allow_audio: false };
+                const planToUse = localBusiness.plan_id;
+
+                if (planToUse) {
+                    const { data: plan } = await supabase
+                        .from("subscription_plans")
+                        .select("allow_photo, allow_video, allow_audio")
+                        .eq("id", planToUse)
+                        .single();
+                    if (plan) planPerms = plan;
+                } else if (userId) {
+                    const { data: profile } = await supabase.from('profiles').select('plan_id').eq('id', userId).single();
+                    if (profile?.plan_id) {
+                        const { data: plan } = await supabase
+                            .from("subscription_plans")
+                            .select("allow_photo, allow_video, allow_audio")
+                            .eq("id", profile.plan_id)
+                            .single();
+                        if (plan) planPerms = plan;
+                    }
+                }
+
+                setBusiness(localBusiness);
+                setAllowPhoto(!!(planPerms.allow_photo && localBusiness.allow_photo === true));
+                setAllowVideo(!!(planPerms.allow_video && localBusiness.allow_video === true));
+                setAllowAudio(!!(planPerms.allow_audio && localBusiness.allow_audio === true));
+
                 setLoading(false);
 
             } catch (err: any) {
@@ -486,7 +492,39 @@ export default function ClientFeedbackPage() {
                                 </button>
                             </div>
 
-                            {/* USER DETAILS */}
+                            {/* ALWAYS VISIBLE DEMOGRAPHICS */}
+                            <div className="grid grid-cols-2 gap-3 pb-2">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Genre</label>
+                                    <select
+                                        value={sex}
+                                        onChange={(e) => setSex(e.target.value)}
+                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
+                                    >
+                                        <option value="male">Homme</option>
+                                        <option value="female">Femme</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Tranche d'âge</label>
+                                    <select
+                                        value={ageRange}
+                                        onChange={(e) => setAgeRange(e.target.value)}
+                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
+                                    >
+                                        <option value="">Sél.</option>
+                                        <option value="-18">-18</option>
+                                        <option value="18-24">18-24</option>
+                                        <option value="25-34">25-34</option>
+                                        <option value="35-44">35-44</option>
+                                        <option value="45-54">45-54</option>
+                                        <option value="55-64">55-64</option>
+                                        <option value="65+">65+</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* USER CONTACT DETAILS - HIDDEN WHEN ANONYMOUS */}
                             <div className={`space-y-3 overflow-hidden transition-all duration-300 ease-in-out ${!anonymous ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
                                 <div className="grid grid-cols-1 gap-3">
                                     <div className="space-y-1">
@@ -520,37 +558,6 @@ export default function ClientFeedbackPage() {
                                                     placeholder="05..."
                                                 />
                                             </div>
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Age</label>
-                                            <select
-                                                value={ageRange}
-                                                onChange={(e) => setAgeRange(e.target.value)}
-                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
-                                            >
-                                                <option value="">Sél.</option>
-                                                <option value="-18">-18</option>
-                                                <option value="18-24">18-24</option>
-                                                <option value="25-34">25-34</option>
-                                                <option value="35-44">35-44</option>
-                                                <option value="45-54">45-54</option>
-                                                <option value="55-64">55-64</option>
-                                                <option value="65+">65+</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="space-y-1">
-                                            <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Genre</label>
-                                            <select
-                                                value={sex}
-                                                onChange={(e) => setSex(e.target.value)}
-                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
-                                            >
-                                                <option value="male">Homme</option>
-                                                <option value="female">Femme</option>
-                                            </select>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Email</label>
@@ -634,35 +641,20 @@ export default function ClientFeedbackPage() {
                                 </div>
                             )}
 
-                            {/* MESSAGE */}
-                            <div className="space-y-1">
-                                <div className="relative">
-                                    <div className="absolute top-3 left-3 pointer-events-none text-gray-400">
-                                        <MessageSquare size={18} />
-                                    </div>
-                                    <textarea
-                                        value={message}
-                                        onChange={(e) => setMessage(e.target.value)}
-                                        rows={4}
-                                        className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all bg-gray-50 focus:bg-white"
-                                        placeholder="Racontez-nous votre expérience..."
-                                    />
-                                </div>
-                            </div>
                         </div>
 
 
                         {/* MEDIA UPLOAD SECTION */}
-                        {(allowMedia || allowAudio) && (
+                        {(allowPhoto || allowVideo || allowAudio) && (
                             <div className="space-y-1">
 
                                 <div className="grid grid-cols-2 gap-3">
                                     {/* PHOTO / VIDEO UPLOAD */}
-                                    {allowMedia && (
+                                    {(allowPhoto || allowVideo) && (
                                         <div className="relative">
                                             <input
                                                 type="file"
-                                                accept="image/*,video/*"
+                                                accept={`${allowPhoto ? 'image/*' : ''}${allowPhoto && allowVideo ? ',' : ''}${allowVideo ? 'video/*' : ''}`}
                                                 onChange={handleMediaChange}
                                                 className="hidden"
                                                 id="media-upload"
@@ -675,7 +667,9 @@ export default function ClientFeedbackPage() {
                                                     <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
                                                         <Camera size={20} />
                                                     </div>
-                                                    <span className="text-xs font-medium text-gray-500">Photo/Vidéo</span>
+                                                    <span className="text-xs font-medium text-gray-500">
+                                                        {allowPhoto && allowVideo ? "Photo/Vidéo" : allowPhoto ? "Photo" : "Vidéo"}
+                                                    </span>
                                                 </label>
                                             ) : (
                                                 <div className="relative rounded-xl overflow-hidden border border-gray-200 h-28 bg-black/5 group">

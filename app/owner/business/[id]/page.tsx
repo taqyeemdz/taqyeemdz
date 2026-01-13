@@ -23,7 +23,9 @@ import {
     Eye,
     CheckCircle2,
     Plus,
-    MessageSquare
+    MessageSquare,
+    Mic,
+    Image as ImageIcon
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
@@ -46,6 +48,7 @@ export default function OwnerBusinessDetailsPage() {
     const [isSaving, setIsSaving] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
     const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
+    const [planPermissions, setPlanPermissions] = useState({ allow_photo: false, allow_video: false, allow_audio: false });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -78,6 +81,17 @@ export default function OwnerBusinessDetailsPage() {
             setBusiness(b);
             if (b.form_config) setFormConfig(b.form_config);
 
+            // Fetch user plan permissions
+            const { data: profilePlan } = await supabase.from('profiles').select('plan_id').eq('id', user.id).single();
+            if (profilePlan?.plan_id) {
+                const { data: plan } = await supabase
+                    .from("subscription_plans")
+                    .select("allow_photo, allow_video, allow_audio")
+                    .eq("id", profilePlan.plan_id)
+                    .single();
+                if (plan) setPlanPermissions(plan);
+            }
+
             const { data: fb } = await supabase
                 .from("feedback")
                 .select("*")
@@ -95,7 +109,12 @@ export default function OwnerBusinessDetailsPage() {
         setIsSaving(true);
         const { error } = await supabase
             .from("businesses")
-            .update({ form_config: formConfig })
+            .update({
+                form_config: formConfig,
+                allow_photo: business.allow_photo,
+                allow_video: business.allow_video,
+                allow_audio: business.allow_audio
+            })
             .eq("id", businessId);
 
         if (error) {
@@ -514,6 +533,64 @@ export default function OwnerBusinessDetailsPage() {
                                         Ajouter une question
                                     </button>
                                 </div>
+
+                                <div className="space-y-6 pt-6 border-t border-slate-100">
+                                    <div className="space-y-1">
+                                        <h3 className="text-sm font-semibold text-slate-900">Options médias</h3>
+                                        <p className="text-xs text-slate-500">Choisissez les types de fichiers que vos clients peuvent envoyer.</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        {/* Photo Toggle */}
+                                        <div className={`p-4 rounded-xl border transition-all flex items-center justify-between ${!planPermissions.allow_photo ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Photos</p>
+                                                <p className="text-[10px] text-slate-500">Autoriser l'envoi d'images.</p>
+                                            </div>
+                                            <button
+                                                disabled={!planPermissions.allow_photo}
+                                                onClick={() => setBusiness({ ...business, allow_photo: !business.allow_photo })}
+                                                className={`w-10 h-5 rounded-full transition-all flex items-center p-1 ${business.allow_photo && planPermissions.allow_photo ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                                            >
+                                                <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                                            </button>
+                                        </div>
+
+                                        {/* Video Toggle */}
+                                        <div className={`p-4 rounded-xl border transition-all flex items-center justify-between ${!planPermissions.allow_video ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Vidéos</p>
+                                                <p className="text-[10px] text-slate-500">Autoriser l'envoi de vidéos.</p>
+                                            </div>
+                                            <button
+                                                disabled={!planPermissions.allow_video}
+                                                onClick={() => setBusiness({ ...business, allow_video: !business.allow_video })}
+                                                className={`w-10 h-5 rounded-full transition-all flex items-center p-1 ${business.allow_video && planPermissions.allow_video ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                                            >
+                                                <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                                            </button>
+                                        </div>
+
+                                        {/* Audio Toggle */}
+                                        <div className={`p-4 rounded-xl border transition-all flex items-center justify-between ${!planPermissions.allow_audio ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 shadow-sm'}`}>
+                                            <div className="space-y-1">
+                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Messages Vocaux</p>
+                                                <p className="text-[10px] text-slate-500">Activer l'enregistrement audio.</p>
+                                            </div>
+                                            <button
+                                                disabled={!planPermissions.allow_audio}
+                                                onClick={() => setBusiness({ ...business, allow_audio: !business.allow_audio })}
+                                                className={`w-10 h-5 rounded-full transition-all flex items-center p-1 ${business.allow_audio && planPermissions.allow_audio ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                                            >
+                                                <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {!planPermissions.allow_photo && !planPermissions.allow_video && !planPermissions.allow_audio && (
+                                        <p className="text-[10px] text-amber-600 font-medium bg-amber-50 p-3 rounded-lg border border-amber-100 italic">
+                                            Votre plan actuel ne supporte pas les fichiers médias. Passez au plan supérieur pour les activer.
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                         ) : (
                             <div className="max-w-xl mx-auto py-10">
@@ -541,9 +618,33 @@ export default function OwnerBusinessDetailsPage() {
                                                 <div className="h-10 border-b border-slate-100" />
                                             </div>
                                         ))}
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-900 uppercase tracking-widest text-slate-400">Message</label>
-                                            <div className="h-24 bg-slate-50/50 rounded-xl p-4 text-slate-200 text-xs italic">Écrivez votre commentaire...</div>
+                                        <div className="space-y-4">
+                                            {/* Media / Audio Preview */}
+                                            {(planPermissions.allow_photo && business.allow_photo) ||
+                                                (planPermissions.allow_video && business.allow_video) ||
+                                                (planPermissions.allow_audio && business.allow_audio) ? (
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {(planPermissions.allow_photo && business.allow_photo) || (planPermissions.allow_video && business.allow_video) ? (
+                                                        <div className="border-2 border-dashed border-slate-100 rounded-xl p-4 flex flex-col items-center justify-center gap-2 opacity-40">
+                                                            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                                                                <ImageIcon size={14} />
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                                {business.allow_photo && business.allow_video ? "Photo/Vidéo" : business.allow_photo ? "Photo" : "Vidéo"}
+                                                            </span>
+                                                        </div>
+                                                    ) : null}
+                                                    {planPermissions.allow_audio && business.allow_audio && (
+                                                        <div className="border-2 border-dashed border-slate-100 rounded-xl p-4 flex flex-col items-center justify-center gap-2 opacity-40">
+                                                            <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
+                                                                <Mic size={14} />
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vocal</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : null}
+
                                         </div>
                                         <button className="w-full bg-slate-900 text-white py-4 rounded-xl text-xs font-bold uppercase tracking-widest opacity-50 cursor-not-allowed">
                                             Envoyer

@@ -92,10 +92,10 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
                                         </div>
 
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${plan.allow_media ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-300'}`}>
-                                                {plan.allow_media ? <Check size={12} strokeWidth={3} /> : <X size={12} />}
+                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${(plan.allow_photo || plan.allow_video) ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-300'}`}>
+                                                {(plan.allow_photo || plan.allow_video) ? <Check size={12} strokeWidth={3} /> : <X size={12} />}
                                             </div>
-                                            <span className={`text-sm font-bold ${plan.allow_media ? 'text-gray-600' : 'text-gray-300 line-through'}`}>Media Uploads</span>
+                                            <span className={`text-sm font-bold ${(plan.allow_photo || plan.allow_video) ? 'text-gray-600' : 'text-gray-300 line-through'}`}>Media Uploads</span>
                                         </div>
 
                                         <div className="flex items-center gap-3">

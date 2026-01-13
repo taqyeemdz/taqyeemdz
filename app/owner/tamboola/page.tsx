@@ -22,31 +22,12 @@ import {
 } from "lucide-react";
 import { UpgradeModal } from "@/components/owner/UpgradeModal";
 import { useRouter } from "next/navigation";
-import Confetti from 'react-confetti';
+import { Confetti } from '@neoconfetti/react';
 
-function useWindowSize() {
-    const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
-
-    useEffect(() => {
-        function handleResize() {
-            setWindowSize({
-                width: window.innerWidth,
-                height: window.innerHeight,
-            });
-        }
-
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    return windowSize;
-}
 
 export default function TamboolaPage() {
     const supabase = supabaseBrowser;
     const router = useRouter();
-    const { width, height } = useWindowSize();
     const [loading, setLoading] = useState(true);
     const [businesses, setBusinesses] = useState<any[]>([]);
     const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
@@ -59,6 +40,7 @@ export default function TamboolaPage() {
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [showWinnerModal, setShowWinnerModal] = useState(false);
     const [showConfetti, setShowConfetti] = useState(false);
+    const [confettiKey, setConfettiKey] = useState(0);
 
     useEffect(() => {
         const fetchBusinesses = async () => {
@@ -164,12 +146,18 @@ export default function TamboolaPage() {
                 setWinners(selected);
                 setIsDrawing(false);
                 setShowWinnerModal(true);
+                setConfettiKey(prev => prev + 1);
                 setShowConfetti(true);
 
-                // Stop confetti after 5 seconds
-                setTimeout(() => setShowConfetti(false), 5000);
+                // Stop confetti after 12 seconds
+                setTimeout(() => setShowConfetti(false), 12000);
             }
         }, 100);
+    };
+
+    const retriggerConfetti = () => {
+        setConfettiKey(prev => prev + 1);
+        setShowConfetti(true);
     };
 
     if (loading) {
@@ -325,34 +313,50 @@ export default function TamboolaPage() {
 
             {/* Winner Celebration Modal */}
             {showWinnerModal && (
-                <div className="fixed inset-0 z-[120] bg-slate-900/80 backdrop-blur-lg animate-in fade-in duration-500">
-                    {/* Close on background click */}
-                    <button
+                <div className="fixed inset-0 z-[120] flex items-center justify-center">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-slate-900/90 backdrop-blur-xl"
                         onClick={() => setShowWinnerModal(false)}
-                        className="absolute top-2 right-6 z-30 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
-                    >
-                        <X size={20} />
-                    </button>
+                    />
 
-                    {/* Modal Content - Fullscreen with Contained Confetti */}
-                    <div className="relative w-full h-full flex items-start justify-center p-4 sm:p-6 overflow-y-auto pt-10 sm:pt-20">
-                        {/* React Confetti - Contained */}
-                        {showConfetti && (
-                            <div className="absolute inset-0 pointer-events-none">
+                    {/* Dual Confetti Booms - Top Corners */}
+                    {showConfetti && (
+                        <>
+                            <div className="fixed top-10 left-10 z-[140] pointer-events-none">
                                 <Confetti
-                                    width={width}
-                                    height={height}
-                                    recycle={false}
-                                    numberOfPieces={400}
-                                    gravity={0.25}
+                                    key={`confetti-left-${confettiKey}`}
+                                    particleCount={300}
+                                    duration={8000}
                                     colors={['#fbbf24', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981']}
-                                    tweenDuration={5000}
                                 />
                             </div>
-                        )}
+                            <div className="fixed top-10 right-10 z-[140] pointer-events-none">
+                                <Confetti
+                                    key={`confetti-right-${confettiKey}`}
+                                    particleCount={300}
+                                    duration={8000}
+                                    colors={['#fbbf24', '#f59e0b', '#ec4899', '#8b5cf6', '#3b82f6', '#10b981']}
+                                />
+                            </div>
+                        </>
+                    )}
 
-                        {/* Content Card - Centered */}
-                        <div className="relative bg-white rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-10 max-w-xl w-full shadow-2xl text-center space-y-5 sm:space-y-8 animate-boom z-10 my-auto">
+                    {/* Content Container */}
+                    <div className="relative z-[130] w-full max-w-xl p-6 flex flex-col items-center">
+                        <button
+                            onClick={() => setShowWinnerModal(false)}
+                            className="mb-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all backdrop-blur-md"
+                        >
+                            <X size={20} />
+                        </button>
+
+                        {/* Winner Card */}
+                        <div
+                            key={`winner-card-${confettiKey}`}
+                            onClick={retriggerConfetti}
+                            className="relative bg-gradient-to-b from-white to-amber-50/50 backdrop-blur-sm rounded-[2.5rem] p-8 sm:p-12 w-full shadow-2xl shadow-black/20 text-center space-y-8 z-10 my-auto cursor-pointer active:scale-[0.98] transition-transform border border-white/40 ring-4 ring-white/10 overflow-hidden"
+                        >
                             {/* Decorative Background */}
                             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 animate-pulse" />
 
@@ -371,17 +375,15 @@ export default function TamboolaPage() {
                             </div>
 
                             <div className="relative z-10">
-                                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-amber-400 to-amber-600 text-white rounded-[1.5rem] sm:rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-amber-500/50 animate-trophy-bounce">
-                                    <Trophy size={40} className="sm:w-12 sm:h-12" />
-                                </div>
+
                                 {/* Floating Sparkles */}
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 sm:-translate-y-3 text-amber-400 animate-float">
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 sm:-translate-y-3 text-amber-400">
                                     <Sparkles size={20} className="sm:w-6 sm:h-6" />
                                 </div>
-                                <div className="absolute top-6 sm:top-8 right-1/4 text-amber-300 animate-float-delayed">
+                                <div className="absolute top-6 sm:top-8 right-1/4 text-amber-300">
                                     <Sparkles size={16} className="sm:w-[18px] sm:h-[18px]" />
                                 </div>
-                                <div className="absolute top-6 sm:top-8 left-1/4 text-amber-200 animate-float-delayed-2">
+                                <div className="absolute top-6 sm:top-8 left-1/4 text-amber-200">
                                     <Sparkles size={18} className="sm:w-5 sm:h-5" />
                                 </div>
                             </div>
@@ -412,7 +414,7 @@ export default function TamboolaPage() {
 
                             <button
                                 onClick={() => setShowWinnerModal(false)}
-                                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-lg sm:rounded-xl py-3 sm:py-4 font-black text-xs sm:text-sm tracking-widest uppercase hover:from-amber-600 hover:to-amber-700 transition-all active:scale-95 shadow-2xl shadow-amber-500/30 relative z-10"
+                                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl py-4 font-black text-sm tracking-widest uppercase hover:from-amber-600 hover:to-amber-700 transition-all active:scale-95 shadow-xl shadow-amber-500/20 relative z-10"
                             >
                                 C'est super ! 🎊
                             </button>

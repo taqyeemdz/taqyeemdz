@@ -17,11 +17,12 @@ import {
   Globe,
   Mail,
   Zap,
+  FileText,
 } from "lucide-react";
 
 export default function AdminSettings() {
   const supabase = supabaseBrowser;
-  const [activeTab, setActiveTab] = useState<"general" | "pricing" | "system">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "pricing" | "conditions">("general");
 
   // Plans
   const [plans, setPlans] = useState<any[]>([]);
@@ -58,7 +59,7 @@ export default function AdminSettings() {
   const handleSaveGeneral = async () => {
     setSaving(true);
     try {
-      const keys = ["platform_name", "support_email", "registrations_enabled", "maintenance_mode"];
+      const keys = ["platform_name", "support_email", "registrations_enabled", "maintenance_mode", "terms_and_conditions"];
       const upsertData = keys
         .filter(key => settings[key] !== undefined)
         .map(key => ({ key, value: settings[key] }));
@@ -111,6 +112,7 @@ export default function AdminSettings() {
         {[
           { id: "general", label: "Général", icon: Settings },
           { id: "pricing", label: "Abonnements", icon: CreditCard },
+          { id: "conditions", label: "Conditions", icon: FileText },
         ].map(tab => (
           <button
             key={tab.id}
@@ -242,10 +244,19 @@ export default function AdminSettings() {
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                         <div className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-white">
-                          <span className="text-xs font-medium text-slate-600">Upload Média</span>
+                          <span className="text-xs font-medium text-slate-600">Upload Photo</span>
                           <button
-                            onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_media: !p.allow_media } : p))}
-                            className={`w-8 h-4 rounded-full transition-all ${plan.allow_media ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
+                            onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_photo: !p.allow_photo } : p))}
+                            className={`w-8 h-4 rounded-full transition-all ${plan.allow_photo ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
+                          >
+                            <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-white">
+                          <span className="text-xs font-medium text-slate-600">Upload Vidéo</span>
+                          <button
+                            onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_video: !p.allow_video } : p))}
+                            className={`w-8 h-4 rounded-full transition-all ${plan.allow_video ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
                           >
                             <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
                           </button>
@@ -345,6 +356,37 @@ export default function AdminSettings() {
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 Mettre à jour la tarification
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* CONDITIONS */}
+        {activeTab === "conditions" && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+            <div className="space-y-1">
+              <h3 className="font-medium text-slate-900">Conditions Générales</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">Rédigez les termes et conditions d'utilisation de la plateforme.</p>
+            </div>
+            <div className="md:col-span-2 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Contenu (Markdown/Texte)</label>
+                <textarea
+                  value={settings.terms_and_conditions || ""}
+                  onChange={e => setSettings({ ...settings, terms_and_conditions: e.target.value })}
+                  placeholder="Entrez les termes et conditions ici..."
+                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-slate-400 transition-colors min-h-[400px] font-sans leading-relaxed"
+                />
+              </div>
+              <div className="flex justify-end pt-4">
+                <button
+                  onClick={handleSaveGeneral}
+                  disabled={saving}
+                  className="bg-slate-900 text-white text-xs font-semibold px-6 py-2.5 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2"
+                >
+                  {saving && <Loader2 size={14} className="animate-spin" />}
+                  Enregistrer les conditions
+                </button>
+              </div>
             </div>
           </div>
         )}
