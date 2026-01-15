@@ -12,21 +12,20 @@ export default function TermsPage() {
 
     useEffect(() => {
         async function fetchTerms() {
-            const { data } = await supabase
-                .from("system_settings")
-                .select("value")
-                .eq("key", "terms_and_conditions")
-                .maybeSingle();
-
-            if (data) {
-                // Value is stored as JSONB, so it might be a quoted string if it was simple text
-                const val = typeof data.value === 'string' ? data.value : JSON.stringify(data.value, null, 2);
-                setContent(val.replace(/^"|"$/g, '').replace(/\\n/g, '\n'));
+            try {
+                const response = await fetch('/api/public/terms');
+                if (response.ok) {
+                    const data = await response.json();
+                    setContent(data.content || null);
+                }
+            } catch (error) {
+                console.error('Error fetching terms:', error);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         }
         fetchTerms();
-    }, [supabase]);
+    }, []);
 
     return (
         <div className="min-h-screen bg-slate-50 font-sans selection:bg-indigo-100">

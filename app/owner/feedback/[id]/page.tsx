@@ -14,7 +14,7 @@ import {
     Ghost,
     Plus,
     MessageSquare,
-    Mic,
+    AudioLines,
     Image as ImageIcon,
     Trash2,
     Loader2,
@@ -25,15 +25,13 @@ import { fr } from "date-fns/locale";
 
 const isMediaVideo = (url: string) => {
     if (!url) return false;
-    const ext = url.split('.').pop()?.toLowerCase();
-    return ['mp4', 'mov', 'avi', 'wmv', 'flv', 'mkv'].includes(ext || '');
+    return /\.(mp4|mov|avi|wmv|flv|mkv)($|\?)/i.test(url);
 };
 
 const isMediaAudio = (url: string) => {
     if (!url) return false;
-    const ext = url.split('.').pop()?.toLowerCase();
     // webm can be audio or video, but in our recorder it's audio
-    return ['mp3', 'wav', 'aac', 'm4a', 'opus', 'webm', 'ogg'].includes(ext || '');
+    return /\.(mp3|wav|aac|m4a|opus|webm|ogg)($|\?)/i.test(url);
 };
 
 const translateSex = (sex: string) => {
@@ -55,6 +53,7 @@ export default function FeedbackDetailPage() {
     const [isZoomed, setIsZoomed] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchFeedback = async () => {
@@ -121,9 +120,9 @@ export default function FeedbackDetailPage() {
         <div className="max-w-6xl mx-auto p-8 space-y-10">
 
             {/* Lightbox */}
-            {isZoomed && feedback.media_url && !isMediaVideo(feedback.media_url) && (
+            {isZoomed && selectedMedia && !isMediaVideo(selectedMedia) && (
                 <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 backdrop-blur-sm" onClick={() => setIsZoomed(false)}>
-                    <img src={feedback.media_url} alt="Zoom" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" />
+                    <img src={selectedMedia} alt="Zoom" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" />
                 </div>
             )}
 
@@ -241,42 +240,56 @@ export default function FeedbackDetailPage() {
                             <ImageIcon size={12} />
                             Média joint
                         </h3>
-                        {feedback.media_url ? (
-                            <div className="flex flex-col items-start gap-4">
-                                {isMediaAudio(feedback.media_url) && !isMediaVideo(feedback.media_url) ? (
-                                    <div className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col gap-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shadow-sm">
-                                                <Mic size={20} />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Message Vocal</p>
-                                                <p className="text-[10px] text-slate-400">Enregistré par le client</p>
-                                            </div>
-                                        </div>
-                                        <audio controls className="w-full h-10">
-                                            <source src={feedback.media_url} />
-                                            Votre navigateur ne supporte pas l'élément audio.
-                                        </audio>
-                                    </div>
-                                ) : (
-                                    <div className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 w-full max-w-2xl shadow-sm">
-                                        {isMediaVideo(feedback.media_url) ? (
-                                            <video controls className="w-full aspect-video object-contain bg-black" src={feedback.media_url} />
-                                        ) : (
-                                            <div className="group relative cursor-pointer" onClick={() => setIsZoomed(true)}>
-                                                <img src={feedback.media_url} alt="Media" className="w-full object-contain max-h-[500px] transition-transform duration-500 group-hover:scale-[1.02]" />
-                                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                    <span className="bg-white/90 text-slate-900 text-[10px] font-bold px-4 py-2 rounded-full shadow-lg">Cliquer pour agrandir</span>
+                        {(() => {
+                            const params = feedback.custom_responses || {};
+                            const medias = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
+                                ? params._media_urls
+                                : feedback.media_urls && feedback.media_urls.length > 0 ? feedback.media_urls
+                                    : feedback.media_url ? [feedback.media_url] : [];
+
+                            if (medias.length === 0) {
+                                return <p className="text-sm text-slate-400 italic">Aucun document multimédia joint.</p>;
+                            }
+
+                            return (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {medias.map((url: string, idx: number) => (
+                                        <div key={idx} className="flex flex-col items-start gap-4">
+                                            {isMediaAudio(url) && !isMediaVideo(url) ? (
+                                                <div className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col gap-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shadow-sm">
+                                                            <AudioLines size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Message Vocal</p>
+                                                            <p className="text-[10px] text-slate-400">Enregistré par le client</p>
+                                                        </div>
+                                                    </div>
+                                                    <audio controls className="w-full h-10">
+                                                        <source src={url} />
+                                                        Votre navigateur ne supporte pas l'élément audio.
+                                                    </audio>
                                                 </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-400 italic">Aucun document multimédia joint.</p>
-                        )}
+                                            ) : (
+                                                <div className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 w-full shadow-sm">
+                                                    {isMediaVideo(url) ? (
+                                                        <video controls className="w-full aspect-video object-contain bg-black" src={url} />
+                                                    ) : (
+                                                        <div className="group relative cursor-pointer" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
+                                                            <img src={url} alt={`Media ${idx + 1}`} className="w-full object-contain max-h-[400px] transition-transform duration-500 group-hover:scale-[1.02]" />
+                                                            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                                <span className="bg-white/90 text-slate-900 text-[10px] font-bold px-4 py-2 rounded-full shadow-lg">Cliquer pour agrandir</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
 

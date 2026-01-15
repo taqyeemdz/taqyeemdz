@@ -18,7 +18,10 @@ import {
   Trash2,
   AlertCircle,
   Building2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  AudioLines,
+  Files,
+  Play
 } from "lucide-react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -28,6 +31,16 @@ const RATING_CONFIG: Record<string, { label: string, color: string, dot: string 
   all: { label: "Tous", color: "text-slate-400", dot: "bg-slate-300" },
   positive: { label: "Positifs", color: "text-emerald-500", dot: "bg-emerald-400" },
   negative: { label: "Négatifs", color: "text-rose-500", dot: "bg-rose-400" },
+};
+
+const isAudio = (url: string | null) => {
+  if (!url) return false;
+  return /\.(mp3|wav|ogg|m4a|webm|aac)($|\?)/i.test(url);
+};
+
+const isVideo = (url: string | null) => {
+  if (!url) return false;
+  return /\.(mp4|mov|avi|wmv|flv|mkv)($|\?)/i.test(url);
 };
 
 export default function FeedbackPage() {
@@ -41,6 +54,8 @@ export default function FeedbackPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
+  const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
+  const [isZoomed, setIsZoomed] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -121,6 +136,13 @@ export default function FeedbackPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-8 space-y-10">
+      {/* Lightbox */}
+      {isZoomed && selectedMedia && !isVideo(selectedMedia) && !isAudio(selectedMedia) && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 backdrop-blur-sm" onClick={() => setIsZoomed(false)}>
+          <img src={selectedMedia} alt="Zoom" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" />
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-slate-100 pb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div>
@@ -209,7 +231,21 @@ export default function FeedbackPage() {
                       </p>
                       <p className="text-[11px] text-slate-400 truncate flex items-center gap-1.5">
                         {fb.businesses?.name} • {format(new Date(fb.created_at), "dd/MM")}
-                        {fb.media_url && <ImageIcon size={10} className="text-indigo-400" />}
+                        {(() => {
+                          const params = fb.custom_responses || {};
+                          const medias = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
+                            ? params._media_urls
+                            : fb.media_urls && fb.media_urls.length > 0 ? fb.media_urls
+                              : fb.media_url ? [fb.media_url] : [];
+
+                          if (medias.length === 0) return null;
+                          if (medias.length > 1) return <Files size={10} className="text-indigo-400" />;
+
+                          const url = medias[0];
+                          if (isAudio(url)) return <AudioLines size={10} className="text-indigo-400" />;
+                          if (isVideo(url)) return <Play size={10} className="text-indigo-400" />;
+                          return <ImageIcon size={10} className="text-indigo-400" />;
+                        })()}
                       </p>
                     </div>
                   </div>
@@ -286,17 +322,49 @@ export default function FeedbackPage() {
                 </div>
               )}
 
-              {selectedFeedback.media_url && (
-                <div className="pt-6">
-                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Média Joint</h4>
-                  <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-lg group relative aspect-square max-w-[200px]">
-                    <img src={selectedFeedback.media_url} alt="Media" className="w-full h-full object-cover" />
-                    <a href={selectedFeedback.media_url} target="_blank" rel="noreferrer" className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all">
-                      <span className="bg-white text-slate-900 text-[10px] font-bold px-3 py-1.5 rounded-full uppercase">Voir Plein Écran</span>
-                    </a>
-                  </div>
-                </div>
-              )}
+              {/* Media Gallery */}
+              {(() => {
+                const params = selectedFeedback.custom_responses || {};
+                const medias = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
+                  ? params._media_urls
+                  : selectedFeedback.media_urls && selectedFeedback.media_urls.length > 0
+                    ? selectedFeedback.media_urls
+                    : selectedFeedback.media_url ? [selectedFeedback.media_url] : [];
+
+                if (medias.length > 0) {
+                  return (
+                    <div className="pt-6">
+                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Média Joint ({medias.length})</h4>
+                      <div className="flex flex-wrap gap-4">
+                        {medias.map((url: string, idx: number) => (
+                          <div key={idx} className="flex flex-col items-start gap-4">
+                            {isAudio(url) ? (
+                              <div className="w-full bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center gap-4">
+                                <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                                  <AudioLines size={18} />
+                                </div>
+                                <audio controls src={url} className="w-full h-8" />
+                              </div>
+                            ) : isVideo(url) ? (
+                              <video controls src={url} className="w-full rounded-2xl bg-black aspect-video object-contain" />
+                            ) : (
+                              <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm group relative w-20 h-20 shrink-0 cursor-pointer" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
+                                <img src={url} alt="Media" className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <span className="text-white">
+                                    <ImageIcon size={16} />
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
             </div>
           ) : (

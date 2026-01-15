@@ -30,8 +30,8 @@ export default function ClientFeedbackPage() {
     const [consent, setConsent] = useState(false);
 
     // Media Upload State
-    const [mediaFile, setMediaFile] = useState<File | null>(null);
-    const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+    const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+    const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
     const [uploading, setUploading] = useState(false);
 
     // Audio Recording State
@@ -204,17 +204,25 @@ export default function ClientFeedbackPage() {
     };
 
     const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = Array.from(e.target.files || []);
+        if (files.length === 0) return;
 
-        if (file.size > 20 * 1024 * 1024) { // 20MB limit
-            setError("File size too large (max 20MB)");
-            return;
-        }
+        // Filter valid files and limit total size/count if needed
+        const validFiles: File[] = [];
+        const newPreviews: string[] = [];
 
-        setMediaFile(file);
-        setMediaPreview(URL.createObjectURL(file));
-        setError(""); // Clear error if any
+        files.forEach(file => {
+            if (file.size > 20 * 1024 * 1024) {
+                setError(`File ${file.name} is too large (max 20MB)`);
+                return;
+            }
+            validFiles.push(file);
+            newPreviews.push(URL.createObjectURL(file));
+        });
+
+        setMediaFiles(prev => [...prev, ...validFiles]);
+        setMediaPreviews(prev => [...prev, ...newPreviews]);
+        setError("");
     };
 
     const startRecording = async () => {
@@ -248,8 +256,8 @@ export default function ClientFeedbackPage() {
                 const blob = new Blob(chunksRef.current, { type: mimeType });
                 const file = new File([blob], `recording.${ext}`, { type: mimeType });
 
-                setMediaFile(file);
-                setMediaPreview(URL.createObjectURL(file));
+                setMediaFiles(prev => [...prev, file]);
+                setMediaPreviews(prev => [...prev, URL.createObjectURL(file)]);
 
                 // Stop all tracks
                 stream.getTracks().forEach(track => track.stop());
@@ -272,18 +280,20 @@ export default function ClientFeedbackPage() {
         }
     };
 
-    const removeMedia = () => {
-        setMediaFile(null);
-        if (mediaPreview) URL.revokeObjectURL(mediaPreview);
-        setMediaPreview(null);
+    const removeMedia = (index: number) => {
+        setMediaFiles(prev => prev.filter((_, i) => i !== index));
 
-        // If we are currently recording, stop it
-        if (isRecording && mediaRecorderRef.current) {
-            mediaRecorderRef.current.stop();
+        // Revoke URL to avoid memory leaks
+        URL.revokeObjectURL(mediaPreviews[index]);
+        setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+
+        // If we are currently recording and removing the generic "last" item, stop it?
+        // Actually, recording only happens when adding new.
+        if (isRecording) { // If user cancels recording before it finishes
+            if (mediaRecorderRef.current) mediaRecorderRef.current.stop();
+            setIsRecording(false);
+            setRecordingTime(0);
         }
-
-        setIsRecording(false);
-        setRecordingTime(0);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -318,43 +328,48 @@ export default function ClientFeedbackPage() {
         setUploading(true);
 
         try {
-            let mediaUrl = null;
+            const uploadedUrls: string[] = [];
 
             // Upload Media if exists
-            if (mediaFile) {
-                let fileToUpload = mediaFile;
+            if (mediaFiles.length > 0) {
+                for (const file of mediaFiles) {
+                    let fileToUpload = file;
 
-                // Compress if image
-                if (fileToUpload.type.startsWith('image')) {
-                    try {
-                        const options = {
-                            maxSizeMB: 1,
-                            maxWidthOrHeight: 1920,
-                            useWebWorker: true
-                        };
-                        fileToUpload = await imageCompression(fileToUpload, options);
-                    } catch (error) {
-                        console.error("Compression ended with error:", error);
+                    // Compress if image
+                    if (fileToUpload.type.startsWith('image')) {
+                        try {
+                            const options = {
+                                maxSizeMB: 1,
+                                maxWidthOrHeight: 1920,
+                                useWebWorker: true
+                            };
+                            fileToUpload = await imageCompression(fileToUpload, options);
+                        } catch (error) {
+                            console.error("Compression ended with error:", error);
+                        }
                     }
+
+                    const ext = fileToUpload.name.split('.').pop() || 'media';
+                    const fileName = `${business.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('feedback-media')
+                        .upload(fileName, fileToUpload);
+
+                    if (uploadError) {
+                        throw new Error(`Upload failed: ${uploadError.message}`);
+                    }
+
+                    const { data: urlData } = supabase.storage
+                        .from('feedback-media')
+                        .getPublicUrl(fileName);
+
+                    uploadedUrls.push(urlData.publicUrl);
                 }
-
-                const ext = fileToUpload.name.split('.').pop() || 'media';
-                const fileName = `${business.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
-
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('feedback-media')
-                    .upload(fileName, fileToUpload);
-
-                if (uploadError) {
-                    throw new Error(`Upload failed: ${uploadError.message}`);
-                }
-
-                const { data: urlData } = supabase.storage
-                    .from('feedback-media')
-                    .getPublicUrl(fileName);
-
-                mediaUrl = urlData.publicUrl;
             }
+
+            // Fallback for single media_url compatibility
+            const primaryMediaUrl = uploadedUrls.length > 0 ? uploadedUrls[0] : null;
 
             const payload = {
                 business_id: business.id,
@@ -365,8 +380,12 @@ export default function ClientFeedbackPage() {
                 phone: anonymous ? null : phone || null,
                 email: anonymous ? null : email || null,
                 sex: anonymous ? null : sex,
-                custom_responses: { ...customResponses, age_range: anonymous ? null : ageRange },
-                media_url: mediaUrl
+                custom_responses: {
+                    ...customResponses,
+                    age_range: anonymous ? null : ageRange,
+                    _media_urls: uploadedUrls // Store multiple medias here to avoid schema dependency
+                },
+                media_url: primaryMediaUrl // Backward compatibility
             };
 
             const { error: insertError } = await supabase.from("feedback").insert(payload);
@@ -390,7 +409,8 @@ export default function ClientFeedbackPage() {
                 setMessage("");
                 setRating(0);
                 setCustomResponses({});
-                removeMedia();
+                setMediaFiles([]);
+                setMediaPreviews([]);
             }
         } catch (err: any) {
             setError(err.message || "An error occurred");
@@ -646,69 +666,49 @@ export default function ClientFeedbackPage() {
 
                         {/* MEDIA UPLOAD SECTION */}
                         {(allowPhoto || allowVideo || allowAudio) && (
-                            <div className="space-y-1">
-
+                            <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-3">
                                     {/* PHOTO / VIDEO UPLOAD */}
                                     {(allowPhoto || allowVideo) && (
                                         <div className="relative">
                                             <input
                                                 type="file"
+                                                multiple
                                                 accept={`${allowPhoto ? 'image/*' : ''}${allowPhoto && allowVideo ? ',' : ''}${allowVideo ? 'video/*' : ''}`}
                                                 onChange={handleMediaChange}
                                                 className="hidden"
                                                 id="media-upload"
                                             />
-                                            {!mediaPreview && !mediaFile ? (
-                                                <label
-                                                    htmlFor="media-upload"
-                                                    className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-indigo-300 transition-all group h-full"
-                                                >
-                                                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
-                                                        <Camera size={20} />
-                                                    </div>
-                                                    <span className="text-xs font-medium text-gray-500">
-                                                        {allowPhoto && allowVideo ? "Photo/Vidéo" : allowPhoto ? "Photo" : "Vidéo"}
-                                                    </span>
-                                                </label>
-                                            ) : (
-                                                <div className="relative rounded-xl overflow-hidden border border-gray-200 h-28 bg-black/5 group">
-                                                    {mediaFile?.type.startsWith('video') ? (
-                                                        <div className="w-full h-full flex items-center justify-center text-gray-500">
-                                                            <span className="text-xs">Vidéo sélectionnée</span>
-                                                        </div>
-                                                    ) : (
-                                                        // eslint-disable-next-line @next/next/no-img-element
-                                                        <img src={mediaPreview || ""} alt="Preview" className="w-full h-full object-cover" />
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        onClick={removeMedia}
-                                                        className="absolute top-1 right-1 bg-white/90 p-1 rounded-full text-red-500 shadow-sm hover:bg-red-50"
-                                                    >
-                                                        <X size={14} />
-                                                    </button>
+                                            <label
+                                                htmlFor="media-upload"
+                                                className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-indigo-300 transition-all group h-full min-h-[100px]"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
+                                                    <Camera size={20} />
                                                 </div>
-                                            )}
+                                                <span className="text-xs font-medium text-gray-500">
+                                                    Ajouter Photos/Vidéos
+                                                </span>
+                                            </label>
                                         </div>
                                     )}
 
                                     {/* AUDIO RECORDING */}
                                     {allowAudio && (
                                         <div className="relative">
-                                            {!isRecording && !mediaFile?.type.startsWith('audio') ? (
+                                            {!isRecording ? (
                                                 <button
                                                     type="button"
                                                     onClick={startRecording}
-                                                    className="w-full h-full flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 hover:border-rose-300 transition-all group"
+                                                    className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 hover:border-rose-300 transition-all group"
                                                 >
                                                     <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
                                                         <Mic size={20} />
                                                     </div>
                                                     <span className="text-xs font-medium text-gray-500">Enregistrer Vocal</span>
                                                 </button>
-                                            ) : isRecording ? (
-                                                <div className="w-full h-full flex flex-col items-center justify-center p-4 border-2 border-rose-500 bg-rose-50 rounded-xl animate-pulse cursor-pointer" onClick={stopRecording}>
+                                            ) : (
+                                                <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-rose-500 bg-rose-50 rounded-xl animate-pulse cursor-pointer" onClick={stopRecording}>
                                                     <div className="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center mb-2 shadow-lg shadow-rose-200">
                                                         <Square size={16} fill="currentColor" />
                                                     </div>
@@ -717,22 +717,39 @@ export default function ClientFeedbackPage() {
                                                     </span>
                                                     <span className="text-[10px] text-rose-400 mt-1">Appuyer pour stop</span>
                                                 </div>
-                                            ) : (
-                                                // Audio Preview (Recorded)
-                                                <div className="relative w-full h-full flex flex-col items-center justify-center p-4 border border-rose-200 bg-rose-50 rounded-xl">
-                                                    <div className="text-rose-600 font-bold text-xs mb-1">Audio Enregistré</div>
-                                                    <button
-                                                        type="button"
-                                                        onClick={removeMedia}
-                                                        className="absolute top-1 right-1 bg-white/50 p-1 rounded-full text-red-500 hover:bg-white"
-                                                    >
-                                                        <X size={14} />
-                                                    </button>
-                                                </div>
                                             )}
                                         </div>
                                     )}
                                 </div>
+
+                                {/* PREVIEWS LIST */}
+                                {mediaFiles.length > 0 && (
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                                        {mediaFiles.map((file, idx) => (
+                                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-black/5 group">
+                                                {file.type.startsWith('video') ? (
+                                                    <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gray-100">
+                                                        <span className="text-[10px] font-bold uppercase">Vidéo</span>
+                                                    </div>
+                                                ) : file.type.startsWith('audio') ? (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center text-rose-500 bg-rose-50">
+                                                        <Mic size={16} />
+                                                        <span className="text-[9px] mt-1 font-bold">Audio</span>
+                                                    </div>
+                                                ) : (
+                                                    <img src={mediaPreviews[idx]} alt="Preview" className="w-full h-full object-cover" />
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeMedia(idx)}
+                                                    className="absolute top-1 right-1 bg-white/90 p-1 rounded-full text-red-500 shadow-sm hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 
