@@ -121,8 +121,10 @@ export default function FeedbackDetailPage() {
 
             {/* Lightbox */}
             {isZoomed && selectedMedia && !isMediaVideo(selectedMedia) && (
-                <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 backdrop-blur-sm" onClick={() => setIsZoomed(false)}>
-                    <img src={selectedMedia} alt="Zoom" className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200" />
+                <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-8 backdrop-blur-md" onClick={() => setIsZoomed(false)}>
+                    <div className="relative max-w-[80vw] max-h-[80vh]">
+                        <img src={selectedMedia} alt="Zoom" className="w-auto h-auto max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200" />
+                    </div>
                 </div>
             )}
 

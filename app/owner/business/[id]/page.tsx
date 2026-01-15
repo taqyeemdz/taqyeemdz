@@ -25,12 +25,25 @@ import {
     Plus,
     MessageSquare,
     Mic,
-    Image as ImageIcon
+    Image as ImageIcon,
+    AudioLines,
+    Play,
+    Files
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { toast } from "sonner";
+
+const isAudio = (url: string | null) => {
+    if (!url) return false;
+    return /\.(mp3|wav|ogg|m4a|webm|aac)($|\?)/i.test(url);
+};
+
+const isVideo = (url: string | null) => {
+    if (!url) return false;
+    return /\.(mp4|mov|avi|wmv|flv|mkv)($|\?)/i.test(url);
+};
 
 export default function OwnerBusinessDetailsPage() {
     const supabase = supabaseBrowser;
@@ -736,8 +749,12 @@ function FeedbackDetailsModal({ feedback, formConfig, onClose }: { feedback: any
     const responseKeys = Object.keys(customResponses).filter(k =>
         customResponses[k] !== null &&
         customResponses[k] !== "" &&
-        customResponses[k] !== undefined
+        customResponses[k] !== undefined &&
+        k !== "_media_urls"
     );
+
+    const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
+    const [isZoomed, setIsZoomed] = useState(false);
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
@@ -804,7 +821,61 @@ function FeedbackDetailsModal({ feedback, formConfig, onClose }: { feedback: any
                             </div>
                         </div>
                     )}
+
+                    {/* Media Gallery */}
+                    {(() => {
+                        const params = feedback.custom_responses || {};
+                        const medias = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
+                            ? params._media_urls
+                            : feedback.media_urls && feedback.media_urls.length > 0
+                                ? feedback.media_urls
+                                : feedback.media_url ? [feedback.media_url] : [];
+
+                        if (medias.length > 0) {
+                            return (
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Média Joint ({medias.length})</p>
+                                    <div className="flex flex-wrap gap-4">
+                                        {medias.map((url: string, idx: number) => (
+                                            <div key={idx} className="flex flex-col items-start gap-4">
+                                                {isAudio(url) ? (
+                                                    <div className="w-full bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center gap-4">
+                                                        <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                                                            <AudioLines size={18} />
+                                                        </div>
+                                                        <audio controls src={url} className="w-32 h-8" />
+                                                    </div>
+                                                ) : isVideo(url) ? (
+                                                    <video controls src={url} className="w-48 rounded-xl bg-black aspect-video object-contain" />
+                                                ) : (
+                                                    <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm group relative w-20 h-20 shrink-0 cursor-pointer" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
+                                                        <img src={url} alt="Media" className="w-full h-full object-cover" />
+                                                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                            <span className="text-white">
+                                                                <ImageIcon size={16} />
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+
                 </div>
+
+                {/* Internal Lightbox */}
+                {isZoomed && selectedMedia && !isVideo(selectedMedia) && !isAudio(selectedMedia) && (
+                    <div className="fixed inset-0 z-[120] bg-black/80 flex items-center justify-center p-8 backdrop-blur-md" onClick={() => setIsZoomed(false)}>
+                        <div className="relative max-w-[80vw] max-h-[80vh]">
+                            <img src={selectedMedia} alt="Zoom" className="w-auto h-auto max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200" />
+                        </div>
+                    </div>
+                )}
 
                 {/* Modal Footer */}
                 <div className="p-4 bg-slate-50 border-t border-slate-100 shrink-0">
