@@ -27,8 +27,7 @@ import {
     Mic,
     Image as ImageIcon,
     AudioLines,
-    Play,
-    Files
+    Play
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
@@ -710,22 +709,8 @@ function FeedbackRow({ feedback, onClick }: { feedback: any, onClick: () => void
                 </p>
             </div>
 
-            {/* Message Preview */}
-            <div className="flex-1 min-w-0">
-                <p className="text-xs text-slate-500 truncate group-hover:text-slate-700 transition-colors font-medium">
-                    {feedback.message ? (
-                        <span className="flex items-center gap-2">
-                            <span className="w-1 h-1 rounded-full bg-slate-300 block shrink-0" />
-                            {feedback.message}
-                        </span>
-                    ) : (
-                        <span className="text-slate-300 italic text-[10px]">Aucun message écrit</span>
-                    )}
-                </p>
-            </div>
-
             {/* Date */}
-            <div className="shrink-0 text-[10px] text-slate-400 font-medium whitespace-nowrap hidden sm:block">
+            <div className="ml-auto shrink-0 text-[10px] text-slate-400 font-medium whitespace-nowrap hidden sm:block">
                 {format(new Date(feedback.created_at), "dd/MM/yyyy", { locale: fr })}
             </div>
 
@@ -782,20 +767,7 @@ function FeedbackDetailsModal({ feedback, formConfig, onClose }: { feedback: any
 
                 {/* Modal Body */}
                 <div className="p-8 space-y-6 overflow-y-auto">
-                    {/* Standard Message */}
-                    <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Message du client</p>
-                        {feedback.message ? (
-                            <div className="text-slate-700 bg-slate-50 p-6 rounded-2xl border border-slate-100 leading-relaxed text-sm relative">
-                                <span className="absolute top-4 left-4 text-4xl leading-none text-slate-200 font-serif opacity-30">"</span>
-                                <p className="relative z-10">{feedback.message}</p>
-                            </div>
-                        ) : (
-                            <div className="text-slate-400 bg-slate-50 p-6 rounded-xl border border-slate-100 text-sm italic text-center">
-                                Aucun message laissé par le client.
-                            </div>
-                        )}
-                    </div>
+
 
                     {/* Custom Responses */}
                     {responseKeys.length > 0 && (
