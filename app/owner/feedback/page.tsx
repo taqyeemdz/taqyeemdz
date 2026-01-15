@@ -327,45 +327,75 @@ export default function FeedbackPage() {
               {/* Media Gallery */}
               {(() => {
                 const params = selectedFeedback.custom_responses || {};
-                const medias = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
+                const medias: string[] = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
                   ? params._media_urls
                   : selectedFeedback.media_urls && selectedFeedback.media_urls.length > 0
                     ? selectedFeedback.media_urls
                     : selectedFeedback.media_url ? [selectedFeedback.media_url] : [];
 
-                if (medias.length > 0) {
-                  return (
-                    <div className="pt-6">
-                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">Média Joint ({medias.length})</h4>
-                      <div className="flex flex-wrap gap-4">
-                        {medias.map((url: string, idx: number) => (
-                          <div key={idx} className="flex flex-col items-start gap-4">
-                            {isAudio(url) ? (
-                              <div className="w-full bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center gap-4">
-                                <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
-                                  <AudioLines size={18} />
-                                </div>
-                                <audio controls src={url} className="w-full h-8" />
+                if (medias.length === 0) return null;
+
+                const audios = medias.filter(url => isAudio(url));
+                const videos = medias.filter(url => isVideo(url));
+                const images = medias.filter(url => !isAudio(url) && !isVideo(url));
+
+                return (
+                  <div className="pt-6 space-y-6">
+                    {/* Audio Section */}
+                    {audios.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <AudioLines size={12} /> Messages Vocaux
+                        </h4>
+                        <div className="grid grid-cols-1 gap-3">
+                          {audios.map((url, idx) => (
+                            <div key={idx} className="w-full bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3">
+                              <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                                <AudioLines size={14} />
                               </div>
-                            ) : isVideo(url) ? (
-                              <video controls src={url} className="w-full rounded-2xl bg-black aspect-video object-contain" />
-                            ) : (
-                              <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm group relative w-20 h-20 shrink-0 cursor-pointer" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
-                                <img src={url} alt="Media" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <span className="text-white">
-                                    <ImageIcon size={16} />
-                                  </span>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              <audio controls src={url} className="w-full h-8" />
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                }
-                return null;
+                    )}
+
+                    {/* Video Section */}
+                    {videos.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <Play size={12} /> Vidéos
+                        </h4>
+                        <div className="grid grid-cols-1 gap-4">
+                          {videos.map((url, idx) => (
+                            <video key={idx} controls src={url} className="w-full rounded-2xl bg-black aspect-video object-contain border border-slate-100" />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Photos Section */}
+                    {images.length > 0 && (
+                      <div className="space-y-3">
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                          <ImageIcon size={12} /> Photos
+                        </h4>
+                        <div className="flex flex-wrap gap-3">
+                          {images.map((url, idx) => (
+                            <div key={idx} className="rounded-xl overflow-hidden border border-slate-100 shadow-sm group relative w-20 h-20 shrink-0 cursor-pointer bg-slate-50" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
+                              <img src={url} alt="Media" className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-white">
+                                  <ImageIcon size={16} />
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
               })()}
 
             </div>

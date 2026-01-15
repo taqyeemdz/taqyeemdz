@@ -18,6 +18,8 @@ import {
     Image as ImageIcon,
     Trash2,
     Loader2,
+    ExternalLink,
+    Play,
     AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
@@ -253,42 +255,77 @@ export default function FeedbackDetailPage() {
                                 return <p className="text-sm text-slate-400 italic">Aucun document multimédia joint.</p>;
                             }
 
+                            // Filter types
+                            const audios = medias.filter((url: string) => isMediaAudio(url));
+                            const videos = medias.filter((url: string) => isMediaVideo(url));
+                            const images = medias.filter((url: string) => !isMediaAudio(url) && !isMediaVideo(url));
+
                             return (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {medias.map((url: string, idx: number) => (
-                                        <div key={idx} className="flex flex-col items-start gap-4">
-                                            {isMediaAudio(url) && !isMediaVideo(url) ? (
-                                                <div className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col gap-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shadow-sm">
-                                                            <AudioLines size={20} />
+                                <div className="space-y-8">
+                                    {/* Audio Section */}
+                                    {audios.length > 0 && (
+                                        <div className="space-y-4">
+                                            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <AudioLines size={14} /> Messages Vocaux
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {audios.map((url: string, idx: number) => (
+                                                    <div key={idx} className="w-full bg-slate-50 p-6 rounded-2xl border border-slate-100 flex flex-col gap-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shadow-sm">
+                                                                <AudioLines size={20} />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Message Vocal</p>
+                                                                <p className="text-[10px] text-slate-400">Enregistré par le client</p>
+                                                            </div>
                                                         </div>
-                                                        <div>
-                                                            <p className="text-xs font-bold text-slate-900 uppercase tracking-wider">Message Vocal</p>
-                                                            <p className="text-[10px] text-slate-400">Enregistré par le client</p>
-                                                        </div>
+                                                        <audio controls className="w-full h-10">
+                                                            <source src={url} />
+                                                            Votre navigateur ne supporte pas l'élément audio.
+                                                        </audio>
                                                     </div>
-                                                    <audio controls className="w-full h-10">
-                                                        <source src={url} />
-                                                        Votre navigateur ne supporte pas l'élément audio.
-                                                    </audio>
-                                                </div>
-                                            ) : (
-                                                <div className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 w-full shadow-sm">
-                                                    {isMediaVideo(url) ? (
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Video Section */}
+                                    {videos.length > 0 && (
+                                        <div className="space-y-4">
+                                            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <Play size={14} /> Vidéos
+                                            </h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {videos.map((url: string, idx: number) => (
+                                                    <div key={idx} className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 w-full shadow-sm">
                                                         <video controls className="w-full aspect-video object-contain bg-black" src={url} />
-                                                    ) : (
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Images Section */}
+                                    {images.length > 0 && (
+                                        <div className="space-y-4">
+                                            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <ImageIcon size={14} /> Photos
+                                            </h4>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                {images.map((url: string, idx: number) => (
+                                                    <div key={idx} className="rounded-2xl overflow-hidden border border-slate-100 bg-slate-50 w-full shadow-sm">
                                                         <div className="group relative cursor-pointer" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
                                                             <img src={url} alt={`Media ${idx + 1}`} className="w-full object-contain max-h-[400px] transition-transform duration-500 group-hover:scale-[1.02]" />
                                                             <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                                 <span className="bg-white/90 text-slate-900 text-[10px] font-bold px-4 py-2 rounded-full shadow-lg">Cliquer pour agrandir</span>
                                                             </div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                            )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
-                                    ))}
+                                    )}
                                 </div>
                             );
                         })()}

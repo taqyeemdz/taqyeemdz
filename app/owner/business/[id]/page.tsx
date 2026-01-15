@@ -832,23 +832,54 @@ function FeedbackDetailsModal({ feedback, formConfig, onClose }: { feedback: any
                                 : feedback.media_url ? [feedback.media_url] : [];
 
                         if (medias.length > 0) {
+                            const audios = medias.filter((url: string) => isAudio(url));
+                            const videos = medias.filter((url: string) => isVideo(url));
+                            const images = medias.filter((url: string) => !isAudio(url) && !isVideo(url));
+
                             return (
-                                <div>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Média Joint ({medias.length})</p>
-                                    <div className="flex flex-wrap gap-4">
-                                        {medias.map((url: string, idx: number) => (
-                                            <div key={idx} className="flex flex-col items-start gap-4">
-                                                {isAudio(url) ? (
-                                                    <div className="w-full bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center gap-4">
-                                                        <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
-                                                            <AudioLines size={18} />
+                                <div className="space-y-6">
+                                    {/* Audio Section */}
+                                    {audios.length > 0 && (
+                                        <div className="space-y-3">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <AudioLines size={12} /> Messages Vocaux
+                                            </p>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {audios.map((url: string, idx: number) => (
+                                                    <div key={idx} className="w-full bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center gap-3">
+                                                        <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center shrink-0">
+                                                            <AudioLines size={14} />
                                                         </div>
-                                                        <audio controls src={url} className="w-32 h-8" />
+                                                        <audio controls src={url} className="w-full h-8" />
                                                     </div>
-                                                ) : isVideo(url) ? (
-                                                    <video controls src={url} className="w-48 rounded-xl bg-black aspect-video object-contain" />
-                                                ) : (
-                                                    <div className="rounded-xl overflow-hidden border border-slate-100 shadow-sm group relative w-20 h-20 shrink-0 cursor-pointer" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Video Section */}
+                                    {videos.length > 0 && (
+                                        <div className="space-y-3">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <Play size={12} /> Vidéos
+                                            </p>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {videos.map((url: string, idx: number) => (
+                                                    <video key={idx} controls src={url} className="w-full rounded-xl bg-black aspect-video object-contain" />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Images Section */}
+                                    {images.length > 0 && (
+                                        <div className="space-y-3">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <ImageIcon size={12} /> Photos
+                                            </p>
+                                            <div className="flex flex-wrap gap-3">
+                                                {images.map((url: string, idx: number) => (
+                                                    <div key={idx} className="rounded-xl overflow-hidden border border-slate-100 shadow-sm group relative w-20 h-20 shrink-0 cursor-pointer" onClick={() => { setSelectedMedia(url); setIsZoomed(true); }}>
                                                         <img src={url} alt="Media" className="w-full h-full object-cover" />
                                                         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                             <span className="text-white">
@@ -856,10 +887,10 @@ function FeedbackDetailsModal({ feedback, formConfig, onClose }: { feedback: any
                                                             </span>
                                                         </div>
                                                     </div>
-                                                )}
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         }
