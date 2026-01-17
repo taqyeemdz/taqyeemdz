@@ -55,11 +55,41 @@ export default function RequestAccountPage() {
         fetchPlans();
     }, [supabase]);
 
+    const [emailError, setEmailError] = useState("");
+
+    const checkEmail = async (email: string) => {
+        if (!email || !email.includes("@")) return;
+        try {
+            const res = await fetch("/api/auth/check-email", {
+                method: "POST",
+                body: JSON.stringify({ email })
+            });
+            const data = await res.json();
+            if (data.exists) {
+                setEmailError("Cet email est déjà utilisé. Veuillez vous connecter.");
+            } else {
+                setEmailError("");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (emailError) {
+            alert(emailError);
+            return;
+        }
+
         if (form.password !== form.confirmPassword) {
             alert("Les mots de passe ne correspondent pas");
+            return;
+        }
+
+        if (!form.plan_id) {
+            alert("Veuillez sélectionner une offre");
             return;
         }
 
@@ -83,7 +113,7 @@ export default function RequestAccountPage() {
 
             setSuccess(true);
         } catch (err: any) {
-            alert("Une erreur est survenue : " + err.message);
+            alert(err.message);
         } finally {
             setLoading(false);
         }
@@ -123,17 +153,17 @@ export default function RequestAccountPage() {
                     <Link href="/" className="inline-flex items-center gap-2 text-sm font-bold text-gray-400 hover:text-indigo-600 transition-colors mb-4">
                         <ArrowLeft size={16} /> Retour
                     </Link>
-                    <h1 className="text-4xl font-black text-gray-900 tracking-tight">
+                    <h1 className="text-2xl sm:text-4xl font-black text-gray-900 tracking-tight">
                         Rejoignez <span className="text-indigo-600">Feedback by Jobber</span>
                     </h1>
-                    <p className="text-gray-500 font-medium text-lg">
+                    <p className="text-gray-500 font-medium text-base sm:text-lg">
                         Demandez l'ouverture de votre compte professionnel et commencez à écouter vos clients.
                     </p>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-                    <div className="p-8 sm:p-12 space-y-8">
+                <form onSubmit={handleSubmit} className="bg-white rounded-3xl sm:rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                    <div className="p-6 sm:p-12 space-y-6 sm:space-y-8">
 
                         {/* Owner & Business Info */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -188,10 +218,16 @@ export default function RequestAccountPage() {
                                     required
                                     type="email"
                                     placeholder="votre@email.com"
-                                    className="w-full bg-gray-50 border-none rounded-2xl px-5 py-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:font-medium placeholder:text-gray-300"
+                                    className={`w-full bg-gray-50 border-none rounded-2xl px-5 py-4 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all placeholder:font-medium placeholder:text-gray-300 ${emailError ? 'ring-2 ring-red-500/20 bg-red-50' : ''}`}
                                     value={form.email}
                                     onChange={(e) => setForm({ ...form, email: e.target.value })}
+                                    onBlur={() => checkEmail(form.email)}
                                 />
+                                {emailError && (
+                                    <p className="text-[10px] text-red-500 font-bold ml-1 animate-pulse">
+                                        {emailError}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -269,12 +305,13 @@ export default function RequestAccountPage() {
                             <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 ml-1">
                                 <CreditCard size={14} /> Offre souhaitée
                             </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                                 {plans.sort((a, b) => a.price - b.price).map((p) => (
                                     <label
                                         key={p.id}
+                                        onClick={() => setForm({ ...form, plan_id: p.id })}
                                         className={`
-                                            relative flex flex-col p-5 rounded-[1.5rem] border-2 cursor-pointer transition-all h-full
+                                            relative flex flex-col p-4 sm:p-5 rounded-2xl sm:rounded-[1.5rem] border-2 cursor-pointer transition-all h-full
                                             ${form.plan_id === p.id
                                                 ? 'border-indigo-600 bg-indigo-50/50 shadow-lg shadow-indigo-100'
                                                 : 'border-slate-100 bg-slate-50 hover:border-slate-200'
@@ -284,36 +321,36 @@ export default function RequestAccountPage() {
                                         <input
                                             type="radio"
                                             name="plan"
-                                            className="absolute opacity-0"
+                                            className="hidden"
                                             value={p.id}
                                             checked={form.plan_id === p.id}
-                                            onChange={() => setForm({ ...form, plan_id: p.id })}
+                                            readOnly
                                         />
 
                                         {p.name === "Pro" && (
-                                            <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-[8px] font-black text-white rounded-full uppercase tracking-widest shadow-md">
+                                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-[7px] sm:text-[8px] font-black text-white rounded-full uppercase tracking-widest shadow-md whitespace-nowrap z-10">
                                                 Populaire
                                             </span>
                                         )}
 
-                                        <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${form.plan_id === p.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                        <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 ${form.plan_id === p.id ? 'text-indigo-600' : 'text-slate-400'}`}>
                                             {p.name}
                                         </span>
                                         <div className="flex flex-col">
-                                            <span className="text-xl font-black text-slate-900 leading-tight">
+                                            <span className="text-base sm:text-xl font-black text-slate-900 leading-tight">
                                                 {p.price === 0 ? "Gratuit" : `${new Intl.NumberFormat('fr-DZ').format(p.price)}`}
                                             </span>
                                             {p.price > 0 && (
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
                                                     {p.currency} / mois
                                                 </span>
                                             )}
                                         </div>
 
-                                        <div className="mt-3 flex items-center gap-1.5">
+                                        <div className="mt-auto pt-3 flex items-center gap-1.5">
                                             <div className={`w-1.5 h-1.5 rounded-full ${form.plan_id === p.id ? 'bg-indigo-600 animate-pulse' : 'bg-slate-300'}`} />
-                                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight">
-                                                {p.max_qr_codes} QR Code{p.max_qr_codes > 1 ? 's' : ''}
+                                            <span className="text-[8px] sm:text-[9px] font-bold text-slate-500 uppercase tracking-tight">
+                                                {p.max_qr_codes} QR
                                             </span>
                                         </div>
                                     </label>

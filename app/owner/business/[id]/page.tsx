@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import {
     LayoutDashboard,
     ChevronRight,
@@ -27,7 +27,8 @@ import {
     Mic,
     Image as ImageIcon,
     AudioLines,
-    Play
+    Play,
+    UserCircle2
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { format } from "date-fns";
@@ -54,13 +55,57 @@ export default function OwnerBusinessDetailsPage() {
     const [business, setBusiness] = useState<any>(null);
     const [feedback, setFeedback] = useState<any[]>([]);
     const [ownerName, setOwnerName] = useState("");
-    const [activeTab, setActiveTab] = useState<"overview" | "feedbacks" | "config" | "preview">("overview");
+    const [activeTab, setActiveTab] = useState<"overview" | "feedbacks" | "config" | "preview" | "settings">("overview");
     const [currentPage, setCurrentPage] = useState(1);
     const [formConfig, setFormConfig] = useState<any[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [showDelete, setShowDelete] = useState(false);
     const [selectedFeedback, setSelectedFeedback] = useState<any>(null);
     const [planPermissions, setPlanPermissions] = useState({ allow_photo: false, allow_video: false, allow_audio: false });
+    const [nameError, setNameError] = useState("");
+    const [checkingName, setCheckingName] = useState(false);
+
+    const searchParams = useSearchParams();
+    const tabParam = searchParams.get("tab");
+
+    useEffect(() => {
+        if (tabParam && ["overview", "feedbacks", "config", "preview", "settings"].includes(tabParam)) {
+            setActiveTab(tabParam as any);
+        }
+    }, [tabParam]);
+
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout;
+
+        if (business?.name && business.name.trim().length > 2) {
+            setCheckingName(true);
+            timeoutId = setTimeout(async () => {
+                const { data: sessionData } = await supabase.auth.getSession();
+                const user = sessionData?.session?.user;
+                if (!user) return;
+
+                const { data: existing } = await supabase
+                    .from("businesses")
+                    .select("id")
+                    .eq("owner_id", user.id)
+                    .neq("id", businessId)
+                    .ilike("name", business.name.trim())
+                    .maybeSingle();
+
+                if (existing) {
+                    setNameError("Ce produit existe déjà");
+                } else {
+                    setNameError("");
+                }
+                setCheckingName(false);
+            }, 500);
+        } else {
+            setNameError("");
+            setCheckingName(false);
+        }
+
+        return () => clearTimeout(timeoutId);
+    }, [business?.name, businessId, supabase]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -118,10 +163,16 @@ export default function OwnerBusinessDetailsPage() {
     }, [businessId, router, supabase]);
 
     const handleSaveForm = async () => {
+        if (nameError) {
+            toast.error("Veuillez corriger les erreurs avant d'enregistrer");
+            return;
+        }
         setIsSaving(true);
         const { error } = await supabase
             .from("businesses")
             .update({
+                name: business.name,
+                description: business.description,
                 form_config: formConfig,
                 allow_photo: business.allow_photo,
                 allow_video: business.allow_video,
@@ -138,7 +189,7 @@ export default function OwnerBusinessDetailsPage() {
     };
 
     const addField = () => {
-        setFormConfig([...formConfig, { id: crypto.randomUUID(), label: "", type: "text", required: false }]);
+        setFormConfig([...formConfig, { id: crypto.randomUUID(), label: "", type: "message", required: false }]);
     };
 
     const updateField = (id: string, key: string, value: any) => {
@@ -191,6 +242,7 @@ export default function OwnerBusinessDetailsPage() {
         { id: "overview", label: "Vue d'ensemble", icon: LayoutDashboard },
         { id: "feedbacks", label: "Feedbacks", icon: MessageCircle },
         { id: "config", label: "Configuration", icon: Settings2 },
+        { id: "settings", label: "Paramètres", icon: UserCircle2 },
         { id: "preview", label: "Aperçu Formulaire", icon: Eye },
     ];
 
@@ -209,7 +261,7 @@ export default function OwnerBusinessDetailsPage() {
 
                     {/* Admin Actions */}
                     <div className="flex items-center gap-3">
-                        {activeTab === 'config' && (
+                        {(activeTab === 'config' || activeTab === 'settings') && (
                             <button
                                 onClick={handleSaveForm}
                                 disabled={isSaving}
@@ -478,7 +530,7 @@ export default function OwnerBusinessDetailsPage() {
                                 </div>
                             </div>
                         ) : activeTab === "config" ? (
-                            <div className="max-w-3xl space-y-10">
+                            <div className="max-w-3xl space-y-12 pb-20">
                                 <div className="space-y-2">
                                     <h3 className="text-sm font-semibold text-slate-900">Champs du formulaire</h3>
                                     <p className="text-xs text-slate-500">Personnalisez les questions que vous posez à vos clients.</p>
@@ -509,8 +561,7 @@ export default function OwnerBusinessDetailsPage() {
                                                             onChange={(e) => updateField(field.id, "type", e.target.value)}
                                                             className="w-full text-sm font-medium text-slate-900 border-none p-0 focus:ring-0 appearance-none bg-transparent cursor-pointer"
                                                         >
-                                                            <option value="text">Texte court</option>
-                                                            <option value="textarea">Commentaire</option>
+                                                            <option value="message">Message</option>
                                                             <option value="rating">Étoiles</option>
                                                             <option value="boolean">Oui/Non</option>
                                                         </select>
@@ -602,6 +653,42 @@ export default function OwnerBusinessDetailsPage() {
                                             Votre plan actuel ne supporte pas les fichiers médias. Passez au plan supérieur pour les activer.
                                         </p>
                                     )}
+                                </div>
+                            </div>
+                        ) : activeTab === "settings" ? (
+                            <div className="max-w-3xl space-y-12 pb-20">
+                                {/* Basic Info Section */}
+                                <div className="space-y-6">
+                                    <div className="space-y-1">
+                                        <h3 className="text-sm font-semibold text-slate-900">Informations générales</h3>
+                                        <p className="text-xs text-slate-500">Mettez à jour les détails de votre produit.</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-6 bg-white p-6 border border-slate-100 rounded-2xl shadow-sm">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Nom du produit</label>
+                                            <input
+                                                type="text"
+                                                value={business.name}
+                                                onChange={(e) => setBusiness({ ...business, name: e.target.value })}
+                                                className={`w-full bg-slate-50 border ${nameError ? 'border-rose-500' : 'border-slate-200'} rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-slate-400 focus:bg-white transition-all`}
+                                                placeholder="Ex: Restaurant Le Gourmet"
+                                            />
+                                            {nameError && (
+                                                <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider ml-1 animate-in fade-in slide-in-from-top-1">
+                                                    {nameError}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Description</label>
+                                            <textarea
+                                                value={business.description || ""}
+                                                onChange={(e) => setBusiness({ ...business, description: e.target.value })}
+                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-slate-400 focus:bg-white transition-all min-h-[80px]"
+                                                placeholder="Une courte description..."
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         ) : (

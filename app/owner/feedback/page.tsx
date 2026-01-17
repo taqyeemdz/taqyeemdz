@@ -58,6 +58,8 @@ export default function FeedbackPage() {
   const [isZoomed, setIsZoomed] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -134,6 +136,16 @@ export default function FeedbackPage() {
     return s === 'male' ? 'Homme' : s === 'female' ? 'Femme' : sex;
   };
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, selectedBusinessId, search]);
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedFeedbacks = filtered.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
     <div className="max-w-6xl mx-auto p-8 space-y-10">
       {/* Lightbox */}
@@ -152,17 +164,35 @@ export default function FeedbackPage() {
           <p className="text-slate-500 text-sm mt-0.5">Consultez et gérez les retours de vos clients.</p>
         </div>
 
-        {/* Business Selector directly in header style */}
-        <div className="relative group min-w-[200px]">
-          <select
-            value={selectedBusinessId}
-            onChange={(e) => setSelectedBusinessId(e.target.value)}
-            className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 px-4 pr-10 rounded-xl text-sm font-medium focus:border-slate-400 outline-none transition-all cursor-pointer appearance-none shadow-sm"
-          >
-            <option value="all">Tous les produits</option>
-            {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors rotate-90" size={16} />
+        {/* Business Selector & Rating Filters */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
+            {["all", "positive", "negative"].map(s => (
+              <button
+                key={s}
+                onClick={() => setStatusFilter(s)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all
+                                    ${statusFilter === s
+                    ? "bg-white text-slate-900 shadow-sm border border-slate-200"
+                    : "text-slate-400 hover:text-slate-600"
+                  }`}
+              >
+                {RATING_CONFIG[s].label}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative group min-w-[200px]">
+            <select
+              value={selectedBusinessId}
+              onChange={(e) => setSelectedBusinessId(e.target.value)}
+              className="w-full bg-white border border-slate-200 text-slate-900 py-2.5 px-4 pr-10 rounded-xl text-[11px] font-bold uppercase tracking-widest focus:border-slate-400 outline-none transition-all cursor-pointer appearance-none shadow-sm"
+            >
+              <option value="all">Tous les produits</option>
+              {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-slate-600 transition-colors rotate-90" size={14} />
+          </div>
         </div>
       </div>
 
@@ -170,23 +200,7 @@ export default function FeedbackPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
         {/* List Side */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Status Filters */}
-          <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar">
-            {["all", "positive", "negative"].map(s => (
-              <button
-                key={s}
-                onClick={() => setStatusFilter(s)}
-                className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all border
-                                    ${statusFilter === s
-                    ? "bg-slate-900 border-slate-900 text-white shadow-md shadow-slate-200"
-                    : "bg-white border-slate-100 text-slate-400 hover:border-slate-200 hover:text-slate-600"
-                  }`}
-              >
-                {RATING_CONFIG[s].label}
-              </button>
-            ))}
-          </div>
+        <div className="lg:col-span-4 space-y-6">
 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
@@ -207,64 +221,89 @@ export default function FeedbackPage() {
               <p className="text-sm text-slate-400">Aucun avis trouvé.</p>
             </div>
           ) : (
-            <div className="space-y-1">
-              {filtered.map((fb) => (
-                <div
-                  key={fb.id}
-                  onClick={() => setSelectedFeedback(fb)}
-                  className={`p-4 rounded-xl transition-all cursor-pointer flex items-center justify-between group relative overflow-hidden
+            <div className="space-y-4">
+              <div className="space-y-1">
+                {paginatedFeedbacks.map((fb) => (
+                  <div
+                    key={fb.id}
+                    onClick={() => setSelectedFeedback(fb)}
+                    className={`p-4 rounded-xl transition-all cursor-pointer flex items-center justify-between group relative overflow-hidden
                                         ${selectedFeedback?.id === fb.id
-                      ? 'bg-indigo-50/50 ring-1 ring-inset ring-indigo-100'
-                      : 'hover:bg-slate-50/50'}
+                        ? 'bg-indigo-50/50 ring-1 ring-inset ring-indigo-100'
+                        : 'hover:bg-slate-50/50'}
                                     `}
-                >
-                  {selectedFeedback?.id === fb.id && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
-                  )}
+                  >
+                    {selectedFeedback?.id === fb.id && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500" />
+                    )}
 
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0
                                             ${fb.rating >= 4 ? 'bg-emerald-50 text-emerald-600' : fb.rating >= 3 ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'}`}>
-                      {fb.rating}
+                        {fb.rating}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-slate-900 truncate">
+                          {fb.anonymous ? "Anonyme" : fb.full_name || "Client"}
+                        </p>
+                        <p className="text-[11px] text-slate-400 truncate flex items-center gap-1.5">
+                          {fb.businesses?.name} • {format(new Date(fb.created_at), "dd/MM")}
+                          {(() => {
+                            const params = fb.custom_responses || {};
+                            const medias = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
+                              ? params._media_urls
+                              : fb.media_urls && fb.media_urls.length > 0 ? fb.media_urls
+                                : fb.media_url ? [fb.media_url] : [];
+
+                            if (medias.length === 0) return null;
+                            if (medias.length > 1) return <Files size={10} className="text-indigo-400" />;
+
+                            const url = medias[0];
+                            if (isAudio(url)) return <AudioLines size={10} className="text-indigo-400" />;
+                            if (isVideo(url)) return <Play size={10} className="text-indigo-400" />;
+                            return <ImageIcon size={10} className="text-indigo-400" />;
+                          })()}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">
-                        {fb.anonymous ? "Anonyme" : fb.full_name || "Client"}
-                      </p>
-                      <p className="text-[11px] text-slate-400 truncate flex items-center gap-1.5">
-                        {fb.businesses?.name} • {format(new Date(fb.created_at), "dd/MM")}
-                        {(() => {
-                          const params = fb.custom_responses || {};
-                          const medias = params._media_urls && Array.isArray(params._media_urls) && params._media_urls.length > 0
-                            ? params._media_urls
-                            : fb.media_urls && fb.media_urls.length > 0 ? fb.media_urls
-                              : fb.media_url ? [fb.media_url] : [];
+                    <div className="flex items-center gap-4 shrink-0">
 
-                          if (medias.length === 0) return null;
-                          if (medias.length > 1) return <Files size={10} className="text-indigo-400" />;
-
-                          const url = medias[0];
-                          if (isAudio(url)) return <AudioLines size={10} className="text-indigo-400" />;
-                          if (isVideo(url)) return <Play size={10} className="text-indigo-400" />;
-                          return <ImageIcon size={10} className="text-indigo-400" />;
-                        })()}
-                      </p>
+                      <ChevronRight size={14} className="text-slate-200 group-hover:text-slate-400 transition-colors" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 shrink-0">
-                    <p className="text-[11px] text-slate-500 italic hidden sm:block max-w-[150px] truncate">
-                      "{fb.message || "Sans commentaire"}"
-                    </p>
-                    <ChevronRight size={14} className="text-slate-200 group-hover:text-slate-400 transition-colors" />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    Page {currentPage} sur {totalPages}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="p-2 rounded-lg border border-slate-100 text-slate-400 hover:bg-slate-50 disabled:opacity-30 transition-all"
+                    >
+                      <ChevronRight size={16} className="rotate-180" />
+                    </button>
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-2 rounded-lg border border-slate-100 text-slate-400 hover:bg-slate-50 disabled:opacity-30 transition-all"
+                    >
+                      <ChevronRight size={16} />
+                    </button>
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
 
         {/* Detail Side */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-8">
           {selectedFeedback ? (
             <div className="sticky top-8 space-y-8 animate-in mt-10 lg:mt-0 fade-in duration-300">
               <div className="flex items-center justify-between">
@@ -289,9 +328,7 @@ export default function FeedbackPage() {
                 </button>
               </div>
 
-              <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100/50 italic text-slate-700 text-sm leading-relaxed">
-                {selectedFeedback.message ? `"${selectedFeedback.message}"` : "Aucun commentaire écrit fourni."}
-              </div>
+
 
               <div className="space-y-4 py-8 border-y border-slate-50 text-sm">
                 <DetailItem icon={Building2} label="Établissement" value={selectedFeedback.businesses?.name} />

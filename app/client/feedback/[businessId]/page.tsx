@@ -65,6 +65,13 @@ export default function ClientFeedbackPage() {
         };
     }, [isRecording]);
 
+    // Auto-stop audio at 30 seconds
+    useEffect(() => {
+        if (isRecording && recordingTime >= 30) {
+            stopRecording();
+        }
+    }, [recordingTime, isRecording]);
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -207,6 +214,11 @@ export default function ClientFeedbackPage() {
         const files = Array.from(e.target.files || []);
         if (files.length === 0) return;
 
+        if (mediaFiles.length + files.length > 4) {
+            setError("Vous ne pouvez pas ajouter plus de 4 médias (photos, vidéos ou audio).");
+            return;
+        }
+
         // Filter valid files and limit total size/count if needed
         const validFiles: File[] = [];
         const newPreviews: string[] = [];
@@ -226,6 +238,10 @@ export default function ClientFeedbackPage() {
     };
 
     const startRecording = async () => {
+        if (mediaFiles.length >= 4) {
+            setError("Vous avez atteint la limite de 4 médias.");
+            return;
+        }
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -512,37 +528,7 @@ export default function ClientFeedbackPage() {
                                 </button>
                             </div>
 
-                            {/* ALWAYS VISIBLE DEMOGRAPHICS */}
-                            <div className="grid grid-cols-2 gap-3 pb-2">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Genre</label>
-                                    <select
-                                        value={sex}
-                                        onChange={(e) => setSex(e.target.value)}
-                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
-                                    >
-                                        <option value="male">Homme</option>
-                                        <option value="female">Femme</option>
-                                    </select>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Tranche d'âge</label>
-                                    <select
-                                        value={ageRange}
-                                        onChange={(e) => setAgeRange(e.target.value)}
-                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
-                                    >
-                                        <option value="">Sél.</option>
-                                        <option value="-18">-18</option>
-                                        <option value="18-24">18-24</option>
-                                        <option value="25-34">25-34</option>
-                                        <option value="35-44">35-44</option>
-                                        <option value="45-54">45-54</option>
-                                        <option value="55-64">55-64</option>
-                                        <option value="65+">65+</option>
-                                    </select>
-                                </div>
-                            </div>
+
 
                             {/* USER CONTACT DETAILS - HIDDEN WHEN ANONYMOUS */}
                             <div className={`space-y-3 overflow-hidden transition-all duration-300 ease-in-out ${!anonymous ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
@@ -597,6 +583,67 @@ export default function ClientFeedbackPage() {
                                     </div>
                                 </div>
                             </div>
+
+                            {/* RATING SECTION */}
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Note Générale</label>
+                                <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-700">Votre évaluation</span>
+                                    <div className="flex items-center gap-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                type="button"
+                                                onClick={() => setRating(star)}
+                                                onMouseEnter={() => setHoverRating(star)}
+                                                onMouseLeave={() => setHoverRating(0)}
+                                                className="focus:outline-none transition-transform hover:scale-110 active:scale-95 p-1"
+                                            >
+                                                <Star
+                                                    size={24}
+                                                    className={`${(hoverRating || rating) >= star
+                                                        ? "fill-amber-400 text-amber-400"
+                                                        : "text-gray-200 fill-gray-50"
+                                                        } transition-colors duration-200`}
+                                                    strokeWidth={1.5}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ALWAYS VISIBLE DEMOGRAPHICS - UNDER NOTE GENERAL */}
+                            <div className="grid grid-cols-2 gap-3 pt-2">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Genre</label>
+                                    <select
+                                        value={sex}
+                                        onChange={(e) => setSex(e.target.value)}
+                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
+                                    >
+                                        <option value="male">Homme</option>
+                                        <option value="female">Femme</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Tranche d'âge</label>
+                                    <select
+                                        value={ageRange}
+                                        onChange={(e) => setAgeRange(e.target.value)}
+                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
+                                    >
+                                        <option value="">Sél.</option>
+                                        <option value="-18">-18</option>
+                                        <option value="18-24">18-24</option>
+                                        <option value="25-34">25-34</option>
+                                        <option value="35-44">35-44</option>
+                                        <option value="45-54">45-54</option>
+                                        <option value="55-64">55-64</option>
+                                        <option value="65+">65+</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
 
@@ -620,7 +667,7 @@ export default function ClientFeedbackPage() {
                                                 />
                                             )}
 
-                                            {field.type === 'textarea' && (
+                                            {(field.type === 'textarea' || field.type === 'message') && (
                                                 <textarea
                                                     value={customResponses[field.id] || ""}
                                                     onChange={(e) => handleCustomResponseChange(field.id, e.target.value)}
@@ -667,60 +714,66 @@ export default function ClientFeedbackPage() {
                         {/* MEDIA UPLOAD SECTION */}
                         {(allowPhoto || allowVideo || allowAudio) && (
                             <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
-                                    {/* PHOTO / VIDEO UPLOAD */}
-                                    {(allowPhoto || allowVideo) && (
-                                        <div className="relative">
-                                            <input
-                                                type="file"
-                                                multiple
-                                                accept={`${allowPhoto ? 'image/*' : ''}${allowPhoto && allowVideo ? ',' : ''}${allowVideo ? 'video/*' : ''}`}
-                                                onChange={handleMediaChange}
-                                                className="hidden"
-                                                id="media-upload"
-                                            />
-                                            <label
-                                                htmlFor="media-upload"
-                                                className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-indigo-300 transition-all group h-full min-h-[100px]"
-                                            >
-                                                <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
-                                                    <Camera size={20} />
-                                                </div>
-                                                <span className="text-xs font-medium text-gray-500">
-                                                    Ajouter Photos/Vidéos
-                                                </span>
-                                            </label>
-                                        </div>
-                                    )}
-
-                                    {/* AUDIO RECORDING */}
-                                    {allowAudio && (
-                                        <div className="relative">
-                                            {!isRecording ? (
-                                                <button
-                                                    type="button"
-                                                    onClick={startRecording}
-                                                    className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 hover:border-rose-300 transition-all group"
+                                {mediaFiles.length < 4 ? (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {/* PHOTO / VIDEO UPLOAD */}
+                                        {(allowPhoto || allowVideo) && (
+                                            <div className="relative">
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    accept={`${allowPhoto ? 'image/*' : ''}${allowPhoto && allowVideo ? ',' : ''}${allowVideo ? 'video/*' : ''}`}
+                                                    onChange={handleMediaChange}
+                                                    className="hidden"
+                                                    id="media-upload"
+                                                />
+                                                <label
+                                                    htmlFor="media-upload"
+                                                    className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-indigo-300 transition-all group h-full min-h-[100px]"
                                                 >
-                                                    <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
-                                                        <Mic size={20} />
+                                                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
+                                                        <Camera size={20} />
                                                     </div>
-                                                    <span className="text-xs font-medium text-gray-500">Enregistrer Vocal</span>
-                                                </button>
-                                            ) : (
-                                                <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-rose-500 bg-rose-50 rounded-xl animate-pulse cursor-pointer" onClick={stopRecording}>
-                                                    <div className="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center mb-2 shadow-lg shadow-rose-200">
-                                                        <Square size={16} fill="currentColor" />
-                                                    </div>
-                                                    <span className="text-xs font-bold text-rose-600 font-mono">
-                                                        00:{recordingTime < 10 ? `0${recordingTime}` : recordingTime}
+                                                    <span className="text-xs font-medium text-gray-500">
+                                                        Photos/Vidéos
                                                     </span>
-                                                    <span className="text-[10px] text-rose-400 mt-1">Appuyer pour stop</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                                </label>
+                                            </div>
+                                        )}
+
+                                        {/* AUDIO RECORDING */}
+                                        {allowAudio && (
+                                            <div className="relative">
+                                                {!isRecording ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={startRecording}
+                                                        className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 hover:border-rose-300 transition-all group"
+                                                    >
+                                                        <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
+                                                            <Mic size={20} />
+                                                        </div>
+                                                        <span className="text-xs font-medium text-gray-500">Audio Vocal</span>
+                                                    </button>
+                                                ) : (
+                                                    <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-rose-500 bg-rose-50 rounded-xl animate-pulse cursor-pointer" onClick={stopRecording}>
+                                                        <div className="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center mb-2 shadow-lg shadow-rose-200">
+                                                            <Square size={16} fill="currentColor" />
+                                                        </div>
+                                                        <span className="text-xs font-bold text-rose-600 font-mono">
+                                                            00:{recordingTime < 10 ? `0${recordingTime}` : recordingTime} / 00:30
+                                                        </span>
+                                                        <span className="text-[10px] text-rose-400 mt-1">Stop</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-center">
+                                        <p className="text-[11px] font-medium text-amber-600">Limite de 4 médias atteinte. Supprimez-en un pour en ajouter un autre.</p>
+                                    </div>
+                                )}
 
                                 {/* PREVIEWS LIST */}
                                 {mediaFiles.length > 0 && (
@@ -752,35 +805,6 @@ export default function ClientFeedbackPage() {
                                 )}
                             </div>
                         )}
-
-                        {/* RATING (AFTER MESSAGE) */}
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold uppercase text-gray-500 tracking-wider ml-1">Note Générale</label>
-                            <div className="bg-gray-50 px-4 py-3 rounded-xl border border-gray-200 flex items-center justify-between">
-                                <span className="text-sm font-medium text-gray-700">Notez votre expérience</span>
-                                <div className="flex items-center gap-1">
-                                    {[1, 2, 3, 4, 5].map((star) => (
-                                        <button
-                                            key={star}
-                                            type="button"
-                                            onClick={() => setRating(star)}
-                                            onMouseEnter={() => setHoverRating(star)}
-                                            onMouseLeave={() => setHoverRating(0)}
-                                            className="focus:outline-none transition-transform hover:scale-110 active:scale-95 p-1"
-                                        >
-                                            <Star
-                                                size={24}
-                                                className={`${(hoverRating || rating) >= star
-                                                    ? "fill-amber-400 text-amber-400"
-                                                    : "text-gray-200 fill-gray-50"
-                                                    } transition-colors duration-200`}
-                                                strokeWidth={1.5}
-                                            />
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
 
                         {/* CONSENT CHECKBOX */}
                         <div className="flex items-start gap-3 p-2">
@@ -822,7 +846,7 @@ export default function ClientFeedbackPage() {
 
 
                 <p className="text-center text-xs text-gray-400">
-                    Powered Feedback by Jobber
+                    Powered by Jobber
                 </p>
             </div>
         </div>

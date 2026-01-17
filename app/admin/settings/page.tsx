@@ -22,7 +22,11 @@ import {
 
 export default function AdminSettings() {
   const supabase = supabaseBrowser;
-  const [activeTab, setActiveTab] = useState<"general" | "pricing" | "conditions">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "pricing" | "conditions" | "admins">("general");
+  const [admins, setAdmins] = useState<any[]>([]);
+  const [newAdmin, setNewAdmin] = useState({ email: "", fullName: "", password: "" });
+  const [showAddAdmin, setShowAddAdmin] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
 
   // Plans
   const [plans, setPlans] = useState<any[]>([]);
@@ -33,6 +37,16 @@ export default function AdminSettings() {
 
   // System Settings
   const [settings, setSettings] = useState<Record<string, any>>({});
+
+  const loadAdmins = async () => {
+    try {
+      const { fetchAdmins } = await import("@/app/actions/admin-management");
+      const data = await fetchAdmins();
+      setAdmins(data);
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -48,6 +62,8 @@ export default function AdminSettings() {
         settingsRes.data.forEach(s => map[s.key] = s.value);
         setSettings(map);
       }
+
+      await loadAdmins();
       setLoading(false);
     })();
   }, [supabase]);
@@ -113,6 +129,7 @@ export default function AdminSettings() {
           { id: "general", label: "Général", icon: Settings },
           { id: "pricing", label: "Abonnements", icon: CreditCard },
           { id: "conditions", label: "Conditions", icon: FileText },
+          { id: "admins", label: "Administrateurs", icon: Shield },
         ].map(tab => (
           <button
             key={tab.id}
@@ -387,6 +404,166 @@ export default function AdminSettings() {
                   Enregistrer les conditions
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ADMINS */}
+        {activeTab === "admins" && (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center">
+              <div className="space-y-1">
+                <h3 className="font-medium text-slate-900">Équipe d'administration</h3>
+                <p className="text-xs text-slate-500">Gérez les accès administrateur à la plateforme.</p>
+              </div>
+              {!showAddAdmin && (
+                <button
+                  onClick={() => setShowAddAdmin(true)}
+                  className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2"
+                >
+                  <Plus size={14} /> Ajouter un admin
+                </button>
+              )}
+            </div>
+
+            {showAddAdmin && (
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nom complet</label>
+                    <input
+                      placeholder="Ex: Admin Taqyeem"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-indigo-500 transition-all"
+                      value={newAdmin.fullName}
+                      onChange={e => setNewAdmin({ ...newAdmin, fullName: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</label>
+                    <input
+                      type="email"
+                      placeholder="admin@example.com"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-indigo-500 transition-all"
+                      value={newAdmin.email}
+                      onChange={e => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mot de passe</label>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-indigo-500 transition-all"
+                      value={newAdmin.password}
+                      onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })}
+                    />
+                  </div>
+                </div>
+                {tempPassword && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex flex-col gap-1 items-center animate-in zoom-in duration-300">
+                    <CheckCircle2 className="text-emerald-500 mb-1" size={20} />
+                    <span className="text-xs font-bold text-emerald-800">Admin créé avec succès !</span>
+                    <p className="text-[10px] text-emerald-600">Mot de passe provisoire : <span className="font-mono font-black select-all bg-white px-2 py-0.5 rounded">{tempPassword}</span></p>
+                    <p className="text-[9px] text-emerald-500 mt-1 italic">Veuillez copier ce mot de passe, il ne sera plus affiché.</p>
+                  </div>
+                )}
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    onClick={() => {
+                      setShowAddAdmin(false);
+                      setTempPassword(null);
+                      setNewAdmin({ email: "", fullName: "", password: "" });
+                    }}
+                    className="text-slate-500 text-[11px] font-bold uppercase tracking-widest px-4 py-2"
+                  >
+                    {tempPassword ? "Fermer" : "Annuler"}
+                  </button>
+                  {!tempPassword && (
+                    <button
+                      onClick={async () => {
+                        if (!newAdmin.email || !newAdmin.fullName || !newAdmin.password) {
+                          toast.error("Veuillez remplir tous les champs");
+                          return;
+                        }
+                        if (newAdmin.password.length < 6) {
+                          toast.error("Le mot de passe doit faire au moins 6 caractères");
+                          return;
+                        }
+                        setSaving(true);
+                        try {
+                          const { addAdminAction } = await import("@/app/actions/admin-management");
+                          const res = await addAdminAction(newAdmin.email, newAdmin.fullName, newAdmin.password);
+                          setTempPassword(res.tempPassword);
+                          await loadAdmins();
+                          toast.success("Admin ajouté");
+                          if (!res.tempPassword) {
+                            setShowAddAdmin(false);
+                            setNewAdmin({ email: "", fullName: "", password: "" });
+                          }
+                        } catch (err: any) {
+                          toast.error(err.message);
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
+                      disabled={saving}
+                      className="bg-indigo-600 text-white text-[11px] font-bold uppercase tracking-widest px-6 py-2 rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2"
+                    >
+                      {saving && <Loader2 size={12} className="animate-spin" />}
+                      Confirmer la création
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left ">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilisateur</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Rôle</th>
+                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {admins.map((admin) => (
+                    <tr key={admin.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-semibold text-slate-900">{admin.full_name}</span>
+                          <span className="text-xs text-slate-500">{admin.email}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${admin.role === 'superadmin' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {admin.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={async () => {
+                            if (confirm(`Supprimer l'accès admin pour ${admin.full_name} ?`)) {
+                              try {
+                                const { deleteAdminAction } = await import("@/app/actions/admin-management");
+                                await deleteAdminAction(admin.id);
+                                setAdmins(admins.filter(a => a.id !== admin.id));
+                                toast.success("Accès supprimé");
+                              } catch (err: any) {
+                                toast.error(err.message);
+                              }
+                            }
+                          }}
+                          className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                          title="Supprimer l'administrateur"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

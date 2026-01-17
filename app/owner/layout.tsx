@@ -57,7 +57,19 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
       const is_active = profile.is_active;
       const full_name = profile.full_name || authUser.user_metadata?.full_name;
 
-      setUser({ ...profile, full_name, is_active, email: authUser.email });
+      const { data: request } = await supabase
+        .from("onboarding_requests")
+        .select("id")
+        .eq("user_id", authUser.id)
+        .maybeSingle();
+
+      setUser({
+        ...profile,
+        full_name,
+        is_active,
+        email: authUser.email,
+        requestId: request?.id?.split('-')[0].toUpperCase()
+      });
 
       if (profile.plan_id) {
         const { data: plan } = await supabase
@@ -218,7 +230,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
       {/* ================= MOBILE NAV ================= */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200/60 h-20 flex items-center justify-between px-6">
         <div className="flex items-center">
-          <div className="relative w-80 h-20">
+          <div className="relative w-32 h-10">
             <Image
               src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
               alt="Logo"
@@ -317,39 +329,38 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
           {/* BLOQUAGE SI INACTIF */}
           {user?.is_active === false && (
-            <div className="absolute inset-0 z-[100] flex items-center justify-center p-8 bg-white/40 backdrop-blur-md">
+            <div className="absolute inset-0 z-[100] flex items-start sm:items-center justify-center p-4 sm:p-8 bg-white/40 backdrop-blur-md">
               <div className="absolute inset-0 z-0 cursor-not-allowed" />
 
-              <div className="relative z-10 max-w-lg w-full bg-white rounded-[3rem] shadow-2xl shadow-indigo-200/50 border border-slate-100 p-12 text-center animate-in zoom-in duration-700">
-                <div className="w-24 h-24 bg-indigo-50 rounded-[2rem] flex items-center justify-center mx-auto mb-8 border-4 border-white shadow-inner">
-                  <Lock size={36} className="text-indigo-600 animate-pulse" />
+              <div className="relative z-10 max-w-lg w-full bg-white rounded-3xl sm:rounded-[3rem] shadow-2xl shadow-indigo-200/50 border border-slate-100 p-5 sm:p-12 text-center animate-in zoom-in duration-700 max-h-[90vh] overflow-y-auto no-scrollbar mt-4 sm:mt-0">
+                <div className="w-14 h-14 sm:w-24 sm:h-24 bg-indigo-50 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mx-auto mb-4 sm:mb-8 border-4 border-white shadow-inner">
+                  <Lock size={24} className="text-indigo-600 animate-pulse sm:w-9 sm:h-9" />
                 </div>
 
-                <h2 className="text-3xl font-black text-slate-900 tracking-tight mb-4 leading-tight">
+                <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4 leading-tight">
                   Activation <br />
                   <span className="text-indigo-600 border-b-4 border-indigo-100">en cours</span>
                 </h2>
 
-                <p className="text-slate-500 font-medium leading-relaxed mb-10 text-sm">
-                  Votre espace propriétaire est en cours de configuration. Un conseiller Feedback finalise votre accès. Vous recevrez une notification d'activation sous 24h.
+                <p className="text-slate-500 font-medium leading-relaxed mb-4 sm:mb-6 text-xs sm:text-sm italic">
+                  Votre compte est en cours de création, un conseiller Feedback vous contactera au <span className="text-indigo-600 font-black">{user.phone}</span> pour la finalisation de votre compte.
                 </p>
+                {user.requestId && (
+                  <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 sm:mb-10">
+                    N° de demande : <span className="text-slate-900">#{user.requestId}</span>
+                  </p>
+                )}
 
                 <div className="space-y-4">
-                  <Link
-                    href="/owner/pending"
-                    className="block w-full bg-slate-900 text-white rounded-[1.5rem] py-5 font-black text-[11px] uppercase tracking-widest shadow-xl shadow-slate-300 hover:bg-black active:scale-[0.98] transition-all text-center"
-                  >
-                    Détails de ma demande
-                  </Link>
                   <button
                     onClick={handleLogout}
-                    className="flex items-center justify-center gap-2 mx-auto text-slate-400 font-bold text-[10px] hover:text-red-500 transition-colors uppercase tracking-[0.2em]"
+                    className="flex items-center justify-center gap-2 mx-auto text-slate-400 font-bold text-[9px] sm:text-[10px] hover:text-red-500 transition-colors uppercase tracking-[0.2em]"
                   >
-                    <LogOut size={14} /> Déconnexion sécurisée
+                    <LogOut size={12} className="sm:w-3.5 sm:h-3.5" /> Déconnexion sécurisée
                   </button>
                 </div>
 
-                <div className="mt-12 pt-10 border-t border-slate-50 flex flex-col items-center gap-4">
+                <div className="hidden sm:flex mt-12 pt-10 border-t border-slate-50 flex-col items-center gap-4">
                   <div className="flex -space-x-3">
                     {[1, 2, 3, 4].map(i => (
                       <div key={i} className="w-9 h-9 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center shadow-sm">

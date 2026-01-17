@@ -21,6 +21,8 @@ export default function NewBusiness() {
     description: "",
   });
 
+  const [checkingName, setCheckingName] = useState(false);
+  const [nameError, setNameError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -64,6 +66,38 @@ export default function NewBusiness() {
 
     fetchData();
   }, [supabase]);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (form.name.trim().length > 2) {
+      setCheckingName(true);
+      timeoutId = setTimeout(async () => {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData?.session?.user;
+        if (!user) return;
+
+        const { data: existing } = await supabase
+          .from("businesses")
+          .select("id")
+          .eq("owner_id", user.id)
+          .ilike("name", form.name.trim())
+          .maybeSingle();
+
+        if (existing) {
+          setNameError("Ce produit existe déjà");
+        } else {
+          setNameError("");
+        }
+        setCheckingName(false);
+      }, 500);
+    } else {
+      setNameError("");
+      setCheckingName(false);
+    }
+
+    return () => clearTimeout(timeoutId);
+  }, [form.name, supabase]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -156,13 +190,20 @@ export default function NewBusiness() {
                     required
                   />
                 ) : (
-                  <input
-                    placeholder="..."
-                    className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium text-slate-900 focus:border-slate-400 outline-none transition-all"
-                    value={form[key]}
-                    onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                    required
-                  />
+                  <div className="space-y-1">
+                    <input
+                      placeholder="..."
+                      className={`w-full bg-white border ${nameError ? 'border-rose-500' : 'border-slate-200'} rounded-lg px-4 py-3 text-sm font-medium text-slate-900 focus:border-slate-400 outline-none transition-all`}
+                      value={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                      required
+                    />
+                    {nameError && (
+                      <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider ml-1 animate-in fade-in slide-in-from-top-1">
+                        {nameError}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
             ))}

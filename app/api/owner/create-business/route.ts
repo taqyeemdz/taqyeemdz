@@ -51,9 +51,23 @@ export async function POST(request: Request) {
     }
 
     // ------------------------------
-    // 5️⃣ Admin client (service role) to bypass RLS
+    // 5️⃣ Check for duplicate name for this owner
     // ------------------------------
     const supabaseAdmin = await createSupabaseServer(true);
+
+    const { data: existingBusiness } = await supabaseAdmin
+      .from("businesses")
+      .select("id")
+      .eq("owner_id", user.id)
+      .ilike("name", body.name)
+      .maybeSingle();
+
+    if (existingBusiness) {
+      return NextResponse.json(
+        { error: "Un produit avec ce nom existe déjà." },
+        { status: 400 }
+      );
+    }
 
     // ------------------------------
     // 6️⃣ Check subscription limits
