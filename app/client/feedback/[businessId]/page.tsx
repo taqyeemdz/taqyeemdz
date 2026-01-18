@@ -340,6 +340,26 @@ export default function ClientFeedbackPage() {
             }
         }
 
+        // Validate required media
+        if (business) {
+            const hasPhoto = mediaFiles.some(f => f.type.startsWith('image'));
+            const hasVideo = mediaFiles.some(f => f.type.startsWith('video'));
+            const hasAudio = mediaFiles.some(f => f.type.startsWith('audio'));
+
+            if (allowPhoto && business.require_photo && !hasPhoto) {
+                setError("Photo requise.");
+                return;
+            }
+            if (allowVideo && business.require_video && !hasVideo) {
+                setError("Vidéo requise.");
+                return;
+            }
+            if (allowAudio && business.require_audio && !hasAudio) {
+                setError("Audio requise.");
+                return;
+            }
+        }
+
         if (!business) return;
         setUploading(true);
 
@@ -677,15 +697,27 @@ export default function ClientFeedbackPage() {
                                             )}
 
                                             {field.type === 'boolean' && (
-                                                <div className="flex items-center gap-2 mt-0.5">
+                                                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-200 mt-1">
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleCustomResponseChange(field.id, !customResponses[field.id])}
-                                                        className={`w-10 h-5 rounded-full transition-colors flex items-center p-0.5 ${customResponses[field.id] ? 'bg-indigo-600 justify-end' : 'bg-gray-200 justify-start'}`}
+                                                        onClick={() => handleCustomResponseChange(field.id, true)}
+                                                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${customResponses[field.id] === true
+                                                            ? 'bg-white text-emerald-600 shadow-sm border border-gray-100'
+                                                            : 'text-gray-500 hover:text-gray-700'
+                                                            }`}
                                                     >
-                                                        <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                                        OUI
                                                     </button>
-                                                    <span className="text-xs text-gray-500">{customResponses[field.id] ? "Oui" : "Non"}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleCustomResponseChange(field.id, false)}
+                                                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${customResponses[field.id] === false
+                                                            ? 'bg-white text-rose-500 shadow-sm border border-gray-100'
+                                                            : 'text-gray-500 hover:text-gray-700'
+                                                            }`}
+                                                    >
+                                                        NON
+                                                    </button>
                                                 </div>
                                             )}
 
@@ -734,8 +766,9 @@ export default function ClientFeedbackPage() {
                                                     <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
                                                         <Camera size={20} />
                                                     </div>
-                                                    <span className="text-xs font-medium text-gray-500">
-                                                        Photos/Vidéos
+                                                    <span className="text-xs font-medium text-gray-500 text-center">
+                                                        {allowPhoto && allowVideo ? "Photos/Vidéos" : allowPhoto ? "Photos" : "Vidéos"}
+                                                        {((allowPhoto && business.require_photo) || (allowVideo && business.require_video)) && <span className="text-red-500 ml-1">*</span>}
                                                     </span>
                                                 </label>
                                             </div>
@@ -753,7 +786,10 @@ export default function ClientFeedbackPage() {
                                                         <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
                                                             <Mic size={20} />
                                                         </div>
-                                                        <span className="text-xs font-medium text-gray-500">Audio Vocal</span>
+                                                        <span className="text-xs font-medium text-gray-500">
+                                                            Audio Vocal
+                                                            {business.require_audio && <span className="text-red-500 ml-1">*</span>}
+                                                        </span>
                                                     </button>
                                                 ) : (
                                                     <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-rose-500 bg-rose-50 rounded-xl animate-pulse cursor-pointer" onClick={stopRecording}>

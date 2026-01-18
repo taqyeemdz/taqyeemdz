@@ -42,7 +42,9 @@ export default function ForgotPasswordPage() {
 
             // 2. Send Reset Link if exists
             const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ||
-                (typeof window !== "undefined" ? window.location.origin : "https://feedbackbyjobber.vercel.app");
+                (typeof window !== "undefined" && !window.location.hostname.includes("localhost")
+                    ? window.location.origin
+                    : "https://feedbackbyjobber.vercel.app");
 
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: `${baseUrl}/auth/callback?next=/auth/update-password`,
