@@ -172,7 +172,7 @@ export default function OwnerBusinessDetailsPage() {
             .from("businesses")
             .update({
                 name: business.name,
-                description: business.description,
+
                 form_config: formConfig,
                 allow_photo: business.allow_photo,
                 allow_video: business.allow_video,
@@ -283,10 +283,7 @@ export default function OwnerBusinessDetailsPage() {
                                 <MessageCircle size={14} className="text-slate-500" />
                                 <span>{feedback.length} avis reçus</span>
                             </div>
-                            <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-700" />
-                            <div className="flex items-center gap-1.5 max-w-[400px]">
-                                <span className="italic truncate text-slate-500" title={business.description}>"{business.description}"</span>
-                            </div>
+
                             <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-700" />
                             <div className="flex items-center gap-1.5">
                                 <Calendar size={14} className="text-slate-500" />
@@ -554,9 +551,51 @@ export default function OwnerBusinessDetailsPage() {
                                                             <option value="message">Message</option>
                                                             <option value="rating">Étoiles</option>
                                                             <option value="boolean">Oui/Non</option>
+                                                            <option value="choice">Liste de choix</option>
                                                         </select>
                                                     </div>
                                                 </div>
+
+                                                {/* Options Editor for 'choice' type */}
+                                                {field.type === 'choice' && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-50 space-y-3">
+                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Options de réponse</label>
+                                                        <div className="space-y-2">
+                                                            {(field.options || []).map((opt: string, idx: number) => (
+                                                                <div key={idx} className="flex items-center gap-2">
+                                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        value={opt}
+                                                                        onChange={(e) => {
+                                                                            const newOpts = [...(field.options || [])];
+                                                                            newOpts[idx] = e.target.value;
+                                                                            updateField(field.id, "options", newOpts);
+                                                                        }}
+                                                                        className="flex-1 bg-slate-50 border-none rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 focus:ring-1 focus:ring-indigo-500"
+                                                                        placeholder={`Option ${idx + 1}`}
+                                                                    />
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            const newOpts = (field.options || []).filter((_: any, i: number) => i !== idx);
+                                                                            updateField(field.id, "options", newOpts);
+                                                                        }}
+                                                                        className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors"
+                                                                    >
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                            <button
+                                                                onClick={() => updateField(field.id, "options", [...(field.options || []), ""])}
+                                                                className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 mt-2"
+                                                            >
+                                                                <Plus size={12} />
+                                                                Ajouter une option
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 <div className="flex items-center gap-4 border-l border-slate-100 pl-4">
                                                     <div
@@ -740,14 +779,7 @@ export default function OwnerBusinessDetailsPage() {
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1">Description</label>
-                                            <textarea
-                                                value={business.description || ""}
-                                                onChange={(e) => setBusiness({ ...business, description: e.target.value })}
-                                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-slate-400 focus:bg-white transition-all min-h-[80px]"
-                                            />
-                                        </div>
+
                                     </div>
                                     <div className="flex justify-end pt-2">
                                         <button
@@ -783,7 +815,25 @@ export default function OwnerBusinessDetailsPage() {
                                                 <label className="text-[10px] font-bold text-slate-900 uppercase tracking-widest">
                                                     {f.label} {f.required && <span className="text-rose-500">*</span>}
                                                 </label>
-                                                <div className="h-10 border-b border-slate-100" />
+                                                <div className="min-h-[40px] border-b border-slate-100 flex items-center">
+                                                    {f.type === 'choice' ? (
+                                                        <div className="flex flex-wrap gap-2 py-2">
+                                                            {(f.options || []).length > 0 ? (
+                                                                (f.options || []).map((opt: string, i: number) => (
+                                                                    <span key={i} className="px-3 py-1 rounded-full bg-slate-50 text-slate-600 text-xs font-medium border border-slate-200">
+                                                                        {opt || `Option ${i + 1}`}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-slate-300 text-xs italic">Aucune option définie</span>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-slate-300 text-xs italic">
+                                                            {f.type === 'rating' ? 'Sélecteur d\'étoiles' : f.type === 'boolean' ? 'Oui / Non' : 'Champ texte'}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                         <div className="space-y-4">
