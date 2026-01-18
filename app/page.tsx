@@ -10,7 +10,13 @@ import {
   Menu,
   X,
   Star,
-  Loader2
+  Loader2,
+  Facebook,
+  Instagram,
+  Linkedin,
+  Twitter,
+  Mail,
+  Phone
 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -21,6 +27,7 @@ export default function LandingPage() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [systemSettings, setSystemSettings] = useState<Record<string, any>>({});
   const supabase = supabaseBrowser;
 
   useEffect(() => {
@@ -32,6 +39,13 @@ export default function LandingPage() {
         .order("price", { ascending: true });
 
       if (data) setPlans(data);
+
+      const { data: settingsData } = await supabase.from("system_settings").select("*");
+      if (settingsData) {
+        const settingsMap = settingsData.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {});
+        setSystemSettings(settingsMap);
+      }
+
       setLoadingPlans(false);
     }
     fetchPlans();
@@ -209,31 +223,14 @@ export default function LandingPage() {
 
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-tr from-[var(--chart-2)] to-purple-500 rounded-2xl blur-2xl opacity-20 transform rotate-3" />
-                <div className="relative bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8 shadow-xl">
-                  {/* Mock UI */}
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                        <Star size={20} className="text-yellow-600 fill-yellow-600" />
-                      </div>
-                      <div>
-                        <div className="h-2 w-24 bg-gray-200 rounded mb-1" />
-                        <div className="h-2 w-16 bg-gray-100 rounded" />
-                      </div>
-                    </div>
-                    <span className="text-xs font-mono text-gray-400">À l'instant</span>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-2 w-full bg-gray-100 rounded" />
-                    <div className="h-2 w-full bg-gray-100 rounded" />
-                    <div className="h-2 w-3/4 bg-gray-100 rounded" />
-                  </div>
-                  <div className="mt-6 flex gap-2">
-                    <div className="h-8 w-8 rounded-full bg-gray-100" />
-                    <div className="flex-1 bg-gray-50 rounded-lg p-2 text-sm text-gray-500 italic">
-                      "Excellent service aujourd'hui ! Le personnel était très attentif..."
-                    </div>
-                  </div>
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+                  <Image
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/home3.png`}
+                    alt="Feedback by Jobber Dashboard"
+                    width={600}
+                    height={450}
+                    className="w-full h-auto object-cover"
+                  />
                 </div>
               </div>
             </div>
@@ -336,7 +333,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="relative w-96 h-16">
+                <div className="relative w-64 sm:w-96 h-12 sm:h-16">
                   <Image
                     src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
                     alt="Feedback by Jobber Logo"
@@ -345,9 +342,79 @@ export default function LandingPage() {
                   />
                 </div>
               </div>
-              <p className="text-[var(--muted-foreground)] text-sm max-w-xs">
+              <p className="text-[var(--muted-foreground)] text-sm max-w-xs mb-6">
                 Donner aux entreprises les moyens d'offrir de meilleures expériences grâce à des commentaires honnêtes et privés.
               </p>
+
+              {/* Contact Info */}
+              <div className="space-y-3 mb-6">
+                {systemSettings.support_email && (
+                  <a
+                    href={`mailto:${systemSettings.support_email}`}
+                    className="flex items-center gap-3 text-sm text-[var(--muted-foreground)] hover:text-[var(--chart-2)] transition-colors"
+                  >
+                    <Mail size={16} className="shrink-0" />
+                    <span>{systemSettings.support_email}</span>
+                  </a>
+                )}
+                {systemSettings.contact_phone && (
+                  <a
+                    href={`tel:${systemSettings.contact_phone}`}
+                    className="flex items-center gap-3 text-sm text-[var(--muted-foreground)] hover:text-[var(--chart-2)] transition-colors"
+                  >
+                    <Phone size={16} className="shrink-0" />
+                    <span>{systemSettings.contact_phone}</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Social Media Icons */}
+              <div className="flex items-center gap-4">
+                {systemSettings.social_facebook && (
+                  <a
+                    href={systemSettings.social_facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-[var(--chart-2)] hover:text-white transition-all"
+                    aria-label="Facebook"
+                  >
+                    <Facebook size={18} />
+                  </a>
+                )}
+                {systemSettings.social_instagram && (
+                  <a
+                    href={systemSettings.social_instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-gradient-to-tr hover:from-purple-600 hover:to-pink-500 hover:text-white transition-all"
+                    aria-label="Instagram"
+                  >
+                    <Instagram size={18} />
+                  </a>
+                )}
+                {systemSettings.social_linkedin && (
+                  <a
+                    href={systemSettings.social_linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-[#0A66C2] hover:text-white transition-all"
+                    aria-label="LinkedIn"
+                  >
+                    <Linkedin size={18} />
+                  </a>
+                )}
+                {systemSettings.social_twitter && (
+                  <a
+                    href={systemSettings.social_twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-black hover:text-white transition-all"
+                    aria-label="Twitter"
+                  >
+                    <Twitter size={18} />
+                  </a>
+                )}
+              </div>
             </div>
 
             <div>
@@ -368,8 +435,12 @@ export default function LandingPage() {
               </ul>
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-[var(--border)] text-center text-sm text-[var(--muted-foreground)]">
-            © {new Date().getFullYear()} Feedback by Jobber. Tous droits réservés.
+          <div className="mt-12 pt-8 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--muted-foreground)]">
+            <span>© {new Date().getFullYear()} Feedback by Jobber. Tous droits réservés.</span>
+            <div className="flex items-center gap-6">
+              <Link href="/terms" className="hover:text-[var(--foreground)] transition-colors">Conditions</Link>
+              <Link href="#" className="hover:text-[var(--foreground)] transition-colors">Confidentialité</Link>
+            </div>
           </div>
         </div>
       </footer>

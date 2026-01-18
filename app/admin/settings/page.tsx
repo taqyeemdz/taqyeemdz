@@ -18,6 +18,11 @@ import {
   Mail,
   Zap,
   FileText,
+  Phone,
+  Facebook,
+  Instagram,
+  Linkedin,
+  Twitter,
 } from "lucide-react";
 
 export default function AdminSettings() {
@@ -78,7 +83,7 @@ export default function AdminSettings() {
   const handleSaveGeneral = async () => {
     setSaving(true);
     try {
-      const keys = ["platform_name", "support_email", "registrations_enabled", "maintenance_mode", "terms_and_conditions"];
+      const keys = ["platform_name", "support_email", "contact_phone", "social_facebook", "social_instagram", "social_linkedin", "social_twitter", "registrations_enabled", "maintenance_mode", "terms_and_conditions"];
       const upsertData = keys
         .filter(key => settings[key] !== undefined)
         .map(key => ({ key, value: settings[key] }));
@@ -183,6 +188,68 @@ export default function AdminSettings() {
                     onChange={e => setSettings({ ...settings, support_email: e.target.value })}
                     className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
                   />
+                </div>
+              </div>
+
+              {/* Contact & Réseaux Sociaux */}
+              <div className="pt-6 border-t border-slate-100">
+                <h4 className="font-medium text-slate-900 mb-4 text-sm">Contact & Réseaux Sociaux</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Phone size={12} /> Téléphone
+                    </label>
+                    <input
+                      value={settings.contact_phone || ""}
+                      onChange={e => setSettings({ ...settings, contact_phone: e.target.value })}
+                      placeholder="+213 770 00 00 00"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Facebook size={12} /> Facebook URL
+                    </label>
+                    <input
+                      value={settings.social_facebook || ""}
+                      onChange={e => setSettings({ ...settings, social_facebook: e.target.value })}
+                      placeholder="https://facebook.com/..."
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Instagram size={12} /> Instagram URL
+                    </label>
+                    <input
+                      value={settings.social_instagram || ""}
+                      onChange={e => setSettings({ ...settings, social_instagram: e.target.value })}
+                      placeholder="https://instagram.com/..."
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Linkedin size={12} /> LinkedIn URL
+                    </label>
+                    <input
+                      value={settings.social_linkedin || ""}
+                      onChange={e => setSettings({ ...settings, social_linkedin: e.target.value })}
+                      placeholder="https://linkedin.com/in/..."
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Twitter size={12} /> Twitter / X URL
+                    </label>
+                    <input
+                      value={settings.social_twitter || ""}
+                      onChange={e => setSettings({ ...settings, social_twitter: e.target.value })}
+                      placeholder="https://twitter.com/..."
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
+                    />
+                  </div>
                 </div>
               </div>
               <div className="flex justify-center sm:justify-end pt-2 sm:pt-4">
