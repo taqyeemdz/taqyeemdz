@@ -147,8 +147,8 @@ export default function AdminSettings() {
               ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}
             `}
           >
-            <tab.icon size={16} className="shrink-0" />
-            <span className="hidden xs:inline sm:inline">{tab.label}</span>
+            <tab.icon size={14} className="shrink-0 sm:w-4 sm:h-4" />
+            <span>{tab.label}</span>
             {activeTab === tab.id && (
               <div className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-slate-900 animate-in fade-in duration-300" />
             )}
@@ -161,35 +161,35 @@ export default function AdminSettings() {
 
         {/* GENERAL */}
         {activeTab === "general" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
             <div className="space-y-1">
-              <h3 className="font-medium text-slate-900">Identité</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">Informations de base affichées sur l'interface et les emails.</p>
+              <h3 className="font-medium text-slate-900 text-sm sm:text-base">Identité</h3>
+              <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">Informations de base affichées sur l'interface et les emails.</p>
             </div>
-            <div className="md:col-span-2 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="md:col-span-2 space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Nom de la plateforme</label>
+                  <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Nom de la plateforme</label>
                   <input
                     value={settings.platform_name || ""}
                     onChange={e => setSettings({ ...settings, platform_name: e.target.value })}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Email de support</label>
+                  <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Email de support</label>
                   <input
                     value={settings.support_email || ""}
                     onChange={e => setSettings({ ...settings, support_email: e.target.value })}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 transition-colors"
                   />
                 </div>
               </div>
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-center sm:justify-end pt-2 sm:pt-4">
                 <button
                   onClick={handleSaveGeneral}
                   disabled={saving}
-                  className="bg-slate-900 text-white text-xs font-semibold px-6 py-2.5 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2"
+                  className="w-full sm:w-auto bg-slate-900 text-white text-xs font-semibold px-6 py-2.5 rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
                 >
                   {saving && <Loader2 size={14} className="animate-spin" />}
                   Enregistrer
@@ -271,14 +271,14 @@ export default function AdminSettings() {
                   </div>
 
                   {expandedPlanIds.includes(plan.id) && (
-                    <div className="p-6 border-t border-slate-50 bg-slate-50/20 space-y-8 animate-in slide-in-from-top-2 duration-200">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="p-4 sm:p-6 border-t border-slate-50 bg-slate-50/20 space-y-6 sm:space-y-8 animate-in slide-in-from-top-2 duration-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
                         <div className="space-y-2">
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nom</label>
                           <input
                             value={plan.name}
                             onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, name: e.target.value } : p))}
-                            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400"
                           />
                         </div>
                         <div className="space-y-2">
@@ -287,7 +287,7 @@ export default function AdminSettings() {
                             type="number"
                             value={plan.price ?? ''}
                             onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, price: e.target.value === '' ? 0 : Number(e.target.value) } : p))}
-                            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400"
                           />
                         </div>
                         <div className="space-y-2">
@@ -296,14 +296,14 @@ export default function AdminSettings() {
                             type="number"
                             value={plan.max_qr_codes || ''}
                             onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, max_qr_codes: e.target.value === '' ? 1 : parseInt(e.target.value) } : p))}
-                            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400 font-bold text-indigo-600"
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-slate-400 font-bold text-indigo-600"
                           />
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-white">
-                          <span className="text-xs font-medium text-slate-600">Upload Photo</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
+                        <div className="flex items-center justify-between p-2 sm:p-3 border border-slate-100 rounded-lg bg-white">
+                          <span className="text-[11px] sm:text-xs font-medium text-slate-600">Photo</span>
                           <button
                             onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_photo: !p.allow_photo } : p))}
                             className={`w-8 h-4 rounded-full transition-all ${plan.allow_photo ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
@@ -311,8 +311,8 @@ export default function AdminSettings() {
                             <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
                           </button>
                         </div>
-                        <div className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-white">
-                          <span className="text-xs font-medium text-slate-600">Upload Vidéo</span>
+                        <div className="flex items-center justify-between p-2 sm:p-3 border border-slate-100 rounded-lg bg-white">
+                          <span className="text-[11px] sm:text-xs font-medium text-slate-600">Vidéo</span>
                           <button
                             onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_video: !p.allow_video } : p))}
                             className={`w-8 h-4 rounded-full transition-all ${plan.allow_video ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
@@ -320,8 +320,8 @@ export default function AdminSettings() {
                             <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
                           </button>
                         </div>
-                        <div className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-white">
-                          <span className="text-xs font-medium text-slate-600">Upload Audio</span>
+                        <div className="flex items-center justify-between p-2 sm:p-3 border border-slate-100 rounded-lg bg-white">
+                          <span className="text-[11px] sm:text-xs font-medium text-slate-600">Audio</span>
                           <button
                             onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_audio: !p.allow_audio } : p))}
                             className={`w-8 h-4 rounded-full transition-all ${plan.allow_audio ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
@@ -329,8 +329,8 @@ export default function AdminSettings() {
                             <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
                           </button>
                         </div>
-                        <div className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-white">
-                          <span className="text-xs font-medium text-slate-600">Statistiques</span>
+                        <div className="flex items-center justify-between p-2 sm:p-3 border border-slate-100 rounded-lg bg-white">
+                          <span className="text-[11px] sm:text-xs font-medium text-slate-600">Stats</span>
                           <button
                             onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_stats: !p.allow_stats } : p))}
                             className={`w-8 h-4 rounded-full transition-all ${plan.allow_stats ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
@@ -338,8 +338,8 @@ export default function AdminSettings() {
                             <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
                           </button>
                         </div>
-                        <div className="flex items-center justify-between p-3 border border-slate-100 rounded-lg bg-white">
-                          <span className="text-xs font-medium text-slate-600">Visible</span>
+                        <div className="flex items-center justify-between p-2 sm:p-3 border border-slate-100 rounded-lg bg-white">
+                          <span className="text-[11px] sm:text-xs font-medium text-slate-600">Visible</span>
                           <button
                             onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, is_active: !p.is_active } : p))}
                             className={`w-8 h-4 rounded-full transition-all ${plan.is_active ? 'bg-emerald-500 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
@@ -406,14 +406,15 @@ export default function AdminSettings() {
               ))}
             </div>
 
-            <div className="flex justify-end pt-8">
+            <div className="flex justify-center sm:justify-end pt-6 sm:pt-8">
               <button
                 onClick={handleSavePlans}
                 disabled={saving}
-                className="bg-slate-900 text-white text-sm font-semibold px-10 py-3 rounded-xl hover:bg-slate-800 transition-all flex items-center gap-3 shadow-lg shadow-slate-200"
+                className="w-full sm:w-auto bg-slate-900 text-white text-xs sm:text-sm font-semibold px-6 sm:px-10 py-2.5 sm:py-3 rounded-xl hover:bg-slate-800 transition-all flex items-center justify-center gap-2 sm:gap-3 shadow-lg shadow-slate-200"
               >
                 {saving && <Loader2 size={16} className="animate-spin" />}
-                Mettre à jour la tarification
+                <span className="sm:hidden">Enregistrer</span>
+                <span className="hidden sm:inline">Mettre à jour la tarification</span>
               </button>
             </div>
           </div>
@@ -421,29 +422,30 @@ export default function AdminSettings() {
 
         {/* CONDITIONS */}
         {activeTab === "conditions" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
             <div className="space-y-1">
-              <h3 className="font-medium text-slate-900">Conditions Générales</h3>
-              <p className="text-xs text-slate-500 leading-relaxed">Rédigez les termes et conditions d'utilisation de la plateforme.</p>
+              <h3 className="font-medium text-slate-900 text-sm sm:text-base">Conditions Générales</h3>
+              <p className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">Rédigez les termes et conditions d'utilisation de la plateforme.</p>
             </div>
-            <div className="md:col-span-2 space-y-6">
+            <div className="md:col-span-2 space-y-4 sm:space-y-6">
               <div className="space-y-2">
-                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Contenu (Markdown/Texte)</label>
+                <label className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Contenu (Markdown/Texte)</label>
                 <textarea
                   value={settings.terms_and_conditions || ""}
                   onChange={e => setSettings({ ...settings, terms_and_conditions: e.target.value })}
                   placeholder="Entrez les termes et conditions ici..."
-                  className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm outline-none focus:border-slate-400 transition-colors min-h-[400px] font-sans leading-relaxed"
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 sm:px-4 py-3 text-sm outline-none focus:border-slate-400 transition-colors min-h-[250px] sm:min-h-[400px] font-sans leading-relaxed"
                 />
               </div>
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-center sm:justify-end pt-2 sm:pt-4">
                 <button
                   onClick={handleSaveGeneral}
                   disabled={saving}
-                  className="bg-slate-900 text-white text-xs font-semibold px-6 py-2.5 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2"
+                  className="w-full sm:w-auto bg-slate-900 text-white text-xs font-semibold px-6 py-2.5 rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
                 >
                   {saving && <Loader2 size={14} className="animate-spin" />}
-                  Enregistrer les conditions
+                  <span className="sm:hidden">Enregistrer</span>
+                  <span className="hidden sm:inline">Enregistrer les conditions</span>
                 </button>
               </div>
             </div>
@@ -586,30 +588,76 @@ export default function AdminSettings() {
               </div>
             )}
 
-            <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-              <table className="w-full text-left ">
+            {/* Mobile: Card layout */}
+            <div className="sm:hidden space-y-3">
+              {admins.map((admin) => (
+                <div key={admin.id} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-semibold text-slate-900 truncate">{admin.full_name}</span>
+                        <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 ${admin.role === 'superadmin' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {admin.role}
+                        </span>
+                      </div>
+                      <span className="text-xs text-slate-500 block truncate">{admin.email}</span>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (confirm(`Supprimer l'accès admin pour ${admin.full_name} ?`)) {
+                          setDeletingAdminId(admin.id);
+                          try {
+                            const { deleteAdminAction } = await import("@/app/actions/admin-management");
+                            await deleteAdminAction(admin.id);
+                            setAdmins(admins.filter(a => a.id !== admin.id));
+                            toast.success("Accès supprimé");
+                          } catch (err: any) {
+                            toast.error(err.message || "Erreur lors de la suppression");
+                          } finally {
+                            setDeletingAdminId(null);
+                          }
+                        }
+                      }}
+                      disabled={deletingAdminId === admin.id}
+                      className="p-2 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                      title="Supprimer l'administrateur"
+                    >
+                      {deletingAdminId === admin.id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: Table layout */}
+            <div className="hidden sm:block bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilisateur</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Rôle</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Utilisateur</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Rôle</th>
+                    <th className="px-4 md:px-6 py-3 md:py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {admins.map((admin) => (
                     <tr key={admin.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-6 py-4">
+                      <td className="px-4 md:px-6 py-3 md:py-4">
                         <div className="flex flex-col">
                           <span className="text-sm font-semibold text-slate-900">{admin.full_name}</span>
                           <span className="text-xs text-slate-500">{admin.email}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 md:px-6 py-3 md:py-4 text-center">
                         <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${admin.role === 'superadmin' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>
                           {admin.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 md:px-6 py-3 md:py-4 text-right">
                         <button
                           onClick={async () => {
                             if (confirm(`Supprimer l'accès admin pour ${admin.full_name} ?`)) {
