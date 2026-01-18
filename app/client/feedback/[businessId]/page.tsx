@@ -759,6 +759,24 @@ export default function ClientFeedbackPage() {
                                                     ))}
                                                 </div>
                                             )}
+
+                                            {field.type === 'choice' && (
+                                                <div className="flex flex-wrap gap-2 mt-1">
+                                                    {(field.options || []).map((opt: string, idx: number) => (
+                                                        <button
+                                                            key={idx}
+                                                            type="button"
+                                                            onClick={() => handleCustomResponseChange(field.id, opt)}
+                                                            className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all ${customResponses[field.id] === opt
+                                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200'
+                                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                                                                }`}
+                                                        >
+                                                            {opt}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
