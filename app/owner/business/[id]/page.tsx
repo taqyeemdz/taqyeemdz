@@ -558,14 +558,18 @@ export default function OwnerBusinessDetailsPage() {
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-4">
-                                                    <button
+                                                <div className="flex items-center gap-4 border-l border-slate-100 pl-4">
+                                                    <div
                                                         onClick={() => updateField(field.id, "required", !field.required)}
-                                                        className={`p-2 rounded-lg transition-colors ${field.required ? 'text-indigo-600 bg-indigo-50' : 'text-slate-300 hover:text-slate-400'}`}
-                                                        title="Obligatoire"
+                                                        className="flex items-center gap-2 cursor-pointer group select-none"
                                                     >
-                                                        <CheckCircle2 size={16} />
-                                                    </button>
+                                                        <div className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${field.required ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}>
+                                                            <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                                                        </div>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${field.required ? 'text-indigo-600' : 'text-slate-300 group-hover:text-slate-400'}`}>
+                                                            Obligatoire
+                                                        </span>
+                                                    </div>
                                                     <button
                                                         onClick={() => removeField(field.id)}
                                                         className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
@@ -587,111 +591,111 @@ export default function OwnerBusinessDetailsPage() {
                                     </button>
                                 </div>
 
-                                <div className="space-y-6 pt-6 border-t border-slate-100">
-                                    <div className="space-y-1">
-                                        <h3 className="text-sm font-semibold text-slate-900">Options médias</h3>
-                                        <p className="text-xs text-slate-500">Choisissez les types de fichiers que vos clients peuvent envoyer.</p>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        {/* Photo Toggle */}
-                                        <div className={`p-3 rounded-xl border transition-all ${!planPermissions.allow_photo ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 shadow-sm'}`}>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
-                                                        <ImageIcon size={12} />
+                                {(planPermissions.allow_photo || planPermissions.allow_video || planPermissions.allow_audio) && (
+                                    <div className="space-y-6 pt-6 border-t border-slate-100">
+                                        <div className="space-y-1">
+                                            <h3 className="text-sm font-semibold text-slate-900">Options médias</h3>
+                                            <p className="text-xs text-slate-500">Choisissez les types de fichiers que vos clients peuvent envoyer.</p>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                            {/* Photo Toggle */}
+                                            {planPermissions.allow_photo && (
+                                                <div className="p-3 rounded-xl border border-slate-200 shadow-sm transition-all bg-white">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                                                <ImageIcon size={12} />
+                                                            </div>
+                                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Photos</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setBusiness({ ...business, allow_photo: !business.allow_photo })}
+                                                            className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${business.allow_photo ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                                                        >
+                                                            <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                                                        </button>
                                                     </div>
-                                                    <p className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Photos</p>
-                                                </div>
-                                                <button
-                                                    disabled={!planPermissions.allow_photo}
-                                                    onClick={() => setBusiness({ ...business, allow_photo: !business.allow_photo })}
-                                                    className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${business.allow_photo && planPermissions.allow_photo ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
-                                                >
-                                                    <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
-                                                </button>
-                                            </div>
-                                            {business.allow_photo && planPermissions.allow_photo && (
-                                                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={business.require_photo || false}
-                                                        onChange={(e) => setBusiness({ ...business, require_photo: e.target.checked })}
-                                                        id="req_photo"
-                                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
-                                                    />
-                                                    <label htmlFor="req_photo" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Obligatoire</label>
+                                                    {business.allow_photo && (
+                                                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={business.require_photo || false}
+                                                                onChange={(e) => setBusiness({ ...business, require_photo: e.target.checked })}
+                                                                id="req_photo"
+                                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
+                                                            />
+                                                            <label htmlFor="req_photo" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Obligatoire</label>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
-                                        </div>
 
-                                        {/* Video Toggle */}
-                                        <div className={`p-3 rounded-xl border transition-all ${!planPermissions.allow_video ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 shadow-sm'}`}>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
-                                                        <Play size={12} />
+                                            {/* Video Toggle */}
+                                            {planPermissions.allow_video && (
+                                                <div className="p-3 rounded-xl border border-slate-200 shadow-sm transition-all bg-white">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                                                <Play size={12} />
+                                                            </div>
+                                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Vidéos</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setBusiness({ ...business, allow_video: !business.allow_video })}
+                                                            className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${business.allow_video ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                                                        >
+                                                            <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                                                        </button>
                                                     </div>
-                                                    <p className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Vidéos</p>
-                                                </div>
-                                                <button
-                                                    disabled={!planPermissions.allow_video}
-                                                    onClick={() => setBusiness({ ...business, allow_video: !business.allow_video })}
-                                                    className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${business.allow_video && planPermissions.allow_video ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
-                                                >
-                                                    <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
-                                                </button>
-                                            </div>
-                                            {business.allow_video && planPermissions.allow_video && (
-                                                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={business.require_video || false}
-                                                        onChange={(e) => setBusiness({ ...business, require_video: e.target.checked })}
-                                                        id="req_video"
-                                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
-                                                    />
-                                                    <label htmlFor="req_video" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Obligatoire</label>
+                                                    {business.allow_video && (
+                                                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={business.require_video || false}
+                                                                onChange={(e) => setBusiness({ ...business, require_video: e.target.checked })}
+                                                                id="req_video"
+                                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
+                                                            />
+                                                            <label htmlFor="req_video" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Obligatoire</label>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
-                                        </div>
 
-                                        {/* Audio Toggle */}
-                                        <div className={`p-3 rounded-xl border transition-all ${!planPermissions.allow_audio ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200 shadow-sm'}`}>
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
-                                                        <Mic size={12} />
+                                            {/* Audio Toggle */}
+                                            {planPermissions.allow_audio && (
+                                                <div className="p-3 rounded-xl border border-slate-200 shadow-sm transition-all bg-white">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="w-6 h-6 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-500">
+                                                                <Mic size={12} />
+                                                            </div>
+                                                            <p className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Audio</p>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setBusiness({ ...business, allow_audio: !business.allow_audio })}
+                                                            className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${business.allow_audio ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
+                                                        >
+                                                            <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
+                                                        </button>
                                                     </div>
-                                                    <p className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">Audio</p>
-                                                </div>
-                                                <button
-                                                    disabled={!planPermissions.allow_audio}
-                                                    onClick={() => setBusiness({ ...business, allow_audio: !business.allow_audio })}
-                                                    className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${business.allow_audio && planPermissions.allow_audio ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}
-                                                >
-                                                    <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
-                                                </button>
-                                            </div>
-                                            {business.allow_audio && planPermissions.allow_audio && (
-                                                <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={business.require_audio || false}
-                                                        onChange={(e) => setBusiness({ ...business, require_audio: e.target.checked })}
-                                                        id="req_audio"
-                                                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
-                                                    />
-                                                    <label htmlFor="req_audio" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Obligatoire</label>
+                                                    {business.allow_audio && (
+                                                        <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={business.require_audio || false}
+                                                                onChange={(e) => setBusiness({ ...business, require_audio: e.target.checked })}
+                                                                id="req_audio"
+                                                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-3 h-3"
+                                                            />
+                                                            <label htmlFor="req_audio" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider cursor-pointer select-none">Obligatoire</label>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
                                     </div>
-                                    {!planPermissions.allow_photo && !planPermissions.allow_video && !planPermissions.allow_audio && (
-                                        <p className="text-[10px] text-amber-600 font-medium bg-amber-50 p-3 rounded-lg border border-amber-100 italic">
-                                            Votre plan actuel ne supporte pas les fichiers médias. Passez au plan supérieur pour les activer.
-                                        </p>
-                                    )}
-                                </div>
+                                )}
 
                                 <div className="flex justify-end pt-2">
                                     <button

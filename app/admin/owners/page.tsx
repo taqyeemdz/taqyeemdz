@@ -28,7 +28,7 @@ export default function OwnersListPage() {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("*, subscription_plans:plan_id(name)")
+          .select("*, subscription_plans:plan_id(name, billing_period)")
           .eq("role", "owner")
           .order("created_at", { ascending: false });
 
@@ -45,7 +45,8 @@ export default function OwnersListPage() {
         const merged = (data || []).map((o: any) => ({
           ...o,
           email: o.email || emailMap[o.id] || "—",
-          plan_name: o.subscription_plans?.name || "Standard"
+          plan_name: o.subscription_plans?.name || "Standard",
+          billing_period: o.subscription_plans?.billing_period || "monthly"
         }));
 
         setOwners(merged);
@@ -159,9 +160,14 @@ export default function OwnersListPage() {
                       )}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-[11px] font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-center">
-                        {o.plan_name}
-                      </span>
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[11px] font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-center">
+                          {o.plan_name}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                          {o.billing_period === 'yearly' ? 'Annuel' : 'Mensuel'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`text-[11px] font-medium ${o.is_active ? 'text-emerald-500' : 'text-slate-400'}`}>

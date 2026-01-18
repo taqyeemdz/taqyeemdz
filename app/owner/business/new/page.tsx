@@ -7,18 +7,16 @@ import { UpgradeModal } from "@/components/owner/UpgradeModal";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle, Rocket, ChevronLeft } from "lucide-react";
 
-type FormField = "name" | "description";
+type FormField = "name";
 
 const FIELD_LABELS: Record<FormField, string> = {
   name: "Nom du produit",
-  description: "Description courte",
 };
 
 export default function NewBusiness() {
   const supabase = supabaseBrowser;
   const [form, setForm] = useState<Record<FormField, string>>({
     name: "",
-    description: "",
   });
 
   const [checkingName, setCheckingName] = useState(false);
@@ -181,30 +179,20 @@ export default function NewBusiness() {
                 <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">
                   {FIELD_LABELS[key]}
                 </label>
-                {key === "description" ? (
-                  <textarea
+                <div className="space-y-1">
+                  <input
                     placeholder="..."
-                    className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-sm font-medium text-slate-900 focus:border-slate-400 outline-none transition-all min-h-[100px]"
+                    className={`w-full bg-white border ${nameError ? 'border-rose-500' : 'border-slate-200'} rounded-lg px-4 py-3 text-sm font-medium text-slate-900 focus:border-slate-400 outline-none transition-all`}
                     value={form[key]}
                     onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                     required
                   />
-                ) : (
-                  <div className="space-y-1">
-                    <input
-                      placeholder="..."
-                      className={`w-full bg-white border ${nameError ? 'border-rose-500' : 'border-slate-200'} rounded-lg px-4 py-3 text-sm font-medium text-slate-900 focus:border-slate-400 outline-none transition-all`}
-                      value={form[key]}
-                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                      required
-                    />
-                    {nameError && (
-                      <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider ml-1 animate-in fade-in slide-in-from-top-1">
-                        {nameError}
-                      </p>
-                    )}
-                  </div>
-                )}
+                  {nameError && (
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-wider ml-1 animate-in fade-in slide-in-from-top-1">
+                      {nameError}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

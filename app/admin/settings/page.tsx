@@ -34,6 +34,7 @@ export default function AdminSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expandedPlanIds, setExpandedPlanIds] = useState<string[]>([]);
+  const [planPeriodFilter, setPlanPeriodFilter] = useState<'monthly' | 'yearly'>('monthly');
 
   // System Settings
   const [settings, setSettings] = useState<Record<string, any>>({});
@@ -93,15 +94,21 @@ export default function AdminSettings() {
   const handleSavePlans = async () => {
     setSaving(true);
     try {
+      console.log('Saving plans:', plans); // DEBUG
       const res = await fetch("/api/admin/plans/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plans, deletedPlanIds }),
       });
-      if (!res.ok) throw new Error("Erreur de sauvegarde");
+
+      const data = await res.json();
+      console.log('API Response:', data); // DEBUG
+
+      if (!res.ok) throw new Error(data.error || "Erreur de sauvegarde");
       toast.success("Tarification mise à jour");
       setDeletedPlanIds([]);
     } catch (err: any) {
+      console.error('Save error:', err); // DEBUG
       toast.error(err.message);
     } finally {
       setSaving(false);
@@ -198,20 +205,46 @@ export default function AdminSettings() {
                 <h3 className="font-medium text-slate-900">Grille tarifaire</h3>
                 <p className="text-xs text-slate-500">Configurez les offres et leurs limites techniques.</p>
               </div>
-              <button
-                onClick={() => {
-                  const id = `new-${crypto.randomUUID()}`;
-                  setPlans([...plans, { id, name: "Nouveau Plan", price: 0, currency: "DZD", features: [], max_businesses: 1, max_qr_codes: 3, is_active: true }]);
-                  setExpandedPlanIds([...expandedPlanIds, id]);
-                }}
-                className="bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2"
-              >
-                <Plus size={14} /> Ajouter un plan
-              </button>
+              <div className="flex items-center gap-4">
+                {/* Billing Period Filter Tabs */}
+                <div className="flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
+                  <button
+                    onClick={() => setPlanPeriodFilter('monthly')}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all
+                      ${planPeriodFilter === 'monthly'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                        : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                  >
+                    Mensuel
+                  </button>
+                  <button
+                    onClick={() => setPlanPeriodFilter('yearly')}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all
+                      ${planPeriodFilter === 'yearly'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                        : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                  >
+                    Annuel
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const id = `new-${crypto.randomUUID()}`;
+                    setPlans([...plans, { id, name: "Nouveau Plan", price: 0, currency: "DZD", billing_period: planPeriodFilter, features: [], max_businesses: 1, max_qr_codes: 3, is_active: true }]);
+                    setExpandedPlanIds([...expandedPlanIds, id]);
+                  }}
+                  className="bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2"
+                >
+                  <Plus size={14} /> Ajouter un plan
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3">
-              {plans.map(plan => (
+              {plans.filter(p => (p.billing_period || 'monthly') === planPeriodFilter).map(plan => (
                 <div key={plan.id} className="border border-slate-100 rounded-xl overflow-hidden bg-white">
                   <div
                     onClick={() => togglePlan(plan.id)}
@@ -224,6 +257,11 @@ export default function AdminSettings() {
                     </div>
                     <div className="flex items-center gap-6">
                       <span className="text-[10px] bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded font-bold uppercase">{plan.max_qr_codes} QR</span>
+                      {plan.billing_period && (
+                        <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded font-bold uppercase">
+                          {plan.billing_period === 'yearly' ? 'Annuel' : 'Mensuel'}
+                        </span>
+                      )}
                       <span className="text-sm font-mono font-semibold text-slate-600">{plan.price} {plan.currency}</span>
                     </div>
                   </div>
@@ -243,8 +281,8 @@ export default function AdminSettings() {
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prix (DZD)</label>
                           <input
                             type="number"
-                            value={plan.price}
-                            onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, price: parseFloat(e.target.value) } : p))}
+                            value={plan.price ?? ''}
+                            onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, price: e.target.value === '' ? 0 : Number(e.target.value) } : p))}
                             className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400"
                           />
                         </div>
@@ -252,8 +290,8 @@ export default function AdminSettings() {
                           <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">QR Codes inclus</label>
                           <input
                             type="number"
-                            value={plan.max_qr_codes}
-                            onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, max_qr_codes: parseInt(e.target.value) } : p))}
+                            value={plan.max_qr_codes || ''}
+                            onChange={e => setPlans(plans.map(p => p.id === plan.id ? { ...p, max_qr_codes: e.target.value === '' ? 1 : parseInt(e.target.value) } : p))}
                             className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-slate-400 font-bold text-indigo-600"
                           />
                         </div>

@@ -30,6 +30,7 @@ import { toast } from "sonner";
 const RATING_CONFIG: Record<string, { label: string, color: string, dot: string }> = {
   all: { label: "Tous", color: "text-slate-400", dot: "bg-slate-300" },
   positive: { label: "Positifs", color: "text-emerald-500", dot: "bg-emerald-400" },
+  neutral: { label: "Neutres", color: "text-amber-500", dot: "bg-amber-400" },
   negative: { label: "Négatifs", color: "text-rose-500", dot: "bg-rose-400" },
 };
 
@@ -87,6 +88,10 @@ export default function FeedbackPage() {
 
       setBusinesses(busRes.data || []);
       setFeedbacks(fbRes.data || []);
+      // Auto-select first feedback on load
+      if (fbRes.data && fbRes.data.length > 0) {
+        setSelectedFeedback(fbRes.data[0]);
+      }
       setLoading(false);
     };
 
@@ -118,6 +123,7 @@ export default function FeedbackPage() {
   const filtered = feedbacks.filter(fb => {
     const matchesRating = statusFilter === "all" ||
       (statusFilter === "positive" && fb.rating >= 4) ||
+      (statusFilter === "neutral" && fb.rating === 3) ||
       (statusFilter === "negative" && fb.rating <= 2);
 
     const matchesBusiness = selectedBusinessId === "all" || fb.business_id === selectedBusinessId;
@@ -138,6 +144,12 @@ export default function FeedbackPage() {
 
   useEffect(() => {
     setCurrentPage(1);
+    // Auto-select first feedback when filters change
+    if (filtered.length > 0) {
+      setSelectedFeedback(filtered[0]);
+    } else {
+      setSelectedFeedback(null);
+    }
   }, [statusFilter, selectedBusinessId, search]);
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
@@ -167,7 +179,7 @@ export default function FeedbackPage() {
         {/* Business Selector & Rating Filters */}
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
-            {["all", "positive", "negative"].map(s => (
+            {["all", "positive", "neutral", "negative"].map(s => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}

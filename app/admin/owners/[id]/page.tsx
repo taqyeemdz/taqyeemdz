@@ -39,7 +39,7 @@ export default function OwnerDetailPage() {
             // 1. Fetch Owner Profile
             const { data: ownerProfile, error: profileError } = await supabase
                 .from("profiles")
-                .select(`*, subscription_plans!left(name)`)
+                .select(`*, subscription_plans!left(name, billing_period)`)
                 .eq("id", id)
                 .single();
 
@@ -196,6 +196,11 @@ export default function OwnerDetailPage() {
                             <div>
                                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-1">Plan d'abonnement</p>
                                 <h4 className="text-2xl font-semibold tracking-tight uppercase">{profile.subscription_plans?.name || "Standard"}</h4>
+                                {profile.subscription_plans?.billing_period && (
+                                    <span className="inline-block mt-2 px-2 py-0.5 bg-white/10 rounded text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                                        {profile.subscription_plans.billing_period === 'yearly' ? 'Annuel' : 'Mensuel'}
+                                    </span>
+                                )}
                             </div>
                             <div className="pt-6 border-t border-white/10 space-y-4">
                                 <div className="flex justify-between items-center text-[11px]">

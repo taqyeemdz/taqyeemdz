@@ -43,7 +43,8 @@ export default function AnalyticsPage() {
     ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
     recentTrend: 0,
     responseRate: 0,
-    sparklineData: [] as number[]
+    sparklineData: [] as number[],
+    demographics: null as any // Add demographics property
   });
   const [allowStats, setAllowStats] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -218,6 +219,28 @@ export default function AnalyticsPage() {
       const count = feedbackData.filter(f => isSameDay(new Date(f.created_at), d)).length;
       sparklineData.push(count);
     }
+    // Calculate demographics
+    const maleCount = feedbackData.filter(f => f.sex === 'male').length;
+    const femaleCount = feedbackData.filter(f => f.sex === 'female').length;
+    const ageCounts: { [key: string]: number } = {};
+    feedbackData.forEach(f => {
+      // Check top-level age_range or nested in custom_responses
+      const age = f.age_range || f.custom_responses?.age_range;
+      if (age) {
+        ageCounts[age] = (ageCounts[age] || 0) + 1;
+      }
+    });
+
+    const totalDemographics = maleCount + femaleCount;
+    const demographics = {
+      sex: {
+        male: totalDemographics > 0 ? (maleCount / totalDemographics) * 100 : 0,
+        female: totalDemographics > 0 ? (femaleCount / totalDemographics) * 100 : 0,
+        maleCount,
+        femaleCount
+      },
+      ageCounts
+    };
 
     setStats({
       totalFeedback: total,
@@ -225,7 +248,8 @@ export default function AnalyticsPage() {
       ratingDistribution: distribution,
       recentTrend: trend,
       responseRate,
-      sparklineData
+      sparklineData,
+      demographics // Add demographics to stats state
     });
 
     if (selectedBusinessId === "all") {
@@ -264,7 +288,8 @@ export default function AnalyticsPage() {
 
         const ageCounts: any = {};
         data.forEach(f => {
-          if (f.age_range) ageCounts[f.age_range] = (ageCounts[f.age_range] || 0) + 1;
+          const age = f.age_range || f.custom_responses?.age_range;
+          if (age) ageCounts[age] = (ageCounts[age] || 0) + 1;
         });
 
         const agePerc: any = {};
@@ -315,6 +340,14 @@ export default function AnalyticsPage() {
         const dist: any = {};
         nums.forEach(r => dist[r] = (dist[r] || 0) + 1);
         res.dist = dist;
+
+        // Calculate demographics per rating value (for star filtering)
+        const ratingDemographics: any = {};
+        [1, 2, 3, 4, 5].forEach(star => {
+          const starFeedbacks = relevantFeedbacks.filter(f => f.custom_responses[field.id] === star);
+          ratingDemographics[star] = getDemographics(starFeedbacks);
+        });
+        res.ratingDemographics = ratingDemographics;
       }
       return res;
     });
@@ -415,88 +448,170 @@ export default function AnalyticsPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {/* Compact Stats Card */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm h-full space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
-                    <MessageCircle size={18} className="text-slate-600" />
+          {selectedBusinessId === "all" ? (
+            <>
+              {/* Compact Stats Card (Vertical for All) */}
+              <div className="lg:col-span-3">
+                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm h-full space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+                        <MessageCircle size={18} className="text-slate-600" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-600">
+                        Total Avis : <span className="font-black text-slate-900 text-lg">{stats.totalFeedback}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                        <Star size={18} className="text-amber-600" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-600">
+                        Note Moy. : <span className="font-black text-slate-900 text-lg">{stats.averageRating.toFixed(1)}</span><span className="text-amber-500 ml-0.5">★</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                        <ThumbsUp size={18} className="text-emerald-600" />
+                      </div>
+                      <p className="text-sm font-medium text-slate-600">
+                        Engagement : <span className="font-black text-emerald-600 text-lg">{stats.responseRate.toFixed(0)}%</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.recentTrend >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+                        <TrendingUp size={18} className={stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
+                      </div>
+                      <p className="text-sm font-medium text-slate-600">
+                        Évolution : <span className={`font-black text-lg ${stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {stats.recentTrend >= 0 ? '+' : ''}{stats.recentTrend.toFixed(0)}%
+                        </span>
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-600">
-                    Total Avis : <span className="font-black text-slate-900 text-lg">{stats.totalFeedback}</span>
-                  </p>
                 </div>
+              </div>
+
+              {/* Top Performer Banner */}
+              <div className="lg:col-span-9">
+                {businessPerformance.length > 0 && topPerformer ? (
+                  <button
+                    onClick={() => setSelectedBusinessId(topPerformer.id)}
+                    className="w-full bg-slate-900 rounded-2xl p-6 text-white shadow-lg h-full flex flex-col justify-center hover:bg-slate-800 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-all">
+                          <Trophy size={32} />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[11px] font-black uppercase tracking-wider opacity-70 mb-2">Meilleur Produit</p>
+                          <p className="text-5xl font-black tracking-tight group-hover:scale-105 transition-transform">{topPerformer.name}</p>
+                          <p className="text-xs opacity-60 mt-2">Cliquez pour filtrer</p>
+                        </div>
+                      </div>
+                      <div className="text-right bg-white/10 px-8 py-4 rounded-xl backdrop-blur-md border border-white/10 group-hover:bg-white/20 transition-all">
+                        <div className="flex items-baseline gap-1 justify-end">
+                          <p className="text-5xl font-black">{topPerformer.avg.toFixed(1)}</p>
+                          <span className="text-2xl opacity-80">★</span>
+                        </div>
+                        <p className="text-[11px] font-bold opacity-70 uppercase tracking-wide mt-1">{topPerformer.count} avis</p>
+                      </div>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="bg-slate-50 rounded-2xl border border-dashed border-slate-200 h-full flex items-center justify-center p-6 text-slate-400">
+                    <div className="text-center">
+                      <p className="text-xs font-bold uppercase tracking-wider">Sélectionnez "Tous les produits"</p>
+                      <p className="text-[10px] opacity-70">Pour voir le meilleur produit</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            /* Single Line Stats for Specific Product with Demographics */
+            <div className="lg:col-span-12 space-y-4">
+              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-6">
 
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                    <Star size={18} className="text-amber-600" />
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
+                    <MessageCircle size={20} className="text-slate-600" />
                   </div>
-                  <p className="text-sm font-medium text-slate-600">
-                    Note Moy. : <span className="font-black text-slate-900 text-lg">{stats.averageRating.toFixed(1)}</span><span className="text-amber-500 ml-0.5">★</span>
-                  </p>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Total Avis</p>
+                    <p className="text-2xl font-black text-slate-900">{stats.totalFeedback}</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                    <ThumbsUp size={18} className="text-emerald-600" />
-                  </div>
-                  <p className="text-sm font-medium text-slate-600">
-                    Engagement : <span className="font-black text-emerald-600 text-lg">{stats.responseRate.toFixed(0)}%</span>
-                  </p>
-                </div>
+                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
 
                 <div className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.recentTrend >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
-                    <TrendingUp size={18} className={stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                    <Star size={20} className="text-amber-600" />
                   </div>
-                  <p className="text-sm font-medium text-slate-600">
-                    Évolution : <span className={`font-black text-lg ${stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Note Moy.</p>
+                    <p className="text-2xl font-black text-slate-900 flex items-center gap-1">
+                      {stats.averageRating.toFixed(1)} <span className="text-amber-500 text-lg">★</span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                    <ThumbsUp size={20} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Engagement</p>
+                    <p className="text-2xl font-black text-emerald-600">{stats.responseRate.toFixed(0)}%</p>
+                  </div>
+                </div>
+
+                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
+
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stats.recentTrend >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+                    <TrendingUp size={20} className={stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Évolution</p>
+                    <p className={`text-2xl font-black ${stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {stats.recentTrend >= 0 ? '+' : ''}{stats.recentTrend.toFixed(0)}%
-                    </span>
-                  </p>
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Rating Chart - Now takes more space */}
-          <div className="lg:col-span-9">
-            <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm h-full">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-                  <TrendingUp size={16} className="text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-900">Évolution des Notes</p>
-                  <p className="text-[8px] text-slate-500 font-medium">{selectedBusinessName}</p>
-                </div>
               </div>
-              <RatingMiniChart data={ratingChartData} />
+
+              {/* Demographics Card */}
+              {stats.demographics && (
+                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+                  <DemographicsFull stats={stats.demographics} />
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Top Performer Banner (only for 'all') */}
-        {selectedBusinessId === "all" && businessPerformance.length > 0 && topPerformer && (
-          <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-2xl p-5 text-white shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                  <Trophy size={20} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-wider opacity-80">Meilleur Produit</p>
-                  <p className="text-lg font-black">{topPerformer.name}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-black">{topPerformer.avg.toFixed(1)}<span className="text-lg opacity-70 ml-1">★</span></p>
-                <p className="text-[9px] font-medium opacity-70">{topPerformer.count} avis</p>
-              </div>
+        {/* Rating Chart - Moved Full Width */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+              <TrendingUp size={20} className="text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider text-slate-900">Évolution des Notes</p>
+              <p className="text-[10px] text-slate-500 font-medium">{selectedBusinessName}</p>
             </div>
           </div>
-        )}
+          <RatingMiniChart data={ratingChartData} />
+        </div>
 
         {/* Product Ranking */}
         {selectedBusinessId === "all" && businessPerformance.length > 0 && (
@@ -523,118 +638,126 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        {/* Custom Fields */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <ListChecks size={14} className="text-indigo-500" /> Réponses Détaillées
-            </h2>
-            <div className="px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100">
-              <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider truncate">{selectedBusinessName}</span>
+
+        {/* Custom Fields - Only show when a specific product is selected */}
+        {selectedBusinessId !== "all" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                <ListChecks size={14} className="text-indigo-500" /> Réponses Détaillées
+              </h2>
+              <div className="px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100">
+                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider truncate">{selectedBusinessName}</span>
+              </div>
             </div>
-          </div>
 
-          {customFieldsAnalytics.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {customFieldsAnalytics.map((field) => (
-                <div key={field.label} className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all flex flex-col">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="min-w-0">
-                      <p className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight leading-tight truncate">{field.label}</p>
-                      <div className="flex items-center gap-2 text-[9px] font-medium text-slate-400 uppercase tracking-wide mt-1">
-                        <span className="px-2 py-0.5 bg-slate-50 rounded-md">{field.count} rép.</span>
-                        <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                        <span>{field.completion.toFixed(0)}%</span>
-                      </div>
-                    </div>
-                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
-                      {field.type === 'boolean' ? <CheckCircle2 size={20} /> : (field.type === 'rating' ? <Star size={20} /> : <MessageCircle size={20} />)}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 space-y-4">
-                    {field.type === 'boolean' && (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
-                            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wide mb-0.5">Oui</p>
-                            <p className="text-2xl font-black text-emerald-700">{field.truePerc.toFixed(0)}%</p>
-                          </div>
-                          <div className="p-3 bg-rose-50 rounded-xl border border-rose-100">
-                            <p className="text-[9px] font-black text-rose-600 uppercase tracking-wide mb-0.5">Non</p>
-                            <p className="text-2xl font-black text-rose-700">{field.falsePerc.toFixed(0)}%</p>
-                          </div>
-                        </div>
-                        <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden flex">
-                          <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${field.truePerc}%` }} />
-                          <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${field.falsePerc}%` }} />
+            {customFieldsAnalytics.filter(f => f.type === 'boolean' || f.type === 'rating').length > 0 ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {customFieldsAnalytics.filter(f => f.type === 'boolean' || f.type === 'rating').map((field) => (
+                  <div key={field.label} className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all flex flex-col">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="min-w-0">
+                        <p className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight leading-tight truncate">{field.label}</p>
+                        <div className="flex items-center gap-2 text-[9px] font-medium text-slate-400 uppercase tracking-wide mt-1">
+                          <span className="px-2 py-0.5 bg-slate-50 rounded-md">{field.count} rép.</span>
+                          <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
+                          <span>{field.completion.toFixed(0)}%</span>
                         </div>
                       </div>
-                    )}
+                      <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shrink-0">
+                        {field.type === 'boolean' ? <CheckCircle2 size={20} /> : (field.type === 'rating' ? <Star size={20} /> : <MessageCircle size={20} />)}
+                      </div>
+                    </div>
 
-                    {field.type === 'rating' && (
-                      <div className="bg-slate-900 rounded-xl p-4 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-[60px] -mr-16 -mt-16"></div>
-                        <div className="relative z-10">
-                          <p className="text-[9px] font-black text-indigo-300 uppercase tracking-wide mb-2">Note Moyenne</p>
-                          <div className="flex items-end justify-between gap-4">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-4xl font-black">{field.avg.toFixed(1)}</span>
-                              <span className="text-xl text-amber-400 font-black">★</span>
+                    <div className="flex-1 space-y-4">
+                      {field.type === 'boolean' && (
+                        <CustomFieldBooleanBlock field={field} />
+                      )}
+
+                      {field.type === 'rating' && (
+                        <CustomFieldRatingBlock field={field} />
+                      )}
+
+                      {(field.type === 'text' || field.type === 'textarea' || field.type === 'message') && (
+                        <>
+                          <div className="p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center text-center space-y-3">
+                            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm text-slate-300">
+                              <MessageCircle size={24} />
                             </div>
-                            {(field.maleFeedbackCount > 0 || field.femaleFeedbackCount > 0) && (
-                              <div className="flex gap-3 text-right">
-                                {field.maleFeedbackCount > 0 && (
-                                  <div>
-                                    <p className="text-[8px] font-bold text-blue-300 uppercase tracking-wide">Hommes</p>
-                                    <p className="text-base font-black">{field.maleAvg.toFixed(1)}<span className="text-[10px] opacity-50">★</span></p>
-                                    <p className="text-[8px] opacity-40">({field.maleFeedbackCount})</p>
-                                  </div>
-                                )}
-                                {field.femaleFeedbackCount > 0 && (
-                                  <div>
-                                    <p className="text-[8px] font-bold text-pink-300 uppercase tracking-wide">Femmes</p>
-                                    <p className="text-base font-black">{field.femaleAvg.toFixed(1)}<span className="text-[10px] opacity-50">★</span></p>
-                                    <p className="text-[8px] opacity-40">({field.femaleFeedbackCount})</p>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                            <div>
+                              <p className="text-[10px] font-black text-slate-900 uppercase tracking-wide">Feedback Libre</p>
+                              <p className="text-[9px] font-medium text-slate-400 mt-1">Consultez la liste détaillée</p>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {(field.type === 'text' || field.type === 'textarea' || field.type === 'message') && (
-                      <div className="p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center text-center space-y-3">
-                        <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm text-slate-300">
-                          <MessageCircle size={24} />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-900 uppercase tracking-wide">Feedback Libre</p>
-                          <p className="text-[9px] font-medium text-slate-400 mt-1">Consultez la liste détaillée</p>
-                        </div>
-                      </div>
-                    )}
-
-                    <DemographicsFull stats={field.overallDemographics} />
+                          <DemographicsFull stats={field.overallDemographics} />
+                        </>
+                      )}
+                    </div>
                   </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-20 bg-white rounded-2xl border border-dashed border-slate-100 text-center flex flex-col items-center justify-center space-y-4">
+                <div className="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center text-slate-200">
+                  <Ghost size={32} />
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-20 bg-white rounded-2xl border border-dashed border-slate-100 text-center flex flex-col items-center justify-center space-y-4">
-              <div className="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center text-slate-200">
-                <Ghost size={32} />
+                <div>
+                  <p className="text-sm font-black text-slate-900 uppercase tracking-wide">Aucune donnée</p>
+                  <p className="text-xs text-slate-400 font-medium mt-1">Configurez votre formulaire</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-black text-slate-900 uppercase tracking-wide">Aucune donnée</p>
-                <p className="text-xs text-slate-400 font-medium mt-1">Configurez votre formulaire</p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CustomFieldBooleanBlock({ field }: { field: any }) {
+  const [view, setView] = useState<'global' | 'true' | 'false'>('global');
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div
+            onClick={() => setView('true')}
+            className={`p-3 rounded-xl border cursor-pointer transition-all ${view === 'true' ? 'bg-emerald-100 border-emerald-300 ring-2 ring-emerald-500/20' : 'bg-emerald-50 border-emerald-100 hover:border-emerald-200'}`}
+          >
+            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wide mb-0.5">Oui</p>
+            <p className="text-2xl font-black text-emerald-700">{field.truePerc.toFixed(0)}%</p>
+          </div>
+          <div
+            onClick={() => setView('false')}
+            className={`p-3 rounded-xl border cursor-pointer transition-all ${view === 'false' ? 'bg-rose-100 border-rose-300 ring-2 ring-rose-500/20' : 'bg-rose-50 border-rose-100 hover:border-rose-200'}`}
+          >
+            <p className="text-[9px] font-black text-rose-600 uppercase tracking-wide mb-0.5">Non</p>
+            <p className="text-2xl font-black text-rose-700">{field.falsePerc.toFixed(0)}%</p>
+          </div>
+        </div>
+        <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden flex">
+          <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${field.truePerc}%` }} />
+          <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${field.falsePerc}%` }} />
+        </div>
+
+        <div className="flex justify-center mt-2">
+          <div className="flex bg-slate-100 p-0.5 rounded-lg">
+            <button onClick={() => setView('global')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${view === 'global' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>Global <span className="opacity-50">({field.count})</span></button>
+            <button onClick={() => setView('true')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${view === 'true' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>Oui <span className="opacity-50">({(field.count * field.truePerc / 100).toFixed(0)})</span></button>
+            <button onClick={() => setView('false')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${view === 'false' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-400 hover:text-slate-600'}`}>Non <span className="opacity-50">({(field.count * field.falsePerc / 100).toFixed(0)})</span></button>
+          </div>
         </div>
       </div>
+
+      <DemographicsFull
+        stats={
+          view === 'global' ? field.overallDemographics :
+            view === 'true' ? field.trueDemographics :
+              field.falseDemographics
+        }
+        title={view === 'global' ? 'Profil Global' : view === 'true' ? 'Profil "Oui"' : 'Profil "Non"'}
+      />
     </div>
   );
 }
@@ -696,8 +819,83 @@ function RatingMiniChart({ data }: { data: any[] }) {
   );
 }
 
-function DemographicsFull({ stats }: { stats: any }) {
-  if (!stats || (stats.sex.maleCount === 0 && stats.sex.femaleCount === 0)) return null;
+
+function CustomFieldRatingBlock({ field }: { field: any }) {
+  const [selectedStar, setSelectedStar] = useState<number | 'global'>('global');
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-slate-900 rounded-xl p-4 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-[60px] -mr-16 -mt-16"></div>
+        <div className="relative z-10">
+          <p className="text-[9px] font-black text-indigo-300 uppercase tracking-wide mb-2">Note Moyenne</p>
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-black">{field.avg.toFixed(1)}</span>
+              <span className="text-xl text-amber-400 font-black">★</span>
+            </div>
+            {/* Optional gender split */}
+            {(field.maleFeedbackCount > 0 || field.femaleFeedbackCount > 0) && (
+              <div className="flex gap-3 text-right">
+                {field.maleFeedbackCount > 0 && (
+                  <div>
+                    <p className="text-[8px] font-bold text-blue-300 uppercase tracking-wide">Hommes</p>
+                    <p className="text-base font-black">{field.maleAvg.toFixed(1)}<span className="text-[10px] opacity-50">★</span></p>
+                  </div>
+                )}
+                {field.femaleFeedbackCount > 0 && (
+                  <div>
+                    <p className="text-[8px] font-bold text-pink-300 uppercase tracking-wide">Femmes</p>
+                    <p className="text-base font-black">{field.femaleAvg.toFixed(1)}<span className="text-[10px] opacity-50">★</span></p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-slate-50 p-2 rounded-xl flex items-center justify-between gap-1 overflow-x-auto">
+        <button
+          onClick={() => setSelectedStar('global')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedStar === 'global' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+        >
+          Global
+        </button>
+        {[5, 4, 3, 2, 1].map(star => {
+          const count = field.dist?.[star] || 0;
+          return (
+            <button
+              key={star}
+              onClick={() => setSelectedStar(star)}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${selectedStar === star ? 'bg-white text-amber-500 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              <span>{star}</span><Star size={10} className="fill-current" />
+              <span className="ml-1 opacity-50 text-[10px]">({count})</span>
+            </button>
+          )
+        })}
+      </div>
+
+      <DemographicsFull
+        stats={selectedStar === 'global' ? field.overallDemographics : field.ratingDemographics?.[selectedStar]}
+        title={selectedStar === 'global' ? 'Profil Global' : `Profil des votants ${selectedStar}★`}
+      />
+    </div>
+  );
+}
+
+function DemographicsFull({ stats, title = "Profil des répondants" }: { stats: any, title?: string }) {
+  // Check if we have ANY data (either gender counts OR age counts)
+  if (!stats) return null;
+  const hasGenderData = stats.sex.maleCount > 0 || stats.sex.femaleCount > 0;
+  const hasAgeData = Object.keys(stats.ageCounts).length > 0;
+
+  if (!hasGenderData && !hasAgeData) return (
+    <div className="pt-4 border-t border-slate-100 text-center py-4">
+      <p className="text-[10px] text-slate-400 italic">Données démographiques insuffisantes</p>
+    </div>
+  );
 
   return (
     <div className="pt-4 border-t border-slate-100 space-y-4">
@@ -705,7 +903,7 @@ function DemographicsFull({ stats }: { stats: any }) {
         <div className="w-6 h-6 bg-slate-100 rounded-md flex items-center justify-center text-slate-400">
           <Users size={12} />
         </div>
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">Profil des répondants</span>
+        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">{title}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -713,26 +911,30 @@ function DemographicsFull({ stats }: { stats: any }) {
           <p className="text-[8px] font-black text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
             <div className="w-1 h-2.5 bg-indigo-500 rounded-full"></div> Sexe
           </p>
-          <div className="space-y-2">
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] font-bold">
-                <span className="text-blue-600">Hommes</span>
-                <span className="text-slate-900">{stats.sex.maleCount}</span>
+          {hasGenderData ? (
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold">
+                  <span className="text-blue-600">Hommes</span>
+                  <span className="text-slate-900">{stats.sex.maleCount}</span>
+                </div>
+                <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${stats.sex.male}%` }} />
+                </div>
               </div>
-              <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${stats.sex.male}%` }} />
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold">
+                  <span className="text-pink-600">Femmes</span>
+                  <span className="text-slate-900">{stats.sex.femaleCount}</span>
+                </div>
+                <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
+                  <div className="h-full bg-pink-500 transition-all duration-1000" style={{ width: `${stats.sex.female}%` }} />
+                </div>
               </div>
             </div>
-            <div className="space-y-1">
-              <div className="flex justify-between text-[10px] font-bold">
-                <span className="text-pink-600">Femmes</span>
-                <span className="text-slate-900">{stats.sex.femaleCount}</span>
-              </div>
-              <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
-                <div className="h-full bg-pink-500 transition-all duration-1000" style={{ width: `${stats.sex.female}%` }} />
-              </div>
-            </div>
-          </div>
+          ) : (
+            <p className="text-[9px] text-slate-300 italic">Non spécifié</p>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -740,7 +942,7 @@ function DemographicsFull({ stats }: { stats: any }) {
             <div className="w-1 h-2.5 bg-indigo-500 rounded-full"></div> Âge
           </p>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(stats.ageCounts).length > 0 ? (
+            {hasAgeData ? (
               Object.entries(stats.ageCounts).map(([range, count]: [string, any]) => (
                 <div key={range} className="flex flex-col items-center bg-white border border-slate-100 rounded-lg px-2.5 py-1.5 hover:border-indigo-200 transition-colors">
                   <span className="text-[8px] font-black text-slate-400 uppercase">{range}</span>

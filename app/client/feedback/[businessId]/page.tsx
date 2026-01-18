@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, Mic, X, Square } from "lucide-react";
+import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, Mic, X, Square, ChevronDown } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
 export default function ClientFeedbackPage() {
@@ -44,7 +44,7 @@ export default function ClientFeedbackPage() {
     const [fullName, setFullName] = useState("");
     const [phone, setPhone] = useState("");
     const [email, setEmail] = useState("");
-    const [sex, setSex] = useState("male");
+    const [sex, setSex] = useState("");
     const [ageRange, setAgeRange] = useState("");
 
     // Custom Fields State
@@ -326,6 +326,17 @@ export default function ClientFeedbackPage() {
             return;
         }
 
+        // Validate required demographics (sex and age_range are always required)
+        if (!sex || sex === "") {
+            setError("Veuillez sélectionner votre genre.");
+            return;
+        }
+
+        if (!ageRange || ageRange === "") {
+            setError("Veuillez sélectionner votre tranche d'âge.");
+            return;
+        }
+
         // Validate required custom fields
         for (const field of customFields) {
             if (field.required && !customResponses[field.id]) {
@@ -415,10 +426,12 @@ export default function ClientFeedbackPage() {
                 full_name: anonymous ? null : fullName || null,
                 phone: anonymous ? null : phone || null,
                 email: anonymous ? null : email || null,
-                sex: anonymous ? null : sex,
+                sex: sex || null, // Always save sex, even if anonymous
+                age_range: ageRange || null, // Always save age_range, even if anonymous
                 custom_responses: {
                     ...customResponses,
-                    age_range: anonymous ? null : ageRange,
+                    // Keep in custom_responses for backward compatibility
+                    age_range: ageRange || null,
                     _media_urls: uploadedUrls // Store multiple medias here to avoid schema dependency
                 },
                 media_url: primaryMediaUrl // Backward compatibility
@@ -636,32 +649,43 @@ export default function ClientFeedbackPage() {
                             {/* ALWAYS VISIBLE DEMOGRAPHICS - UNDER NOTE GENERAL */}
                             <div className="grid grid-cols-2 gap-3 pt-2">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Genre</label>
-                                    <select
-                                        value={sex}
-                                        onChange={(e) => setSex(e.target.value)}
-                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
-                                    >
-                                        <option value="male">Homme</option>
-                                        <option value="female">Femme</option>
-                                    </select>
+                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
+                                        Genre <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            value={sex}
+                                            onChange={(e) => setSex(e.target.value)}
+                                            className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Non spécifié</option>
+                                            <option value="male">Homme</option>
+                                            <option value="female">Femme</option>
+                                        </select>
+                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">Tranche d'âge</label>
-                                    <select
-                                        value={ageRange}
-                                        onChange={(e) => setAgeRange(e.target.value)}
-                                        className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none"
-                                    >
-                                        <option value="">Sél.</option>
-                                        <option value="-18">-18</option>
-                                        <option value="18-24">18-24</option>
-                                        <option value="25-34">25-34</option>
-                                        <option value="35-44">35-44</option>
-                                        <option value="45-54">45-54</option>
-                                        <option value="55-64">55-64</option>
-                                        <option value="65+">65+</option>
-                                    </select>
+                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
+                                        Tranche d'âge <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <select
+                                            value={ageRange}
+                                            onChange={(e) => setAgeRange(e.target.value)}
+                                            className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Non spécifié</option>
+                                            <option value="-18">-18 ans</option>
+                                            <option value="18-24">18 - 24 ans</option>
+                                            <option value="25-34">25 - 34 ans</option>
+                                            <option value="35-44">35 - 44 ans</option>
+                                            <option value="45-54">45 - 54 ans</option>
+                                            <option value="55-64">55 - 64 ans</option>
+                                            <option value="65+">+65 ans</option>
+                                        </select>
+                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
                         </div>

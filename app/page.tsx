@@ -20,6 +20,7 @@ export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const supabase = supabaseBrowser;
 
   useEffect(() => {
@@ -35,6 +36,9 @@ export default function LandingPage() {
     }
     fetchPlans();
   }, [supabase]);
+
+  // Filter plans by billing period
+  const filteredPlans = plans.filter(p => (p.billing_period || 'monthly') === billingPeriod);
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] selection:bg-[var(--chart-2)] selection:text-white">
@@ -239,9 +243,35 @@ export default function LandingPage() {
         {/* ==================== PRICING SECTION ==================== */}
         <section id="pricing" className="py-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Tarification simple et transparente</h2>
-              <p className="text-[var(--muted-foreground)]">Choisissez le forfait qui correspond aux besoins de votre entreprise.</p>
+              <p className="text-[var(--muted-foreground)] mb-8">Choisissez le forfait qui correspond aux besoins de votre entreprise.</p>
+
+              {/* Billing Period Toggle */}
+              <div className="flex justify-center">
+                <div className="inline-flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
+                  <button
+                    onClick={() => setBillingPeriod('monthly')}
+                    className={`px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all
+                      ${billingPeriod === 'monthly'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                        : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                  >
+                    Mensuel
+                  </button>
+                  <button
+                    onClick={() => setBillingPeriod('yearly')}
+                    className={`px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all
+                      ${billingPeriod === 'yearly'
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                        : 'text-slate-400 hover:text-slate-600'
+                      }`}
+                  >
+                    Annuel
+                  </button>
+                </div>
+              </div>
             </div>
 
             {loadingPlans ? (
@@ -250,12 +280,14 @@ export default function LandingPage() {
               </div>
             ) : (
               <div className="grid md:grid-cols-3 gap-10 max-w-6xl mx-auto">
-                {plans.map((plan) => (
+                {filteredPlans.map((plan) => (
                   <PricingCard
                     key={plan.id}
                     title={plan.name}
                     price={plan.price === 0 ? "Gratuit" : `${new Intl.NumberFormat('fr-DZ').format(plan.price)} ${plan.currency}`}
-                    period={plan.price === 0 ? "" : "/mois"}
+                    period={plan.price === 0 ? "" : billingPeriod === 'yearly' ? "/an" : "/mois"}
+                    monthlyEquivalent={billingPeriod === 'yearly' && plan.price > 0 ? Math.round(plan.price / 12) : null}
+                    currency={plan.currency}
                     description={
                       plan.name === "Starter" ? "L'essentiel pour commencer." :
                         plan.name === "Pro" ? "Pour les entreprises en croissance." :
@@ -354,7 +386,7 @@ function FeatureItem({ text }: { text: string }) {
   );
 }
 
-function PricingCard({ title, price, period, features, description, maxQrCodes, highlighted = false }: any) {
+function PricingCard({ title, price, period, monthlyEquivalent, currency, features, description, maxQrCodes, highlighted = false }: any) {
   return (
     <div className={`
       relative p-8 rounded-2xl border transition-all duration-300 flex flex-col h-full
@@ -376,6 +408,15 @@ function PricingCard({ title, price, period, features, description, maxQrCodes, 
         <span className="text-4xl font-black text-slate-900 tracking-tight">{price}</span>
         {period && <span className="text-slate-400 font-bold ml-1">{period}</span>}
       </div>
+
+      {/* Monthly equivalent for yearly plans */}
+      {monthlyEquivalent && (
+        <div className="mb-4">
+          <span className="text-sm text-slate-500">
+            Soit {new Intl.NumberFormat('fr-DZ').format(monthlyEquivalent)} {currency}/mois
+          </span>
+        </div>
+      )}
 
       <div className="mb-8 flex items-center gap-2">
         <div className="px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-100/50">

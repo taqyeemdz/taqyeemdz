@@ -39,10 +39,26 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Cet utilisateur n'a pas de compte Auth associé. Impossible d'activer." }, { status: 400 });
         }
 
-        // 3. Activer le profil et le plan
+        // 3. Récupérer le plan pour connaître la période de facturation
+        const { data: plan, error: planError } = await supabaseAdmin
+            .from('subscription_plans')
+            .select('billing_period')
+            .eq('id', request.plan_id)
+            .single();
+
+        if (planError) {
+            console.error("Erreur lors de la récupération du plan:", planError);
+        }
+
+        // 4. Calculer la date de fin selon la période (mensuel = 1 mois, annuel = 1 an)
         const now = new Date();
-        const nextMonth = new Date(now);
-        nextMonth.setMonth(now.getMonth() + 1);
+        const subscriptionEnd = new Date(now);
+
+        if (plan?.billing_period === 'yearly') {
+            subscriptionEnd.setFullYear(now.getFullYear() + 1); // +1 an
+        } else {
+            subscriptionEnd.setMonth(now.getMonth() + 1); // +1 mois (par défaut)
+        }
 
         const { error: profileUpdateError } = await supabaseAdmin
             .from('profiles')
@@ -53,7 +69,7 @@ export async function POST(req: Request) {
                 role: 'owner',
                 phone: request.phone, // Sync phone from request
                 subscription_start: now.toISOString(),
-                subscription_end: nextMonth.toISOString()
+                subscription_end: subscriptionEnd.toISOString()
             })
             .eq('id', userId);
 
@@ -102,7 +118,7 @@ export async function POST(req: Request) {
             message: "Compte activé avec succès",
             success: true,
             subscription_start: now.toISOString(),
-            subscription_end: nextMonth.toISOString()
+            subscription_end: subscriptionEnd.toISOString()
         });
 
     } catch (err: any) {

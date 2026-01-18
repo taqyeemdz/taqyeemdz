@@ -34,6 +34,7 @@ export default function RequestAccountPage() {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [plans, setPlans] = useState<any[]>([]);
+    const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
     const [form, setForm] = useState({
         business_name: "",
@@ -54,6 +55,9 @@ export default function RequestAccountPage() {
         }
         fetchPlans();
     }, [supabase]);
+
+    // Filter plans by billing period
+    const filteredPlans = plans.filter(p => (p.billing_period || 'monthly') === billingPeriod);
 
     const [emailError, setEmailError] = useState("");
 
@@ -305,8 +309,37 @@ export default function RequestAccountPage() {
                             <label className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-gray-400 ml-1">
                                 <CreditCard size={14} /> Offre souhaitée
                             </label>
+
+                            {/* Billing Period Toggle */}
+                            <div className="flex justify-center mb-4">
+                                <div className="inline-flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setBillingPeriod('monthly')}
+                                        className={`px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all
+                                            ${billingPeriod === 'monthly'
+                                                ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                                                : 'text-slate-400 hover:text-slate-600'
+                                            }`}
+                                    >
+                                        Mensuel
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setBillingPeriod('yearly')}
+                                        className={`px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all
+                                            ${billingPeriod === 'yearly'
+                                                ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
+                                                : 'text-slate-400 hover:text-slate-600'
+                                            }`}
+                                    >
+                                        Annuel
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                                {plans.sort((a, b) => a.price - b.price).map((p) => (
+                                {filteredPlans.sort((a, b) => a.price - b.price).map((p) => (
                                     <label
                                         key={p.id}
                                         onClick={() => setForm({ ...form, plan_id: p.id })}
@@ -342,7 +375,7 @@ export default function RequestAccountPage() {
                                             </span>
                                             {p.price > 0 && (
                                                 <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                    {p.currency} / mois
+                                                    {p.currency} / {billingPeriod === 'yearly' ? 'an' : 'mois'}
                                                 </span>
                                             )}
                                         </div>

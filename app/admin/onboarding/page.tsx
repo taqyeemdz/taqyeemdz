@@ -45,7 +45,7 @@ export default function OnboardingRequestsPage() {
         setLoading(true);
         const { data, error } = await supabase
             .from("onboarding_requests")
-            .select(`*, subscription_plans(name)`)
+            .select(`*, subscription_plans(name, price, currency, billing_period)`)
             .order("created_at", { ascending: false });
 
         if (error) {
@@ -53,6 +53,10 @@ export default function OnboardingRequestsPage() {
             toast.error("Échec du chargement des demandes");
         } else {
             setRequests(data || []);
+            // Auto-select first request on initial load
+            if (data && data.length > 0 && !selectedRequest) {
+                setSelectedRequest(data[0]);
+            }
         }
         setLoading(false);
     }
@@ -113,6 +117,15 @@ export default function OnboardingRequestsPage() {
         const matchesStatus = statusFilter === "all" || r.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
+
+    // Auto-select first request when filters change
+    useEffect(() => {
+        if (filtered.length > 0) {
+            setSelectedRequest(filtered[0]);
+        } else {
+            setSelectedRequest(null);
+        }
+    }, [statusFilter, search]);
 
     return (
         <div className="max-w-6xl mx-auto p-8 space-y-10">
@@ -222,7 +235,22 @@ export default function OnboardingRequestsPage() {
                                 <DetailItem icon={Phone} label="Contact" value={selectedRequest.phone} />
                                 <DetailItem icon={Mail} label="Email" value={selectedRequest.email} />
                                 <DetailItem icon={MapPin} label="Localisation" value={selectedRequest.wilaya} />
-                                <DetailItem icon={CreditCard} label="Abonnement" value={selectedRequest.subscription_plans?.name || "Standard"} />
+                                <DetailItem
+                                    icon={CreditCard}
+                                    label="Abonnement"
+                                    value={
+                                        selectedRequest.subscription_plans
+                                            ? `${selectedRequest.subscription_plans.name} - ${new Intl.NumberFormat('fr-DZ').format(selectedRequest.subscription_plans.price)} ${selectedRequest.subscription_plans.currency}`
+                                            : "Standard"
+                                    }
+                                />
+                                {selectedRequest.subscription_plans?.billing_period && (
+                                    <DetailItem
+                                        icon={CreditCard}
+                                        label="Type d'abonnement"
+                                        value={selectedRequest.subscription_plans.billing_period === 'yearly' ? 'Annuel' : 'Mensuel'}
+                                    />
+                                )}
                             </div>
                             <div className="pt-8 border-t border-slate-50 space-y-4">
                                 {selectedRequest.status !== 'paid' && selectedRequest.status !== 'active' && (
@@ -262,7 +290,9 @@ export default function OnboardingRequestsPage() {
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center text-xs">
-                                                    <span className="text-slate-400 font-medium">Fin (1 mois)</span>
+                                                    <span className="text-slate-400 font-medium">
+                                                        Fin ({selectedRequest.subscription_plans?.billing_period === 'yearly' ? '1 an' : '1 mois'})
+                                                    </span>
                                                     <span className="text-slate-900 font-semibold">
                                                         {format(new Date(selectedRequest.profiles.subscription_end), "dd MMMM yyyy", { locale: fr })}
                                                     </span>

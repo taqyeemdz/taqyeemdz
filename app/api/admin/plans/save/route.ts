@@ -57,6 +57,7 @@ export async function POST(req: Request) {
             name: String(p.name || "").trim(),
             price: Number(p.price) || 0,
             currency: String(p.currency || "DZD").trim(),
+            billing_period: p.billing_period || 'monthly', // Add billing period
             features: Array.isArray(p.features)
                 ? p.features.map((f: any) => String(f || "").trim()).filter((f: string) => f !== "")
                 : [],
@@ -82,10 +83,11 @@ export async function POST(req: Request) {
             )
         }
 
-        const names = cleanedPlans.map((p: any) => p.name.toLowerCase())
-        if (new Set(names).size !== names.length) {
+        // Check for unique (name, billing_period) combinations
+        const namePeriodCombos = cleanedPlans.map((p: any) => `${p.name.toLowerCase()}_${p.billing_period}`)
+        if (new Set(namePeriodCombos).size !== namePeriodCombos.length) {
             return NextResponse.json(
-                { error: "Plan names must be unique (case-insensitive)" },
+                { error: "Plan names must be unique per billing period" },
                 { status: 400 }
             )
         }
@@ -109,15 +111,32 @@ export async function POST(req: Request) {
             if (deleteError) throw deleteError
         }
 
+
         /* -------------------------------------------------
-           7️⃣ UPSERT PLANS
+           7️⃣ INSERT NEW PLANS & UPDATE EXISTING PLANS
         ------------------------------------------------- */
         if (cleanedPlans.length > 0) {
-            const { error: upsertError } = await supabaseAdmin
-                .from("subscription_plans")
-                .upsert(cleanedPlans, { onConflict: "id" })
+            // Separate new plans (no id) from existing plans (has id)
+            const newPlans = cleanedPlans.filter((p: any) => !p.id);
+            const existingPlans = cleanedPlans.filter((p: any) => p.id);
 
-            if (upsertError) throw upsertError
+            // Insert new plans (database will generate IDs)
+            if (newPlans.length > 0) {
+                const { error: insertError } = await supabaseAdmin
+                    .from("subscription_plans")
+                    .insert(newPlans);
+
+                if (insertError) throw insertError;
+            }
+
+            // Update existing plans
+            if (existingPlans.length > 0) {
+                const { error: upsertError } = await supabaseAdmin
+                    .from("subscription_plans")
+                    .upsert(existingPlans, { onConflict: "id" });
+
+                if (upsertError) throw upsertError;
+            }
         }
 
         return NextResponse.json({ ok: true })
