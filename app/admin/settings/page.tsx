@@ -27,6 +27,8 @@ export default function AdminSettings() {
   const [newAdmin, setNewAdmin] = useState({ email: "", fullName: "", password: "" });
   const [showAddAdmin, setShowAddAdmin] = useState(false);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [deletingAdminId, setDeletingAdminId] = useState<string | null>(null);
+  const [addAdminError, setAddAdminError] = useState<string | null>(null);
 
   // Plans
   const [plans, setPlans] = useState<any[]>([]);
@@ -122,31 +124,31 @@ export default function AdminSettings() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto p-8 space-y-12">
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8 md:space-y-12">
 
       {/* Header */}
-      <div className="flex flex-col gap-1 border-b border-slate-100 pb-8">
-        <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Paramètres</h1>
-        <p className="text-slate-500 text-sm">Configurez la plateforme, les abonnements et les accès.</p>
+      <div className="flex flex-col gap-1 border-b border-slate-100 pb-4 sm:pb-6 md:pb-8">
+        <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 tracking-tight">Paramètres</h1>
+        <p className="text-slate-500 text-xs sm:text-sm">Configurez la plateforme, les abonnements et les accès.</p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-8 border-b border-slate-100">
+      {/* Tabs - Scrollable on mobile */}
+      <div className="flex gap-4 sm:gap-6 md:gap-8 border-b border-slate-100 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
         {[
           { id: "general", label: "Général", icon: Settings },
           { id: "pricing", label: "Abonnements", icon: CreditCard },
           { id: "conditions", label: "Conditions", icon: FileText },
-          { id: "admins", label: "Administrateurs", icon: Shield },
+          { id: "admins", label: "Admins", icon: Shield },
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 pb-4 text-sm font-medium transition-all relative
+            className={`flex items-center gap-1.5 sm:gap-2 pb-3 sm:pb-4 text-xs sm:text-sm font-medium transition-all relative whitespace-nowrap shrink-0
               ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'}
             `}
           >
-            <tab.icon size={16} />
-            {tab.label}
+            <tab.icon size={16} className="shrink-0" />
+            <span className="hidden xs:inline sm:inline">{tab.label}</span>
             {activeTab === tab.id && (
               <div className="absolute bottom-[-1px] left-0 right-0 h-0.5 bg-slate-900 animate-in fade-in duration-300" />
             )}
@@ -199,18 +201,18 @@ export default function AdminSettings() {
 
         {/* PRICING */}
         {activeTab === "pricing" && (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center">
+          <div className="space-y-6 sm:space-y-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
               <div className="space-y-1">
-                <h3 className="font-medium text-slate-900">Grille tarifaire</h3>
-                <p className="text-xs text-slate-500">Configurez les offres et leurs limites techniques.</p>
+                <h3 className="font-medium text-slate-900 text-sm sm:text-base">Grille tarifaire</h3>
+                <p className="text-[11px] sm:text-xs text-slate-500">Configurez les offres et leurs limites techniques.</p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 sm:gap-4">
                 {/* Billing Period Filter Tabs */}
                 <div className="flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
                   <button
                     onClick={() => setPlanPeriodFilter('monthly')}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all
                       ${planPeriodFilter === 'monthly'
                         ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                         : 'text-slate-400 hover:text-slate-600'
@@ -220,7 +222,7 @@ export default function AdminSettings() {
                   </button>
                   <button
                     onClick={() => setPlanPeriodFilter('yearly')}
-                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all
+                    className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-all
                       ${planPeriodFilter === 'yearly'
                         ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
                         : 'text-slate-400 hover:text-slate-600'
@@ -236,9 +238,11 @@ export default function AdminSettings() {
                     setPlans([...plans, { id, name: "Nouveau Plan", price: 0, currency: "DZD", billing_period: planPeriodFilter, features: [], max_businesses: 1, max_qr_codes: 3, is_active: true }]);
                     setExpandedPlanIds([...expandedPlanIds, id]);
                   }}
-                  className="bg-white border border-slate-200 text-slate-600 text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2"
+                  className="bg-white border border-slate-200 text-slate-600 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-1.5 sm:gap-2"
                 >
-                  <Plus size={14} /> Ajouter un plan
+                  <Plus size={14} />
+                  <span className="hidden sm:inline">Ajouter un plan</span>
+                  <span className="sm:hidden">Ajouter</span>
                 </button>
               </div>
             </div>
@@ -448,24 +452,26 @@ export default function AdminSettings() {
 
         {/* ADMINS */}
         {activeTab === "admins" && (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center">
+          <div className="space-y-6 sm:space-y-8">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
               <div className="space-y-1">
-                <h3 className="font-medium text-slate-900">Équipe d'administration</h3>
-                <p className="text-xs text-slate-500">Gérez les accès administrateur à la plateforme.</p>
+                <h3 className="font-medium text-slate-900 text-sm sm:text-base">Équipe d'administration</h3>
+                <p className="text-[11px] sm:text-xs text-slate-500">Gérez les accès administrateur à la plateforme.</p>
               </div>
               {!showAddAdmin && (
                 <button
                   onClick={() => setShowAddAdmin(true)}
-                  className="bg-slate-900 text-white text-[11px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2"
+                  className="bg-slate-900 text-white text-[10px] sm:text-[11px] font-bold uppercase tracking-wider px-3 sm:px-4 py-2 rounded-lg hover:bg-slate-800 transition-all flex items-center gap-2 self-start sm:self-auto"
                 >
-                  <Plus size={14} /> Ajouter un admin
+                  <Plus size={14} />
+                  <span className="hidden sm:inline">Ajouter un admin</span>
+                  <span className="sm:hidden">Ajouter</span>
                 </button>
               )}
             </div>
 
             {showAddAdmin && (
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
+              <div className="bg-slate-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-100 space-y-4 animate-in slide-in-from-top-2 duration-300">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nom complet</label>
@@ -481,9 +487,15 @@ export default function AdminSettings() {
                     <input
                       type="email"
                       placeholder="admin@example.com"
-                      className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:border-indigo-500 transition-all"
+                      className={`w-full bg-white border rounded-lg px-4 py-2 text-sm outline-none transition-all ${addAdminError?.includes('email') || addAdminError?.includes('Email')
+                        ? 'border-red-300 focus:border-red-500'
+                        : 'border-slate-200 focus:border-indigo-500'
+                        }`}
                       value={newAdmin.email}
-                      onChange={e => setNewAdmin({ ...newAdmin, email: e.target.value })}
+                      onChange={e => {
+                        setNewAdmin({ ...newAdmin, email: e.target.value });
+                        if (addAdminError) setAddAdminError(null);
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
@@ -497,6 +509,23 @@ export default function AdminSettings() {
                     />
                   </div>
                 </div>
+                {/* Error message display */}
+                {addAdminError && (
+                  <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-300">
+                    <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center shrink-0">
+                      <span className="text-red-600 text-lg">!</span>
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-medium text-red-800">{addAdminError}</span>
+                    </div>
+                    <button
+                      onClick={() => setAddAdminError(null)}
+                      className="text-red-400 hover:text-red-600 transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
                 {tempPassword && (
                   <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex flex-col gap-1 items-center animate-in zoom-in duration-300">
                     <CheckCircle2 className="text-emerald-500 mb-1" size={20} />
@@ -510,6 +539,7 @@ export default function AdminSettings() {
                     onClick={() => {
                       setShowAddAdmin(false);
                       setTempPassword(null);
+                      setAddAdminError(null);
                       setNewAdmin({ email: "", fullName: "", password: "" });
                     }}
                     className="text-slate-500 text-[11px] font-bold uppercase tracking-widest px-4 py-2"
@@ -519,12 +549,13 @@ export default function AdminSettings() {
                   {!tempPassword && (
                     <button
                       onClick={async () => {
+                        setAddAdminError(null);
                         if (!newAdmin.email || !newAdmin.fullName || !newAdmin.password) {
-                          toast.error("Veuillez remplir tous les champs");
+                          setAddAdminError("Veuillez remplir tous les champs");
                           return;
                         }
                         if (newAdmin.password.length < 6) {
-                          toast.error("Le mot de passe doit faire au moins 6 caractères");
+                          setAddAdminError("Le mot de passe doit faire au moins 6 caractères");
                           return;
                         }
                         setSaving(true);
@@ -539,7 +570,7 @@ export default function AdminSettings() {
                             setNewAdmin({ email: "", fullName: "", password: "" });
                           }
                         } catch (err: any) {
-                          toast.error(err.message);
+                          setAddAdminError(err.message || "Erreur lors de la création de l'admin");
                         } finally {
                           setSaving(false);
                         }
@@ -582,20 +613,28 @@ export default function AdminSettings() {
                         <button
                           onClick={async () => {
                             if (confirm(`Supprimer l'accès admin pour ${admin.full_name} ?`)) {
+                              setDeletingAdminId(admin.id);
                               try {
                                 const { deleteAdminAction } = await import("@/app/actions/admin-management");
                                 await deleteAdminAction(admin.id);
                                 setAdmins(admins.filter(a => a.id !== admin.id));
                                 toast.success("Accès supprimé");
                               } catch (err: any) {
-                                toast.error(err.message);
+                                toast.error(err.message || "Erreur lors de la suppression");
+                              } finally {
+                                setDeletingAdminId(null);
                               }
                             }
                           }}
-                          className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                          disabled={deletingAdminId === admin.id}
+                          className="p-2 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           title="Supprimer l'administrateur"
                         >
-                          <Trash2 size={16} />
+                          {deletingAdminId === admin.id ? (
+                            <Loader2 size={16} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={16} />
+                          )}
                         </button>
                       </td>
                     </tr>

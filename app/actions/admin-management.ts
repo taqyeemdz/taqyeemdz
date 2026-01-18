@@ -44,6 +44,23 @@ export async function addAdminAction(email: string, fullName: string, password?:
         throw new Error("Non autorisé");
     }
 
+    // Check if email already exists as an owner
+    const { data: existingOwner } = await supabaseAdmin
+        .from("profiles")
+        .select("id, role, email")
+        .eq("email", email.toLowerCase())
+        .single();
+
+    if (existingOwner) {
+        if (existingOwner.role === 'owner') {
+            throw new Error("Cet email existe déjà en tant que propriétaire");
+        }
+        if (existingOwner.role === 'admin' || existingOwner.role === 'superadmin') {
+            throw new Error("Cet email existe déjà en tant qu'administrateur");
+        }
+        throw new Error("Cet email existe déjà dans le système");
+    }
+
     // Use provided password or generate a temporary one
     const finalPassword = password || Math.random().toString(36).slice(-10);
 
@@ -59,13 +76,20 @@ export async function addAdminAction(email: string, fullName: string, password?:
         }
     });
 
-    if (authError) throw authError;
+    if (authError) {
+        // Handle duplicate email error from auth
+        if (authError.message?.includes('already been registered') ||
+            authError.message?.includes('already exists')) {
+            throw new Error("Cet email est déjà utilisé");
+        }
+        throw authError;
+    }
 
     const { error: profileError } = await supabaseAdmin
         .from("profiles")
         .upsert({
             id: authData.user.id,
-            email: email,
+            email: email.toLowerCase(),
             full_name: fullName,
             role: 'admin',
             is_active: true
@@ -89,18 +113,45 @@ export async function deleteAdminAction(adminId: string) {
         throw new Error("Non autorisé");
     }
 
-    // Don't allow deleting self?
+    // Don't allow deleting self
     const supabase = await createSupabaseServer();
     const { data: { user } } = await supabase.auth.getUser();
     if (user?.id === adminId) {
         throw new Error("Vous ne pouvez pas supprimer votre propre compte admin.");
     }
 
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(adminId);
-    if (error) throw error;
+    // Verify that the target user is actually an admin
+    const { data: targetProfile, error: profileFetchError } = await supabaseAdmin
+        .from("profiles")
+        .select("id, role, full_name")
+        .eq("id", adminId)
+        .single();
 
-    // Profile deletion should happen via cascade or manually if not set
-    await supabaseAdmin.from("profiles").delete().eq("id", adminId);
+    if (profileFetchError || !targetProfile) {
+        throw new Error("Utilisateur introuvable");
+    }
+
+    if (targetProfile.role !== 'admin' && targetProfile.role !== 'superadmin') {
+        throw new Error("Cet utilisateur n'est pas un administrateur");
+    }
+
+    // Delete from auth first
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(adminId);
+    if (error) {
+        console.error("Error deleting auth user:", error);
+        throw new Error("Erreur lors de la suppression du compte");
+    }
+
+    // Then delete profile (in case cascade is not set)
+    const { error: profileDeleteError } = await supabaseAdmin
+        .from("profiles")
+        .delete()
+        .eq("id", adminId);
+
+    if (profileDeleteError) {
+        console.error("Error deleting profile:", profileDeleteError);
+        // Don't throw here since auth user is already deleted
+    }
 
     return { success: true };
 }
