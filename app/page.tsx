@@ -3,10 +3,6 @@
 import Link from "next/link";
 import {
   CheckCircle2,
-  MessageSquare,
-  TrendingUp,
-  ShieldCheck,
-  ArrowRight,
   Menu,
   X,
   Star,
@@ -16,7 +12,8 @@ import {
   Linkedin,
   Twitter,
   Mail,
-  Phone
+  Phone,
+  ArrowRight
 } from "lucide-react";
 import Image from "next/image";
 import { useState, useEffect } from "react";
@@ -62,9 +59,8 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            {/* Logo */}
             <div className="flex-shrink-0 flex items-center gap-2">
-              <div className="relative w-64 h-16">
+              <div className="relative w-48 h-12">
                 <Image
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
                   alt="Feedback by Jobber Logo"
@@ -76,9 +72,6 @@ export default function LandingPage() {
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-8">
-              <Link href="#features" className="text-sm font-medium hover:text-[var(--chart-2)] transition-colors">
-                Fonctionnalités
-              </Link>
               <Link href="#about" className="text-sm font-medium hover:text-[var(--chart-2)] transition-colors">
                 À propos
               </Link>
@@ -117,9 +110,6 @@ export default function LandingPage() {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-[var(--border)] bg-[var(--background)]">
             <div className="px-4 py-4 space-y-4">
-              <Link href="#features" className="block text-sm font-medium text-[var(--foreground)]" onClick={() => setIsMobileMenuOpen(false)}>
-                Fonctionnalités
-              </Link>
               <Link href="#about" className="block text-sm font-medium text-[var(--foreground)]" onClick={() => setIsMobileMenuOpen(false)}>
                 À propos
               </Link>
@@ -149,7 +139,6 @@ export default function LandingPage() {
       </header>
 
       <main className="pt-16">
-
         {/* ==================== HERO SECTION ==================== */}
         <section className="relative overflow-hidden pt-20 pb-32">
           {/* Background Gradients */}
@@ -176,63 +165,117 @@ export default function LandingPage() {
               >
                 S'inscrire <ArrowRight size={18} />
               </Link>
-              <Link
-                href="#how-it-works"
-                className="px-8 py-3.5 rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] font-medium text-base hover:bg-[var(--muted)] transition-all"
-              >
-                En savoir plus
-              </Link>
-            </div>
-
-            {/* Social Proof / Trusted By (Optional Placeholder) */}
-            <div className="mt-16 pt-8 border-t border-[var(--border)] max-w-3xl mx-auto">
-              <p className="text-sm text-[var(--muted-foreground)] mb-6">Approuvé par des entreprises visionnaires</p>
-              <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                {/* Placeholders for logos */}
-                <span className="font-bold text-xl">RestoTaq</span>
-                <span className="font-bold text-xl">CaféDZ</span>
-                <span className="font-bold text-xl">ShopifyAl</span>
-                <span className="font-bold text-xl">TechStart</span>
-              </div>
             </div>
           </div>
         </section>
 
         {/* ==================== WHAT IS TAQYEEM (ABOUT) ==================== */}
-        <section id="about" className="py-24 bg-[var(--muted)]/30">
+        <section id="about" className="py-24 bg-[var(--muted)]/30 relative overflow-hidden">
+          <div className="absolute top-1/2 left-0 -translate-y-1/2 w-96 h-96 bg-[var(--chart-2)]/5 blur-[100px] rounded-full -z-10" />
+
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid md:grid-cols-2 gap-16 items-center">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">Qu'est-ce que Feedback by Jobber ?</h2>
-                <div className="space-y-6 text-[var(--muted-foreground)]">
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--chart-2)]/10 text-[var(--chart-2)] text-xs font-bold uppercase tracking-wider mb-6">
+                  <Star size={12} className="fill-[var(--chart-2)]" />
+                  Notre Mission
+                </div>
+
+                <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-[var(--foreground)]">
+                  Qu'est-ce que <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--chart-2)] to-purple-600">Feedback by Jobber</span> ?
+                </h2>
+
+                <div className="space-y-6 text-lg text-[var(--muted-foreground)] leading-relaxed">
                   <p>
-                    Feedback by Jobber est une plateforme numérique conçue pour combler le fossé entre les propriétaires d'entreprises et leurs clients. Nous remplaçons les boîtes à suggestions en papier obsolètes par une solution numérique intelligente et instantanée.
+                    Nous comblons le fossé entre les entreprises et leurs clients. Fini les boîtes à suggestions poussiéreuses : place à une <strong className="text-[var(--foreground)]">intelligence client instantanée</strong>.
                   </p>
                   <p>
-                    En scannant un code QR, vos clients peuvent instantanément évaluer leur expérience et laisser des commentaires détaillés. Ces retours vous sont envoyés en privé, vous permettant de répondre immédiatement aux préoccupations — avant qu'elles ne deviennent des avis négatifs publics.
+                    En un scan, vos clients partagent leur expérience. Vous recevez ces retours <strong className="text-[var(--foreground)]">en privé et en temps réel</strong>, vous donnant le pouvoir d'agir avant qu'un avis public ne soit posté.
                   </p>
                 </div>
 
-                <div className="mt-8 space-y-4">
-                  <FeatureItem text="Accès instantané par code QR pour les clients" />
-                  <FeatureItem text="Notifications en temps réel pour les propriétaires" />
-                  <FeatureItem text="Boucle de rétroaction privée" />
-                  <FeatureItem text="Tableau de bord d'analyses détaillé" />
+                <div className="mt-10 space-y-4">
+                  <FeatureItem text="Accès instantané par QR Code" />
+                  <FeatureItem text="Notifications temps réel pour les gérants" />
+                  <FeatureItem text="Canal privé et sécurisé" />
+                  <FeatureItem text="Analyses et statistiques détaillées" />
                 </div>
               </div>
 
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-tr from-[var(--chart-2)] to-purple-500 rounded-2xl blur-2xl opacity-20 transform rotate-3" />
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl">
+              <div className="relative group perspective-1000">
+                <div className="absolute inset-0 bg-gradient-to-tr from-[var(--chart-2)] to-purple-500 rounded-[2rem] blur-[60px] opacity-20 group-hover:opacity-30 transition-opacity duration-700" />
+                <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white/20 bg-white/5 backdrop-blur-sm transform transition-transform duration-700 hover:scale-[1.02]">
                   <Image
                     src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/home3.png`}
                     alt="Feedback by Jobber Dashboard"
-                    width={600}
-                    height={450}
+                    width={800}
+                    height={600}
                     className="w-full h-auto object-cover"
+                    priority
                   />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ==================== VISION SECTION (DARK) ==================== */}
+        <section className="py-24 bg-[#0B0F19] overflow-hidden relative">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-20 mix-blend-overlay pointer-events-none">
+            <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+              <filter id="noiseFilter">
+                <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch" />
+              </filter>
+              <rect width="100%" height="100%" filter="url(#noiseFilter)" />
+            </svg>
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="flex flex-col md:flex-row items-center gap-16 lg:gap-24">
+
+              {/* Image Side (Left) */}
+              <div className="flex-1 relative group perspective-1000 w-full">
+                <div className="relative z-10 transform transition-all duration-700 group-hover:rotate-1 group-hover:scale-105">
+                  <div className="relative aspect-square max-w-lg mx-auto bg-white/5 backdrop-blur-2xl rounded-[2.5rem] p-8 border border-white/10 shadow-2xl ring-1 ring-white/20">
+                    <Image
+                      src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/home4.png`}
+                      alt="Vision Partagée Illustration"
+                      width={800}
+                      height={800}
+                      className="object-contain drop-shadow-2xl w-full h-full"
+                    />
+                    <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                  </div>
+                </div>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] bg-gradient-to-tr from-[var(--chart-2)]/30 via-purple-500/20 to-blue-500/30 blur-[100px] rounded-full -z-10" />
+              </div>
+
+              {/* Text Side (Right) */}
+              <div className="flex-1 space-y-8 text-center md:text-left">
+                <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 text-white text-sm font-bold tracking-wide uppercase border border-white/10 shadow-sm backdrop-blur-md">
+                  Notre Philosophie
+                </div>
+                <h2 className="text-4xl lg:text-6xl font-black text-white leading-tight tracking-tight">
+                  Vision partagée, <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--chart-2)] to-purple-400">
+                    succès assuré.
+                  </span>
+                </h2>
+                <p className="text-xl text-slate-300 leading-relaxed font-medium">
+                  Nous croyons que l'écoute est la clé de la croissance. Ensemble, transformons chaque retour client en une opportunité concrète de réussite.
+                </p>
+                <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                  <Link href="#pricing" className="px-8 py-4 bg-white text-slate-900 rounded-full font-bold hover:bg-slate-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:-translate-y-1">
+                    Commencer maintenant
+                  </Link>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
@@ -245,24 +288,22 @@ export default function LandingPage() {
               <p className="text-[var(--muted-foreground)] mb-8">Choisissez le forfait qui correspond aux besoins de votre entreprise.</p>
 
               {/* Billing Period Toggle */}
-              <div className="flex justify-center">
-                <div className="inline-flex gap-1 p-1 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex justify-center mb-10">
+                <div className="inline-flex items-center p-1.5 bg-slate-100 rounded-full border border-slate-200 shadow-inner gap-1">
                   <button
                     onClick={() => setBillingPeriod('monthly')}
-                    className={`px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all
-                      ${billingPeriod === 'monthly'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                        : 'text-slate-400 hover:text-slate-600'
+                    className={`relative px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${billingPeriod === 'monthly'
+                      ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5'
+                      : 'text-slate-500 hover:text-slate-700'
                       }`}
                   >
                     Mensuel
                   </button>
                   <button
                     onClick={() => setBillingPeriod('yearly')}
-                    className={`px-6 py-2.5 rounded-lg text-sm font-bold uppercase tracking-wider transition-all
-                      ${billingPeriod === 'yearly'
-                        ? 'bg-white text-slate-900 shadow-sm border border-slate-200'
-                        : 'text-slate-400 hover:text-slate-600'
+                    className={`relative px-8 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${billingPeriod === 'yearly'
+                      ? 'bg-white text-slate-900 shadow-md ring-1 ring-black/5'
+                      : 'text-slate-500 hover:text-slate-700'
                       }`}
                   >
                     Annuel
@@ -328,120 +369,84 @@ export default function LandingPage() {
       </main>
 
       {/* ==================== FOOTER ==================== */}
-      <footer className="bg-[var(--card)] border-t border-[var(--border)] py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="relative w-64 sm:w-96 h-12 sm:h-16">
-                  <Image
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
-                    alt="Feedback by Jobber Logo"
-                    fill
-                    className="object-contain object-left"
-                  />
-                </div>
-              </div>
-              <p className="text-[var(--muted-foreground)] text-sm max-w-xs mb-6">
-                Donner aux entreprises les moyens d'offrir de meilleures expériences grâce à des commentaires honnêtes et privés.
-              </p>
+      <footer className="bg-white border-t border-slate-100 py-12">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
 
-              {/* Contact Info */}
-              <div className="space-y-3 mb-6">
-                {systemSettings.support_email && (
-                  <a
-                    href={`mailto:${systemSettings.support_email}`}
-                    className="flex items-center gap-3 text-sm text-[var(--muted-foreground)] hover:text-[var(--chart-2)] transition-colors"
-                  >
-                    <Mail size={16} className="shrink-0" />
-                    <span>{systemSettings.support_email}</span>
-                  </a>
-                )}
-                {systemSettings.contact_phone && (
-                  <a
-                    href={`tel:${systemSettings.contact_phone}`}
-                    className="flex items-center gap-3 text-sm text-[var(--muted-foreground)] hover:text-[var(--chart-2)] transition-colors"
-                  >
-                    <Phone size={16} className="shrink-0" />
-                    <span>{systemSettings.contact_phone}</span>
-                  </a>
-                )}
-              </div>
+          {/* Logo */}
+          <div className="relative w-64 h-20 mx-auto mb-8">
+            <Image
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
+              alt="Feedback by Jobber Logo"
+              fill
+              className="object-contain object-center"
+            />
+          </div>
 
-              {/* Social Media Icons */}
-              <div className="flex items-center gap-4">
-                {systemSettings.social_facebook && (
-                  <a
-                    href={systemSettings.social_facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-[var(--chart-2)] hover:text-white transition-all"
-                    aria-label="Facebook"
-                  >
-                    <Facebook size={18} />
-                  </a>
-                )}
-                {systemSettings.social_instagram && (
-                  <a
-                    href={systemSettings.social_instagram}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-gradient-to-tr hover:from-purple-600 hover:to-pink-500 hover:text-white transition-all"
-                    aria-label="Instagram"
-                  >
-                    <Instagram size={18} />
-                  </a>
-                )}
-                {systemSettings.social_linkedin && (
-                  <a
-                    href={systemSettings.social_linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-[#0A66C2] hover:text-white transition-all"
-                    aria-label="LinkedIn"
-                  >
-                    <Linkedin size={18} />
-                  </a>
-                )}
-                {systemSettings.social_twitter && (
-                  <a
-                    href={systemSettings.social_twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-10 h-10 rounded-full bg-[var(--muted)] flex items-center justify-center text-[var(--muted-foreground)] hover:bg-black hover:text-white transition-all"
-                    aria-label="Twitter"
-                  >
-                    <Twitter size={18} />
-                  </a>
-                )}
-              </div>
+          {/* Description */}
+          <p className="text-slate-500 text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
+            Donner aux entreprises les moyens d'offrir de meilleures expériences grâce à des commentaires honnêtes et privés.
+          </p>
+
+          {/* Menu Links */}
+          <nav className="flex flex-wrap justify-center gap-8 mb-10 font-medium text-slate-600">
+            <Link href="#pricing" className="hover:text-[var(--chart-2)] transition-colors relative group">
+              Tarifs
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[var(--chart-2)] transition-all group-hover:w-full"></span>
+            </Link>
+            <Link href="#about" className="hover:text-[var(--chart-2)] transition-colors relative group">
+              À propos
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[var(--chart-2)] transition-all group-hover:w-full"></span>
+            </Link>
+            <Link href="/terms" className="hover:text-[var(--chart-2)] transition-colors relative group">
+              Conditions Générales
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[var(--chart-2)] transition-all group-hover:w-full"></span>
+            </Link>
+          </nav>
+
+          {/* Socials & Contact */}
+          <div className="flex flex-col items-center gap-6 mb-8">
+            <div className="flex justify-center gap-4">
+              {systemSettings.social_facebook && (
+                <a href={systemSettings.social_facebook} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 rounded-full hover:bg-[#1877F2] hover:text-white transition-all shadow-sm hover:scale-110">
+                  <Facebook size={20} />
+                </a>
+              )}
+              {systemSettings.social_instagram && (
+                <a href={systemSettings.social_instagram} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 rounded-full hover:bg-gradient-to-tr hover:from-purple-600 hover:to-pink-500 hover:text-white transition-all shadow-sm hover:scale-110">
+                  <Instagram size={20} />
+                </a>
+              )}
+              {systemSettings.social_linkedin && (
+                <a href={systemSettings.social_linkedin} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 rounded-full hover:bg-[#0A66C2] hover:text-white transition-all shadow-sm hover:scale-110">
+                  <Linkedin size={20} />
+                </a>
+              )}
+              {systemSettings.social_twitter && (
+                <a href={systemSettings.social_twitter} target="_blank" rel="noopener noreferrer" className="p-3 bg-slate-50 rounded-full hover:bg-black hover:text-white transition-all shadow-sm hover:scale-110">
+                  <Twitter size={20} />
+                </a>
+              )}
             </div>
 
-            <div>
-              <h3 className="font-semibold mb-4">Produit</h3>
-              <ul className="space-y-2 text-sm text-[var(--muted-foreground)]">
-                <li><Link href="#features" className="hover:text-[var(--foreground)]">Fonctionnalités</Link></li>
-                <li><Link href="#pricing" className="hover:text-[var(--foreground)]">Tarifs</Link></li>
-                <li><Link href="#" className="hover:text-[var(--foreground)]">Études de cas</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-4 text-slate-900">Entreprise</h3>
-              <ul className="space-y-2 text-sm text-[var(--muted-foreground)]">
-                <li><Link href="#about" className="hover:text-[var(--foreground)]">À propos de nous</Link></li>
-                <li><Link href="#" className="hover:text-[var(--foreground)]">Contact</Link></li>
-                <li><Link href="/terms" className="hover:text-[var(--foreground)] font-medium text-slate-600">Conditions Générales</Link></li>
-              </ul>
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-slate-500">
+              {systemSettings.support_email && (
+                <a href={`mailto:${systemSettings.support_email}`} className="hover:text-[var(--chart-2)] transition-colors flex items-center gap-2">
+                  <Mail size={16} /> {systemSettings.support_email}
+                </a>
+              )}
+              {systemSettings.contact_phone && (
+                <a href={`tel:${systemSettings.contact_phone}`} className="hover:text-[var(--chart-2)] transition-colors flex items-center gap-2">
+                  <Phone size={16} /> {systemSettings.contact_phone}
+                </a>
+              )}
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-[var(--muted-foreground)]">
-            <span>© {new Date().getFullYear()} Feedback by Jobber. Tous droits réservés.</span>
-            <div className="flex items-center gap-6">
-              <Link href="/terms" className="hover:text-[var(--foreground)] transition-colors">Conditions</Link>
-              <Link href="#" className="hover:text-[var(--foreground)] transition-colors">Confidentialité</Link>
-            </div>
+
+          {/* Copyright */}
+          <div className="pt-8 border-t border-slate-100 text-slate-400 text-sm">
+            © {new Date().getFullYear()} Feedback by Jobber. Tous droits réservés.
           </div>
+
         </div>
       </footer>
     </div>
@@ -480,7 +485,6 @@ function PricingCard({ title, price, period, monthlyEquivalent, currency, featur
         {period && <span className="text-slate-400 font-bold ml-1">{period}</span>}
       </div>
 
-      {/* Monthly equivalent for yearly plans */}
       {monthlyEquivalent && (
         <div className="mb-4">
           <span className="text-sm text-slate-500">
@@ -519,4 +523,3 @@ function PricingCard({ title, price, period, monthlyEquivalent, currency, featur
     </div>
   );
 }
-
