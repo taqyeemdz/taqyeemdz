@@ -17,7 +17,6 @@ import {
   Users,
   Trophy,
   Target,
-  ArrowUp,
   Calendar
 } from "lucide-react";
 import { UpgradeModal } from "@/components/owner/UpgradeModal";
@@ -44,10 +43,13 @@ export default function AnalyticsPage() {
     recentTrend: 0,
     responseRate: 0,
     sparklineData: [] as number[],
-    demographics: null as any // Add demographics property
+    genderDistribution: { male: 0, female: 0, unknown: 0 },
+    wilayaDistribution: {} as Record<string, number>,
+    ageDistribution: {} as Record<string, number>
   });
   const [allowStats, setAllowStats] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedQuestionLabel, setSelectedQuestionLabel] = useState<string>("all");
 
   useEffect(() => {
     const fetchBusinesses = async () => {
@@ -73,7 +75,12 @@ export default function AnalyticsPage() {
           .select("id, name, form_config")
           .in("id", businessIds);
 
-        if (busDocs) setBusinesses(busDocs);
+        if (busDocs) {
+          setBusinesses(busDocs);
+          if (busDocs.length > 0) {
+            setSelectedBusinessId(busDocs[0].id);
+          }
+        }
       }
 
       const { data: profile } = await supabase
@@ -145,9 +152,11 @@ export default function AnalyticsPage() {
           const business = businesses.find(b => b.id === selectedBusinessId);
           if (business?.form_config) {
             analyzeCustomFields(business.form_config, data);
+            setSelectedQuestionLabel("all");
           }
         } else {
           setCustomFieldsAnalytics([]);
+          setSelectedQuestionLabel("all");
         }
       }
     };
@@ -219,28 +228,24 @@ export default function AnalyticsPage() {
       const count = feedbackData.filter(f => isSameDay(new Date(f.created_at), d)).length;
       sparklineData.push(count);
     }
-    // Calculate demographics
-    const maleCount = feedbackData.filter(f => f.sex === 'male').length;
-    const femaleCount = feedbackData.filter(f => f.sex === 'female').length;
-    const ageCounts: { [key: string]: number } = {};
+
+    const genderDist = { male: 0, female: 0, unknown: 0 };
+    const wilayaDist: Record<string, number> = {};
+    const ageDist: Record<string, number> = {};
+
     feedbackData.forEach(f => {
-      // Check top-level age_range or nested in custom_responses
-      const age = f.age_range || f.custom_responses?.age_range;
-      if (age) {
-        ageCounts[age] = (ageCounts[age] || 0) + 1;
+      if (f.sex === 'male') genderDist.male++;
+      else if (f.sex === 'female') genderDist.female++;
+      else genderDist.unknown++;
+
+      if (f.wilaya) {
+        wilayaDist[f.wilaya] = (wilayaDist[f.wilaya] || 0) + 1;
+      }
+
+      if (f.age_range) {
+        ageDist[f.age_range] = (ageDist[f.age_range] || 0) + 1;
       }
     });
-
-    const totalDemographics = maleCount + femaleCount;
-    const demographics = {
-      sex: {
-        male: totalDemographics > 0 ? (maleCount / totalDemographics) * 100 : 0,
-        female: totalDemographics > 0 ? (femaleCount / totalDemographics) * 100 : 0,
-        maleCount,
-        femaleCount
-      },
-      ageCounts
-    };
 
     setStats({
       totalFeedback: total,
@@ -249,7 +254,9 @@ export default function AnalyticsPage() {
       recentTrend: trend,
       responseRate,
       sparklineData,
-      demographics // Add demographics to stats state
+      genderDistribution: genderDist,
+      wilayaDistribution: wilayaDist,
+      ageDistribution: ageDist
     });
 
     if (selectedBusinessId === "all") {
@@ -279,51 +286,54 @@ export default function AnalyticsPage() {
       const resCount = relevantFeedbacks.length;
       const completion = feedbackData.length > 0 ? (resCount / feedbackData.length) * 100 : 0;
 
-      const getDemographics = (data: any[]) => {
-        const total = data.length;
-        if (total === 0) return { sex: { male: 0, female: 0, maleCount: 0, femaleCount: 0 }, age: {}, ageCounts: {} };
+      const genderDist = { male: 0, female: 0, unknown: 0 };
+      const wilayaDist: Record<string, number> = {};
+      const ageDist: Record<string, number> = {};
 
-        const maleCount = data.filter(f => f.sex === 'male').length;
-        const femaleCount = data.filter(f => f.sex === 'female').length;
+      relevantFeedbacks.forEach(f => {
+        if (f.sex === 'male') genderDist.male++;
+        else if (f.sex === 'female') genderDist.female++;
+        else genderDist.unknown++;
 
-        const ageCounts: any = {};
-        data.forEach(f => {
-          const age = f.age_range || f.custom_responses?.age_range;
-          if (age) ageCounts[age] = (ageCounts[age] || 0) + 1;
-        });
+        if (f.wilaya) {
+          wilayaDist[f.wilaya] = (wilayaDist[f.wilaya] || 0) + 1;
+        }
 
-        const agePerc: any = {};
-        Object.keys(ageCounts).forEach(k => { agePerc[k] = (ageCounts[k] / total) * 100; });
-
-        return {
-          sex: {
-            male: (maleCount / total) * 100,
-            female: (femaleCount / total) * 100,
-            maleCount,
-            femaleCount
-          },
-          age: agePerc,
-          ageCounts
-        };
-      };
+        if (f.age_range) {
+          ageDist[f.age_range] = (ageDist[f.age_range] || 0) + 1;
+        }
+      });
 
       let res: any = {
         label: field.label,
         type: field.type,
         count: resCount,
         completion,
-        overallDemographics: getDemographics(relevantFeedbacks)
+        genderDistribution: genderDist,
+        wilayaDistribution: wilayaDist,
+        ageDistribution: ageDist
       };
 
-      if (field.type === 'boolean') {
+      if (field.type === 'choice') {
+        const options = field.options || [];
+        const distribution: any = {};
+        options.forEach((opt: string) => distribution[opt] = 0);
+
+        relevantFeedbacks.forEach(f => {
+          const val = f.custom_responses[field.id];
+          if (val && distribution[val] !== undefined) {
+            distribution[val]++;
+          }
+        });
+
+        res.distribution = distribution;
+        res.options = options;
+      } else if (field.type === 'boolean') {
         const trueFeedbacks = relevantFeedbacks.filter(f => f.custom_responses[field.id] === true);
         const falseFeedbacks = relevantFeedbacks.filter(f => f.custom_responses[field.id] === false);
 
         res.truePerc = resCount > 0 ? (trueFeedbacks.length / resCount) * 100 : 0;
         res.falsePerc = resCount > 0 ? (falseFeedbacks.length / resCount) * 100 : 0;
-
-        res.trueDemographics = getDemographics(trueFeedbacks);
-        res.falseDemographics = getDemographics(falseFeedbacks);
 
       } else if (field.type === 'rating') {
         const nums = relevantFeedbacks.map(f => f.custom_responses[field.id]).filter(r => typeof r === 'number');
@@ -340,15 +350,8 @@ export default function AnalyticsPage() {
         const dist: any = {};
         nums.forEach(r => dist[r] = (dist[r] || 0) + 1);
         res.dist = dist;
-
-        // Calculate demographics per rating value (for star filtering)
-        const ratingDemographics: any = {};
-        [1, 2, 3, 4, 5].forEach(star => {
-          const starFeedbacks = relevantFeedbacks.filter(f => f.custom_responses[field.id] === star);
-          ratingDemographics[star] = getDemographics(starFeedbacks);
-        });
-        res.ratingDemographics = ratingDemographics;
       }
+
       return res;
     });
     setCustomFieldsAnalytics(analytics);
@@ -446,214 +449,158 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        {/* Stats Grid */}
+        {/* Main Insights Grid: Stats (Left) + Evolution (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          {selectedBusinessId === "all" ? (
-            <>
-              {/* Compact Stats Card (Vertical for All) */}
-              <div className="lg:col-span-3">
-                <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm h-full space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
-                        <MessageCircle size={18} className="text-slate-600" />
-                      </div>
-                      <p className="text-sm font-medium text-slate-600">
-                        Total Avis : <span className="font-black text-slate-900 text-lg">{stats.totalFeedback}</span>
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                        <Star size={18} className="text-amber-600" />
-                      </div>
-                      <p className="text-sm font-medium text-slate-600">
-                        Note Moy. : <span className="font-black text-slate-900 text-lg">{stats.averageRating.toFixed(1)}</span><span className="text-amber-500 ml-0.5">★</span>
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                        <ThumbsUp size={18} className="text-emerald-600" />
-                      </div>
-                      <p className="text-sm font-medium text-slate-600">
-                        Engagement : <span className="font-black text-emerald-600 text-lg">{stats.responseRate.toFixed(0)}%</span>
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${stats.recentTrend >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
-                        <TrendingUp size={18} className={stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
-                      </div>
-                      <p className="text-sm font-medium text-slate-600">
-                        Évolution : <span className={`font-black text-lg ${stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {stats.recentTrend >= 0 ? '+' : ''}{stats.recentTrend.toFixed(0)}%
-                        </span>
-                      </p>
-                    </div>
-                  </div>
+          {/* Stats Cards - Left Column (3/12) */}
+          <div className="lg:col-span-3 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center mb-2">
+                  <MessageCircle size={16} className="text-slate-600" />
                 </div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Avis</p>
+                <p className="text-lg font-black text-slate-900">{stats.totalFeedback}</p>
               </div>
 
-              {/* Top Performer Banner */}
-              <div className="lg:col-span-9">
-                {businessPerformance.length > 0 && topPerformer ? (
-                  <button
-                    onClick={() => setSelectedBusinessId(topPerformer.id)}
-                    className="w-full bg-slate-900 rounded-2xl p-6 text-white shadow-lg h-full flex flex-col justify-center hover:bg-slate-800 transition-all cursor-pointer group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-all">
-                          <Trophy size={32} />
-                        </div>
-                        <div className="text-left">
-                          <p className="text-[11px] font-black uppercase tracking-wider opacity-70 mb-2">Meilleur Produit</p>
-                          <p className="text-5xl font-black tracking-tight group-hover:scale-105 transition-transform">{topPerformer.name}</p>
-                          <p className="text-xs opacity-60 mt-2">Cliquez pour filtrer</p>
-                        </div>
-                      </div>
-                      <div className="text-right bg-white/10 px-8 py-4 rounded-xl backdrop-blur-md border border-white/10 group-hover:bg-white/20 transition-all">
-                        <div className="flex items-baseline gap-1 justify-end">
-                          <p className="text-5xl font-black">{topPerformer.avg.toFixed(1)}</p>
-                          <span className="text-2xl opacity-80">★</span>
-                        </div>
-                        <p className="text-[11px] font-bold opacity-70 uppercase tracking-wide mt-1">{topPerformer.count} avis</p>
-                      </div>
-                    </div>
-                  </button>
-                ) : (
-                  <div className="bg-slate-50 rounded-2xl border border-dashed border-slate-200 h-full flex items-center justify-center p-6 text-slate-400">
-                    <div className="text-center">
-                      <p className="text-xs font-bold uppercase tracking-wider">Sélectionnez "Tous les produits"</p>
-                      <p className="text-[10px] opacity-70">Pour voir le meilleur produit</p>
-                    </div>
-                  </div>
-                )}
+              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center mb-2">
+                  <Star size={16} className="text-amber-600" />
+                </div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Note</p>
+                <p className="text-lg font-black text-slate-900">
+                  {stats.averageRating.toFixed(1)}<span className="text-amber-500 text-xs">★</span>
+                </p>
               </div>
-            </>
-          ) : (
-            /* Single Line Stats for Specific Product with Demographics */
-            <div className="lg:col-span-12 space-y-4">
-              <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-wrap items-center justify-between gap-6">
-
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
-                    <MessageCircle size={20} className="text-slate-600" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Total Avis</p>
-                    <p className="text-2xl font-black text-slate-900">{stats.totalFeedback}</p>
-                  </div>
-                </div>
-
-                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
-                    <Star size={20} className="text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Note Moy.</p>
-                    <p className="text-2xl font-black text-slate-900 flex items-center gap-1">
-                      {stats.averageRating.toFixed(1)} <span className="text-amber-500 text-lg">★</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                    <ThumbsUp size={20} className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Engagement</p>
-                    <p className="text-2xl font-black text-emerald-600">{stats.responseRate.toFixed(0)}%</p>
-                  </div>
-                </div>
-
-                <div className="w-px h-10 bg-slate-100 hidden md:block"></div>
-
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stats.recentTrend >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
-                    <TrendingUp size={20} className={stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Évolution</p>
-                    <p className={`text-2xl font-black ${stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                      {stats.recentTrend >= 0 ? '+' : ''}{stats.recentTrend.toFixed(0)}%
-                    </p>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Demographics Card */}
-              {stats.demographics && (
-                <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-                  <DemographicsFull stats={stats.demographics} />
-                </div>
-              )}
             </div>
-          )}
-        </div>
 
-        {/* Rating Chart - Moved Full Width */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-              <TrendingUp size={20} className="text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-xs font-black uppercase tracking-wider text-slate-900">Évolution des Notes</p>
-              <p className="text-[10px] text-slate-500 font-medium">{selectedBusinessName}</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center mb-2">
+                  <ThumbsUp size={16} className="text-emerald-600" />
+                </div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Engag.</p>
+                <p className="text-lg font-black text-emerald-600">{stats.responseRate.toFixed(0)}%</p>
+              </div>
+
+              <div className={`bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center text-center border-b-4 ${stats.recentTrend >= 0 ? 'border-b-emerald-500' : 'border-b-rose-500'}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${stats.recentTrend >= 0 ? 'bg-emerald-50' : 'bg-rose-50'}`}>
+                  <TrendingUp size={16} className={stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'} />
+                </div>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Tendance</p>
+                <p className={`text-lg font-black ${stats.recentTrend >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {stats.recentTrend >= 0 ? '+' : ''}{stats.recentTrend.toFixed(0)}%
+                </p>
+              </div>
             </div>
           </div>
-          <RatingMiniChart data={ratingChartData} />
+
+          {/* Rating Evolution Chart - Right Column (9/12) */}
+          <div className="lg:col-span-9">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                    <TrendingUp size={16} className="text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-900">Historique des Notes</p>
+                    <p className="text-[8px] text-slate-400 font-bold uppercase">{selectedBusinessName}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 min-h-[160px] flex flex-col justify-center">
+                <RatingMiniChart data={ratingChartData} />
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Product Ranking */}
-        {selectedBusinessId === "all" && businessPerformance.length > 0 && (
-          <div className="space-y-3">
+      </div>
+
+      {/* Top Performer Banner - Only show when "All Businesses" is selected or if we want it as a highlight */}
+      {selectedBusinessId === "all" && businessPerformance.length > 0 && topPerformer && (
+        <button
+          onClick={() => setSelectedBusinessId(topPerformer.id)}
+          className="w-full bg-slate-900 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6 hover:bg-slate-800 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-all">
+              <Trophy size={32} />
+            </div>
+            <div className="text-left">
+              <p className="text-[11px] font-black uppercase tracking-wider opacity-70 mb-1">Performance Élite</p>
+              <p className="text-4xl font-black tracking-tight group-hover:scale-105 transition-transform">{topPerformer.name}</p>
+              <p className="text-[10px] opacity-60 font-bold mt-1 uppercase tracking-wide">Cliquez pour voir les détails stratégiques</p>
+            </div>
+          </div>
+          <div className="text-right bg-white/10 px-8 py-4 rounded-xl backdrop-blur-md border border-white/10 group-hover:bg-white/20 transition-all w-full sm:w-auto">
+            <div className="flex items-baseline gap-1 justify-end">
+              <p className="text-5xl font-black">{topPerformer.avg.toFixed(1)}</p>
+              <span className="text-2xl opacity-80">★</span>
+            </div>
+            <p className="text-[11px] font-bold opacity-70 uppercase tracking-wide mt-1">{topPerformer.count} avis clients</p>
+          </div>
+        </button>
+      )}
+
+      {/* Product Ranking */}
+      {selectedBusinessId === "all" && businessPerformance.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <Trophy size={14} className="text-amber-500" /> Classement
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {businessPerformance.sort((a, b) => b.avg - a.avg).map((bus, idx) => (
+              <div key={bus.id} className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between hover:shadow-lg hover:border-indigo-100 transition-all">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-500' : 'bg-orange-50 text-orange-400'}`}>
+                    #{idx + 1}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tight truncate">{bus.name}</p>
+                    <p className="text-[8px] text-slate-400 font-medium">{bus.count} avis</p>
+                  </div>
+                </div>
+                <p className="text-sm font-black text-slate-900 shrink-0 ml-2">{bus.avg.toFixed(1)}<span className="text-[9px] text-amber-500">★</span></p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Fields - Only show when a specific product is selected */}
+      {selectedBusinessId !== "all" && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h2 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <Trophy size={14} className="text-amber-500" /> Classement
+              <ListChecks size={14} className="text-indigo-500" /> Réponses Détaillées
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {businessPerformance.sort((a, b) => b.avg - a.avg).map((bus, idx) => (
-                <div key={bus.id} className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between hover:shadow-lg hover:border-indigo-100 transition-all">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${idx === 0 ? 'bg-amber-100 text-amber-600' : idx === 1 ? 'bg-slate-100 text-slate-500' : 'bg-orange-50 text-orange-400'}`}>
-                      #{idx + 1}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-slate-900 uppercase tracking-tight truncate">{bus.name}</p>
-                      <p className="text-[8px] text-slate-400 font-medium">{bus.count} avis</p>
-                    </div>
-                  </div>
-                  <p className="text-sm font-black text-slate-900 shrink-0 ml-2">{bus.avg.toFixed(1)}<span className="text-[9px] text-amber-500">★</span></p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-
-        {/* Custom Fields - Only show when a specific product is selected */}
-        {selectedBusinessId !== "all" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <ListChecks size={14} className="text-indigo-500" /> Réponses Détaillées
-              </h2>
-              <div className="px-3 py-1.5 bg-indigo-50 rounded-lg border border-indigo-100">
-                <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider truncate">{selectedBusinessName}</span>
+            {/* Question Filter Dropdown */}
+            {customFieldsAnalytics.length > 0 && (
+              <div className="relative group min-w-[240px]">
+                <select
+                  value={selectedQuestionLabel}
+                  onChange={(e) => setSelectedQuestionLabel(e.target.value)}
+                  className="w-full bg-white border border-slate-200 text-slate-900 py-2 pl-3 pr-8 rounded-xl text-[10px] font-black uppercase tracking-wider focus:border-indigo-400 outline-none transition-all cursor-pointer shadow-sm appearance-none hover:bg-slate-50"
+                >
+                  <option value="all">Toutes les questions</option>
+                  {customFieldsAnalytics.map(field => (
+                    <option key={field.label} value={field.label}>
+                      {field.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none group-hover:text-indigo-500 transition-colors" size={14} />
               </div>
-            </div>
+            )}
+          </div>
 
-            {customFieldsAnalytics.filter(f => f.type === 'boolean' || f.type === 'rating').length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {customFieldsAnalytics.filter(f => f.type === 'boolean' || f.type === 'rating').map((field) => (
+          {customFieldsAnalytics.filter(f => (f.type === 'boolean' || f.type === 'rating' || f.type === 'choice') && (selectedQuestionLabel === "all" || selectedQuestionLabel === f.label)).length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {customFieldsAnalytics
+                .filter(f => (f.type === 'boolean' || f.type === 'rating' || f.type === 'choice') && (selectedQuestionLabel === "all" || selectedQuestionLabel === f.label))
+                .map((field) => (
                   <div key={field.label} className="group bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all flex flex-col">
                     <div className="flex items-start justify-between mb-4">
                       <div className="min-w-0">
@@ -678,86 +625,193 @@ export default function AnalyticsPage() {
                         <CustomFieldRatingBlock field={field} />
                       )}
 
+                      {field.type === 'choice' && (
+                        <CustomFieldChoiceBlock field={field} />
+                      )}
+
                       {(field.type === 'text' || field.type === 'textarea' || field.type === 'message') && (
-                        <>
-                          <div className="p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center text-center space-y-3">
-                            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm text-slate-300">
-                              <MessageCircle size={24} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-black text-slate-900 uppercase tracking-wide">Feedback Libre</p>
-                              <p className="text-[9px] font-medium text-slate-400 mt-1">Consultez la liste détaillée</p>
-                            </div>
+                        <div className="p-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 flex flex-col items-center text-center space-y-3">
+                          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm text-slate-300">
+                            <MessageCircle size={24} />
                           </div>
-                          <DemographicsFull stats={field.overallDemographics} />
-                        </>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-900 uppercase tracking-wide">Feedback Libre</p>
+                            <p className="text-[9px] font-medium text-slate-400 mt-1">Consultez la liste détaillée</p>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
                 ))}
+            </div>
+          ) : (
+            <div className="p-20 bg-white rounded-2xl border border-dashed border-slate-100 text-center flex flex-col items-center justify-center space-y-4">
+              <div className="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center text-slate-200">
+                <Ghost size={32} />
               </div>
-            ) : (
-              <div className="p-20 bg-white rounded-2xl border border-dashed border-slate-100 text-center flex flex-col items-center justify-center space-y-4">
-                <div className="w-16 h-16 bg-slate-50 rounded-xl flex items-center justify-center text-slate-200">
-                  <Ghost size={32} />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-slate-900 uppercase tracking-wide">Aucune donnée</p>
-                  <p className="text-xs text-slate-400 font-medium mt-1">Configurez votre formulaire</p>
-                </div>
+              <div>
+                <p className="text-sm font-black text-slate-900 uppercase tracking-wide">Aucune donnée</p>
+                <p className="text-xs text-slate-400 font-medium mt-1">Configurez votre formulaire</p>
               </div>
-            )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FieldDemographics({ field }: { field: any }) {
+  if (field.count === 0) return null;
+
+  return (
+    <div className="pt-3 mt-3 border-t border-slate-50 grid grid-cols-1 md:grid-cols-3 gap-4 h-[120px]">
+      {/* Gender Breakdown Column */}
+      <div className="flex flex-col h-full bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 overflow-y-auto scrollbar-thin">
+        <div className="flex items-center gap-1.5 mb-2 px-1">
+          <Users size={12} className="text-slate-400" />
+          <span className="text-[10px] font-black uppercase text-slate-400">Genre</span>
+        </div>
+        <div className="space-y-3 px-1 pb-1">
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[9px] font-bold">
+              <span className="text-blue-600">Hommes</span>
+              <span className="text-blue-700">{((field.genderDistribution.male / field.count) * 100).toFixed(0)}%</span>
+            </div>
+            <div className="h-1 bg-white rounded-full overflow-hidden">
+              <div className="h-full bg-blue-400" style={{ width: `${(field.genderDistribution.male / field.count) * 100}%` }} />
+            </div>
           </div>
-        )}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[9px] font-bold">
+              <span className="text-pink-600">Femmes</span>
+              <span className="text-pink-700">{((field.genderDistribution.female / field.count) * 100).toFixed(0)}%</span>
+            </div>
+            <div className="h-1 bg-white rounded-full overflow-hidden">
+              <div className="h-full bg-pink-400" style={{ width: `${(field.genderDistribution.female / field.count) * 100}%` }} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Wilaya Distribution Column */}
+      <div className="flex flex-col h-full bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 overflow-y-auto scrollbar-thin">
+        <div className="flex items-center gap-1.5 mb-2 px-1 text-sticky top-0 bg-slate-50/50 backdrop-blur-sm z-10">
+          <Target size={12} className="text-slate-400" />
+          <span className="text-[10px] font-black uppercase text-slate-400">Wilaya</span>
+        </div>
+        <div className="flex flex-col gap-1 px-1">
+          {Object.entries(field.wilayaDistribution)
+            .sort(([, a], [, b]) => (b as number) - (a as number))
+            .map(([wilaya, count]: [string, any]) => (
+              <div key={wilaya} className="flex justify-between items-center text-[9px] font-bold text-slate-600 bg-white/50 px-2 py-1 rounded-md border border-slate-100">
+                <span className="truncate pr-1">{wilaya.split('-').pop()?.trim() || wilaya}</span>
+                <span className="text-slate-400 shrink-0">({count})</span>
+              </div>
+            ))}
+          {Object.keys(field.wilayaDistribution).length === 0 && (
+            <p className="text-[9px] text-slate-300 italic p-1">Aucune donnée</p>
+          )}
+        </div>
+      </div>
+
+      {/* Age Distribution Column */}
+      <div className="flex flex-col h-full bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 overflow-y-auto scrollbar-thin">
+        <div className="flex items-center gap-1.5 mb-2 px-1 text-sticky top-0 bg-slate-50/50 backdrop-blur-sm z-10">
+          <Calendar size={12} className="text-slate-400" />
+          <span className="text-[10px] font-black uppercase text-slate-400">Âge</span>
+        </div>
+        <div className="flex flex-col gap-1 px-1">
+          {Object.entries(field.ageDistribution || {})
+            .sort(([a], [b]) => {
+              const order = ["-18", "18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
+              return order.indexOf(a) - order.indexOf(b);
+            })
+            .map(([range, count]: [string, any]) => (
+              <div key={range} className="flex justify-between items-center text-[9px] font-bold text-indigo-600 bg-indigo-50/30 px-2 py-1 rounded-md border border-indigo-100/30">
+                <span>{range}</span>
+                <span className="text-indigo-400 opacity-60 shrink-0">({count})</span>
+              </div>
+            ))}
+          {Object.keys(field.ageDistribution || {}).length === 0 && (
+            <p className="text-[9px] text-slate-300 italic p-1">Aucune donnée</p>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 function CustomFieldBooleanBlock({ field }: { field: any }) {
-  const [view, setView] = useState<'global' | 'true' | 'false'>('global');
-
   return (
     <div className="space-y-4">
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div
-            onClick={() => setView('true')}
-            className={`p-3 rounded-xl border cursor-pointer transition-all ${view === 'true' ? 'bg-emerald-100 border-emerald-300 ring-2 ring-emerald-500/20' : 'bg-emerald-50 border-emerald-100 hover:border-emerald-200'}`}
-          >
-            <p className="text-[9px] font-black text-emerald-600 uppercase tracking-wide mb-0.5">Oui</p>
-            <p className="text-2xl font-black text-emerald-700">{field.truePerc.toFixed(0)}%</p>
+      <div className="flex items-center justify-between gap-6 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-bold text-emerald-600">OUI</span>
+            <span className="text-sm font-black text-emerald-700">{field.truePerc.toFixed(0)}%</span>
           </div>
-          <div
-            onClick={() => setView('false')}
-            className={`p-3 rounded-xl border cursor-pointer transition-all ${view === 'false' ? 'bg-rose-100 border-rose-300 ring-2 ring-rose-500/20' : 'bg-rose-50 border-rose-100 hover:border-rose-200'}`}
-          >
-            <p className="text-[9px] font-black text-rose-600 uppercase tracking-wide mb-0.5">Non</p>
-            <p className="text-2xl font-black text-rose-700">{field.falsePerc.toFixed(0)}%</p>
+          <div className="h-2 bg-white rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${field.truePerc}%` }} />
           </div>
         </div>
-        <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden flex">
-          <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${field.truePerc}%` }} />
-          <div className="h-full bg-rose-500 transition-all duration-1000" style={{ width: `${field.falsePerc}%` }} />
-        </div>
-
-        <div className="flex justify-center mt-2">
-          <div className="flex bg-slate-100 p-0.5 rounded-lg">
-            <button onClick={() => setView('global')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${view === 'global' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-400 hover:text-slate-600'}`}>Global <span className="opacity-50">({field.count})</span></button>
-            <button onClick={() => setView('true')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${view === 'true' ? 'bg-white shadow-sm text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}>Oui <span className="opacity-50">({(field.count * field.truePerc / 100).toFixed(0)})</span></button>
-            <button onClick={() => setView('false')} className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${view === 'false' ? 'bg-white shadow-sm text-rose-600' : 'text-slate-400 hover:text-slate-600'}`}>Non <span className="opacity-50">({(field.count * field.falsePerc / 100).toFixed(0)})</span></button>
+        <div className="w-px h-10 bg-slate-200"></div>
+        <div className="flex-1">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-bold text-rose-500">NON</span>
+            <span className="text-sm font-black text-rose-600">{field.falsePerc.toFixed(0)}%</span>
+          </div>
+          <div className="h-2 bg-white rounded-full overflow-hidden">
+            <div className="h-full bg-rose-400 transition-all duration-1000" style={{ width: `${field.falsePerc}%` }} />
           </div>
         </div>
       </div>
 
-      <DemographicsFull
-        stats={
-          view === 'global' ? field.overallDemographics :
-            view === 'true' ? field.trueDemographics :
-              field.falseDemographics
-        }
-        title={view === 'global' ? 'Profil Global' : view === 'true' ? 'Profil "Oui"' : 'Profil "Non"'}
-      />
+      <FieldDemographics field={field} />
+    </div>
+  );
+}
+
+function CustomFieldChoiceBlock({ field }: { field: any }) {
+  const [selectedOption, setSelectedOption] = useState<string | 'global'>('global');
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {field.options.map((opt: string) => {
+          const count = field.distribution[opt] || 0;
+          const perc = field.count > 0 ? (count / field.count) * 100 : 0;
+          return (
+            <div
+              key={opt}
+              onClick={() => setSelectedOption(opt)}
+              className={`p-3 rounded-xl border cursor-pointer transition-all ${selectedOption === opt ? 'bg-indigo-50 border-indigo-200 ring-2 ring-indigo-500/10' : 'bg-slate-50 border-slate-100 hover:border-slate-200'}`}
+            >
+              <div className="flex justify-between items-start mb-1">
+                <p className={`text-[9px] font-black uppercase tracking-wide truncate pr-2 ${selectedOption === opt ? 'text-indigo-600' : 'text-slate-500'}`}>{opt}</p>
+                <p className="text-[10px] font-black text-slate-400">{count}</p>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <p className={`text-xl font-black ${selectedOption === opt ? 'text-indigo-700' : 'text-slate-900'}`}>{perc.toFixed(0)}%</p>
+              </div>
+              <div className="mt-2 h-1 bg-white/50 rounded-full overflow-hidden">
+                <div className={`h-full transition-all duration-1000 ${selectedOption === opt ? 'bg-indigo-500' : 'bg-slate-300'}`} style={{ width: `${perc}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-center mt-2">
+        <button
+          onClick={() => setSelectedOption('global')}
+          className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${selectedOption === 'global' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}`}
+        >
+          Vue Globale
+        </button>
+      </div>
+
+      <FieldDemographics field={field} />
     </div>
   );
 }
@@ -819,7 +873,6 @@ function RatingMiniChart({ data }: { data: any[] }) {
   );
 }
 
-
 function CustomFieldRatingBlock({ field }: { field: any }) {
   const [selectedStar, setSelectedStar] = useState<number | 'global'>('global');
 
@@ -877,84 +930,7 @@ function CustomFieldRatingBlock({ field }: { field: any }) {
         })}
       </div>
 
-      <DemographicsFull
-        stats={selectedStar === 'global' ? field.overallDemographics : field.ratingDemographics?.[selectedStar]}
-        title={selectedStar === 'global' ? 'Profil Global' : `Profil des votants ${selectedStar}★`}
-      />
-    </div>
-  );
-}
-
-function DemographicsFull({ stats, title = "Profil des répondants" }: { stats: any, title?: string }) {
-  // Check if we have ANY data (either gender counts OR age counts)
-  if (!stats) return null;
-  const hasGenderData = stats.sex.maleCount > 0 || stats.sex.femaleCount > 0;
-  const hasAgeData = Object.keys(stats.ageCounts).length > 0;
-
-  if (!hasGenderData && !hasAgeData) return (
-    <div className="pt-4 border-t border-slate-100 text-center py-4">
-      <p className="text-[10px] text-slate-400 italic">Données démographiques insuffisantes</p>
-    </div>
-  );
-
-  return (
-    <div className="pt-4 border-t border-slate-100 space-y-4">
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 bg-slate-100 rounded-md flex items-center justify-center text-slate-400">
-          <Users size={12} />
-        </div>
-        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide">{title}</span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-3">
-          <p className="text-[8px] font-black text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
-            <div className="w-1 h-2.5 bg-indigo-500 rounded-full"></div> Sexe
-          </p>
-          {hasGenderData ? (
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-bold">
-                  <span className="text-blue-600">Hommes</span>
-                  <span className="text-slate-900">{stats.sex.maleCount}</span>
-                </div>
-                <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${stats.sex.male}%` }} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-bold">
-                  <span className="text-pink-600">Femmes</span>
-                  <span className="text-slate-900">{stats.sex.femaleCount}</span>
-                </div>
-                <div className="h-1.5 bg-slate-50 rounded-full overflow-hidden">
-                  <div className="h-full bg-pink-500 transition-all duration-1000" style={{ width: `${stats.sex.female}%` }} />
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-[9px] text-slate-300 italic">Non spécifié</p>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          <p className="text-[8px] font-black text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
-            <div className="w-1 h-2.5 bg-indigo-500 rounded-full"></div> Âge
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {hasAgeData ? (
-              Object.entries(stats.ageCounts).map(([range, count]: [string, any]) => (
-                <div key={range} className="flex flex-col items-center bg-white border border-slate-100 rounded-lg px-2.5 py-1.5 hover:border-indigo-200 transition-colors">
-                  <span className="text-[8px] font-black text-slate-400 uppercase">{range}</span>
-                  <span className="text-xs font-black text-slate-900">{count}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-[9px] text-slate-300 italic">Non spécifié</p>
-            )}
-          </div>
-        </div>
-      </div>
+      <FieldDemographics field={field} />
     </div>
   );
 }

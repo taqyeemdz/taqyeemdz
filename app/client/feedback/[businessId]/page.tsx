@@ -6,6 +6,21 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, Mic, X, Square, ChevronDown } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
+const ALGERIAN_WILAYAS = [
+    "01 - Adrar", "02 - Chlef", "03 - Laghouat", "04 - Oum El Bouaghi", "05 - Batna",
+    "06 - Béjaïa", "07 - Biskra", "08 - Béchar", "09 - Blida", "10 - Bouira",
+    "11 - Tamanrasset", "12 - Tébessa", "13 - Tlemcen", "14 - Tiaret", "15 - Tizi Ouzou",
+    "16 - Alger", "17 - Djelfa", "18 - Jijel", "19 - Sétif", "20 - Saïda",
+    "21 - Skikda", "22 - Sidi Bel Abbès", "23 - Annaba", "24 - Guelma", "25 - Constantine",
+    "26 - Médéa", "27 - Mostaganem", "28 - M'Sila", "29 - Mascara", "30 - Ouargla",
+    "31 - Oran", "32 - El Bayadh", "33 - Illizi", "34 - Bordj Bou Arréridj", "35 - Boumerdès",
+    "36 - El Tarf", "37 - Tindouf", "38 - Tissemsilt", "39 - El Oued", "40 - Khenchela",
+    "41 - Souk Ahras", "42 - Tipaza", "43 - Mila", "44 - Aïn Defla", "45 - Naâma",
+    "46 - Aïn Témouchent", "47 - Ghardaïa", "48 - Relizane", "49 - Timimoun", "50 - Bordj Badji Mokhtar",
+    "51 - Ouled Djellal", "52 - Béni Abbès", "53 - In Salah", "54 - In Guezzam", "55 - Touggourt",
+    "56 - Djanet", "57 - El M'Ghair", "58 - El Meniaa"
+];
+
 export default function ClientFeedbackPage() {
     const supabase = supabaseBrowser;
     const params = useParams();
@@ -46,6 +61,7 @@ export default function ClientFeedbackPage() {
     const [email, setEmail] = useState("");
     const [sex, setSex] = useState("");
     const [ageRange, setAgeRange] = useState("");
+    const [wilaya, setWilaya] = useState("");
 
     // Custom Fields State
     const [customFields, setCustomFields] = useState<any[]>([]);
@@ -337,6 +353,11 @@ export default function ClientFeedbackPage() {
             return;
         }
 
+        if (!wilaya || wilaya === "") {
+            setError("Veuillez sélectionner votre wilaya.");
+            return;
+        }
+
         // Validate required custom fields
         for (const field of customFields) {
             if (field.required && !customResponses[field.id]) {
@@ -428,10 +449,12 @@ export default function ClientFeedbackPage() {
                 email: anonymous ? null : email || null,
                 sex: sex || null, // Always save sex, even if anonymous
                 age_range: ageRange || null, // Always save age_range, even if anonymous
+                wilaya: wilaya || null,
                 custom_responses: {
                     ...customResponses,
                     // Keep in custom_responses for backward compatibility
                     age_range: ageRange || null,
+                    wilaya: wilaya || null,
                     _media_urls: uploadedUrls // Store multiple medias here to avoid schema dependency
                 },
                 media_url: primaryMediaUrl // Backward compatibility
@@ -647,42 +670,62 @@ export default function ClientFeedbackPage() {
                             </div>
 
                             {/* ALWAYS VISIBLE DEMOGRAPHICS - UNDER NOTE GENERAL */}
-                            <div className="grid grid-cols-2 gap-3 pt-2">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
-                                        Genre <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={sex}
-                                            onChange={(e) => setSex(e.target.value)}
-                                            className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
-                                        >
-                                            <option value="">Non spécifié</option>
-                                            <option value="male">Homme</option>
-                                            <option value="female">Femme</option>
-                                        </select>
-                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            <div className="space-y-4 pt-2">
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
+                                            Genre <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={sex}
+                                                onChange={(e) => setSex(e.target.value)}
+                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Genre</option>
+                                                <option value="male">Homme</option>
+                                                <option value="female">Femme</option>
+                                            </select>
+                                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
+                                            Âge <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                value={ageRange}
+                                                onChange={(e) => setAgeRange(e.target.value)}
+                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
+                                            >
+                                                <option value="">Tranche d'âge</option>
+                                                <option value="-18">-18 ans</option>
+                                                <option value="18-24">18-24 ans</option>
+                                                <option value="25-34">25-34 ans</option>
+                                                <option value="35-44">35-44 ans</option>
+                                                <option value="45-54">45-54 ans</option>
+                                                <option value="55-64">55-64 ans</option>
+                                                <option value="65+">+65 ans</option>
+                                            </select>
+                                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
-                                        Tranche d'âge <span className="text-red-500">*</span>
+                                        Wilaya <span className="text-red-500">*</span>
                                     </label>
                                     <div className="relative">
                                         <select
-                                            value={ageRange}
-                                            onChange={(e) => setAgeRange(e.target.value)}
+                                            value={wilaya}
+                                            onChange={(e) => setWilaya(e.target.value)}
                                             className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
                                         >
-                                            <option value="">Non spécifié</option>
-                                            <option value="-18">-18 ans</option>
-                                            <option value="18-24">18 - 24 ans</option>
-                                            <option value="25-34">25 - 34 ans</option>
-                                            <option value="35-44">35 - 44 ans</option>
-                                            <option value="45-54">45 - 54 ans</option>
-                                            <option value="55-64">55 - 64 ans</option>
-                                            <option value="65+">+65 ans</option>
+                                            <option value="">Votre Wilaya</option>
+                                            {ALGERIAN_WILAYAS.map(w => (
+                                                <option key={w} value={w}>{w}</option>
+                                            ))}
                                         </select>
                                         <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                     </div>
@@ -768,8 +811,8 @@ export default function ClientFeedbackPage() {
                                                             type="button"
                                                             onClick={() => handleCustomResponseChange(field.id, opt)}
                                                             className={`px-4 py-2 rounded-lg text-xs font-semibold border transition-all ${customResponses[field.id] === opt
-                                                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200'
-                                                                    : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200'
+                                                                : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
                                                                 }`}
                                                         >
                                                             {opt}
