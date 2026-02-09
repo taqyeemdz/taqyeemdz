@@ -216,8 +216,8 @@ export default function OwnerBusinessDetailsPage() {
 
     if (!business) return null;
 
-    // Use encoded business name
-    const feedbackLink = `${window.location.origin}/client/feedback/${encodeURIComponent(business.name)}`;
+    // Use business ID for the link to ensure uniqueness and stability
+    const feedbackLink = `${window.location.origin}/client/feedback/${business.id}`;
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(feedbackLink);
