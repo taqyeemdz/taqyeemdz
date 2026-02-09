@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, Mic, X, Square, ChevronDown } from "lucide-react";
+import { Star, Send, CheckCircle2, User, Phone, Mail, MessageSquare, Camera, Video, Mic, X, Square, ChevronDown } from "lucide-react";
 import imageCompression from 'browser-image-compression';
 
 const ALGERIAN_WILAYAS = [
@@ -193,9 +193,9 @@ export default function ClientFeedbackPage() {
                 }
 
                 setBusiness(localBusiness);
-                setAllowPhoto(!!(planPerms.allow_photo && localBusiness.allow_photo === true));
-                setAllowVideo(!!(planPerms.allow_video && localBusiness.allow_video === true));
-                setAllowAudio(!!(planPerms.allow_audio && localBusiness.allow_audio === true));
+                setAllowPhoto(!!(planPerms.allow_photo && localBusiness.allow_photo));
+                setAllowVideo(!!(planPerms.allow_video && localBusiness.allow_video));
+                setAllowAudio(!!(planPerms.allow_audio && localBusiness.allow_audio));
 
                 setLoading(false);
 
@@ -240,8 +240,15 @@ export default function ClientFeedbackPage() {
         const newPreviews: string[] = [];
 
         files.forEach(file => {
-            if (file.size > 20 * 1024 * 1024) {
-                setError(`File ${file.name} is too large (max 20MB)`);
+            const isVideo = file.type.startsWith('video');
+            const limit = 20 * 1024 * 1024; // 20MB
+
+            if (file.size > limit) {
+                if (isVideo) {
+                    setError("Attention : la vidéo dépasse la limite de 20Mo.");
+                } else {
+                    setError(`Le fichier "${file.name}" est trop lourd (max 20Mo).`);
+                }
                 return;
             }
             validFiles.push(file);
@@ -670,64 +677,67 @@ export default function ClientFeedbackPage() {
                             </div>
 
                             {/* ALWAYS VISIBLE DEMOGRAPHICS - UNDER NOTE GENERAL */}
-                            <div className="space-y-4 pt-2">
-                                <div className="grid grid-cols-2 gap-3">
+                            <div className="pt-2">
+                                <div className="grid grid-cols-3 gap-2">
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
+                                        <label className="text-[9px] font-bold uppercase text-gray-400 tracking-wider ml-1">
                                             Genre <span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
                                             <select
+                                                id="sex-select"
                                                 value={sex}
                                                 onChange={(e) => setSex(e.target.value)}
-                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
+                                                className="block w-full px-2 py-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer pr-6"
                                             >
                                                 <option value="">Genre</option>
-                                                <option value="male">Homme</option>
-                                                <option value="female">Femme</option>
+                                                <option value="male">H</option>
+                                                <option value="female">F</option>
                                             </select>
-                                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                         </div>
                                     </div>
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
+                                        <label className="text-[9px] font-bold uppercase text-gray-400 tracking-wider ml-1">
                                             Âge <span className="text-red-500">*</span>
                                         </label>
                                         <div className="relative">
                                             <select
+                                                id="age-select"
                                                 value={ageRange}
                                                 onChange={(e) => setAgeRange(e.target.value)}
-                                                className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
+                                                className="block w-full px-2 py-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer pr-6"
                                             >
-                                                <option value="">Tranche d'âge</option>
-                                                <option value="-18">-18 ans</option>
-                                                <option value="18-24">18-24 ans</option>
-                                                <option value="25-34">25-34 ans</option>
-                                                <option value="35-44">35-44 ans</option>
-                                                <option value="45-54">45-54 ans</option>
-                                                <option value="55-64">55-64 ans</option>
-                                                <option value="65+">+65 ans</option>
+                                                <option value="">Âge</option>
+                                                <option value="-18">-18</option>
+                                                <option value="18-24">18-24</option>
+                                                <option value="25-34">25-34</option>
+                                                <option value="35-44">35-44</option>
+                                                <option value="45-54">45-54</option>
+                                                <option value="55-64">55-64</option>
+                                                <option value="65+">+65</option>
                                             </select>
-                                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                         </div>
                                     </div>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1">
-                                        Wilaya <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={wilaya}
-                                            onChange={(e) => setWilaya(e.target.value)}
-                                            className="block w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer"
-                                        >
-                                            <option value="">Votre Wilaya</option>
-                                            {ALGERIAN_WILAYAS.map(w => (
-                                                <option key={w} value={w}>{w}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-bold uppercase text-gray-400 tracking-wider ml-1">
+                                            Wilaya <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                id="wilaya-select"
+                                                value={wilaya}
+                                                onChange={(e) => setWilaya(e.target.value)}
+                                                className="block w-full px-2 py-2 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-slate-500 focus:border-slate-500 outline-none transition-all bg-gray-50 focus:bg-white appearance-none cursor-pointer pr-6"
+                                            >
+                                                <option value="">Wilaya</option>
+                                                {ALGERIAN_WILAYAS.map(w => (
+                                                    <option key={w} value={w}>{w.split(' - ')[0]}</option>
+                                                ))}
+                                            </select>
+                                            <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -736,6 +746,142 @@ export default function ClientFeedbackPage() {
 
                         {/* 3. MESSAGE & EXTRAS */}
                         <div className="space-y-4 pt-2">
+                            {/* MEDIA UPLOAD SECTION - MOVED UP FOR BETTER VISIBILITY */}
+                            {(allowPhoto || allowVideo || allowAudio) && (
+                                <div className="space-y-4 pt-4 border-t border-gray-100">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold uppercase text-gray-400 tracking-wider ml-1 flex items-center gap-1.5">
+                                            <Camera size={12} className="text-indigo-400" />
+                                            Medias
+                                        </label>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {mediaFiles.length < 4 ? (
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {/* PHOTO UPLOAD */}
+                                                {allowPhoto && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-tighter">Max 20Mo</span>
+                                                        <input
+                                                            type="file"
+                                                            multiple
+                                                            accept="image/*"
+                                                            onChange={handleMediaChange}
+                                                            className="hidden"
+                                                            id="photo-upload"
+                                                        />
+                                                        <label
+                                                            htmlFor="photo-upload"
+                                                            className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white hover:border-indigo-400 transition-all group aspect-square shadow-sm active:scale-[0.98]"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-white text-indigo-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-50 transition-all mb-1 shadow-sm border border-indigo-50">
+                                                                <Camera size={16} />
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-600 text-center truncate w-full">
+                                                                Photos
+                                                                {business.require_photo && <span className="text-red-500 ml-0.5">*</span>}
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                )}
+
+                                                {/* VIDEO UPLOAD */}
+                                                {allowVideo && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-tighter">Max 20Mo</span>
+                                                        <input
+                                                            type="file"
+                                                            multiple
+                                                            accept="video/*"
+                                                            onChange={handleMediaChange}
+                                                            className="hidden"
+                                                            id="video-upload"
+                                                        />
+                                                        <label
+                                                            htmlFor="video-upload"
+                                                            className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white hover:border-amber-400 transition-all group aspect-square shadow-sm active:scale-[0.98]"
+                                                        >
+                                                            <div className="w-8 h-8 rounded-full bg-white text-amber-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-50 transition-all mb-1 shadow-sm border border-amber-50">
+                                                                <Video size={16} />
+                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-600 text-center truncate w-full">
+                                                                Vidéos
+                                                                {business.require_video && <span className="text-red-500 ml-0.5">*</span>}
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                )}
+
+                                                {/* AUDIO RECORDING */}
+                                                {allowAudio && (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-tighter">30 sec</span>
+                                                        {!isRecording ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={startRecording}
+                                                                className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-xl bg-slate-50/50 hover:bg-white hover:border-rose-400 transition-all group aspect-square shadow-sm active:scale-[0.98]"
+                                                            >
+                                                                <div className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-rose-50 transition-all mb-1 shadow-sm border border-rose-50">
+                                                                    <Mic size={16} />
+                                                                </div>
+                                                                <span className="text-[10px] font-bold text-slate-600 text-center truncate w-full">
+                                                                    Vocal
+                                                                    {business.require_audio && <span className="text-red-500 ml-0.5">*</span>}
+                                                                </span>
+                                                            </button>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center p-2 border-2 border-rose-500 bg-rose-50 rounded-xl shadow-lg shadow-rose-100 animate-pulse cursor-pointer aspect-square" onClick={stopRecording}>
+                                                                <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center mb-1 shadow-lg shadow-rose-200">
+                                                                    <Square size={10} fill="currentColor" />
+                                                                </div>
+                                                                <span className="text-[9px] font-black text-rose-600 font-mono tracking-tighter">
+                                                                    00:{recordingTime < 10 ? `0${recordingTime}` : recordingTime}
+                                                                </span>
+                                                                <span className="text-[7px] text-rose-400 uppercase font-black">STOP</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl text-center">
+                                                <p className="text-xs font-bold text-amber-600">Limite de 4 médias atteinte.</p>
+                                            </div>
+                                        )}
+
+                                        {/* PREVIEWS LIST */}
+                                        {mediaFiles.length > 0 && (
+                                            <div className="grid grid-cols-4 gap-3 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+                                                {mediaFiles.map((file, idx) => (
+                                                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-white bg-white shadow-sm group">
+                                                        {file.type.startsWith('video') ? (
+                                                            <div className="w-full h-full flex items-center justify-center text-gray-500 bg-slate-100">
+                                                                <span className="text-[9px] font-black uppercase">Vidéo</span>
+                                                            </div>
+                                                        ) : file.type.startsWith('audio') ? (
+                                                            <div className="w-full h-full flex flex-col items-center justify-center text-rose-500 bg-rose-50">
+                                                                <Mic size={14} />
+                                                                <span className="text-[8px] mt-0.5 font-black uppercase">Audio</span>
+                                                            </div>
+                                                        ) : (
+                                                            <img src={mediaPreviews[idx]} alt="Preview" className="w-full h-full object-cover" />
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeMedia(idx)}
+                                                            className="absolute top-1 right-1 bg-white shadow-md p-1.5 rounded-full text-rose-500 hover:bg-rose-50 transition-colors"
+                                                        >
+                                                            <X size={10} strokeWidth={3} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* CUSTOM FORM FIELDS */}
                             {customFields.length > 0 && (
                                 <div className="space-y-3">
@@ -828,104 +974,6 @@ export default function ClientFeedbackPage() {
                         </div>
 
 
-                        {/* MEDIA UPLOAD SECTION */}
-                        {(allowPhoto || allowVideo || allowAudio) && (
-                            <div className="space-y-4">
-                                {mediaFiles.length < 4 ? (
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {/* PHOTO / VIDEO UPLOAD */}
-                                        {(allowPhoto || allowVideo) && (
-                                            <div className="relative">
-                                                <input
-                                                    type="file"
-                                                    multiple
-                                                    accept={`${allowPhoto ? 'image/*' : ''}${allowPhoto && allowVideo ? ',' : ''}${allowVideo ? 'video/*' : ''}`}
-                                                    onChange={handleMediaChange}
-                                                    className="hidden"
-                                                    id="media-upload"
-                                                />
-                                                <label
-                                                    htmlFor="media-upload"
-                                                    className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 hover:border-indigo-300 transition-all group h-full min-h-[100px]"
-                                                >
-                                                    <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
-                                                        <Camera size={20} />
-                                                    </div>
-                                                    <span className="text-xs font-medium text-gray-500 text-center">
-                                                        {allowPhoto && allowVideo ? "Photos/Vidéos" : allowPhoto ? "Photos" : "Vidéos"}
-                                                        {((allowPhoto && business.require_photo) || (allowVideo && business.require_video)) && <span className="text-red-500 ml-1">*</span>}
-                                                    </span>
-                                                </label>
-                                            </div>
-                                        )}
-
-                                        {/* AUDIO RECORDING */}
-                                        {allowAudio && (
-                                            <div className="relative">
-                                                {!isRecording ? (
-                                                    <button
-                                                        type="button"
-                                                        onClick={startRecording}
-                                                        className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-200 rounded-xl hover:bg-gray-50 hover:border-rose-300 transition-all group"
-                                                    >
-                                                        <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center group-hover:scale-110 transition-transform mb-2">
-                                                            <Mic size={20} />
-                                                        </div>
-                                                        <span className="text-xs font-medium text-gray-500">
-                                                            Audio Vocal
-                                                            {business.require_audio && <span className="text-red-500 ml-1">*</span>}
-                                                        </span>
-                                                    </button>
-                                                ) : (
-                                                    <div className="w-full h-full min-h-[100px] flex flex-col items-center justify-center p-4 border-2 border-rose-500 bg-rose-50 rounded-xl animate-pulse cursor-pointer" onClick={stopRecording}>
-                                                        <div className="w-10 h-10 rounded-full bg-rose-500 text-white flex items-center justify-center mb-2 shadow-lg shadow-rose-200">
-                                                            <Square size={16} fill="currentColor" />
-                                                        </div>
-                                                        <span className="text-xs font-bold text-rose-600 font-mono">
-                                                            00:{recordingTime < 10 ? `0${recordingTime}` : recordingTime} / 00:30
-                                                        </span>
-                                                        <span className="text-[10px] text-rose-400 mt-1">Stop</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-center">
-                                        <p className="text-[11px] font-medium text-amber-600">Limite de 4 médias atteinte. Supprimez-en un pour en ajouter un autre.</p>
-                                    </div>
-                                )}
-
-                                {/* PREVIEWS LIST */}
-                                {mediaFiles.length > 0 && (
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                        {mediaFiles.map((file, idx) => (
-                                            <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 bg-black/5 group">
-                                                {file.type.startsWith('video') ? (
-                                                    <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gray-100">
-                                                        <span className="text-[10px] font-bold uppercase">Vidéo</span>
-                                                    </div>
-                                                ) : file.type.startsWith('audio') ? (
-                                                    <div className="w-full h-full flex flex-col items-center justify-center text-rose-500 bg-rose-50">
-                                                        <Mic size={16} />
-                                                        <span className="text-[9px] mt-1 font-bold">Audio</span>
-                                                    </div>
-                                                ) : (
-                                                    <img src={mediaPreviews[idx]} alt="Preview" className="w-full h-full object-cover" />
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeMedia(idx)}
-                                                    className="absolute top-1 right-1 bg-white/90 p-1 rounded-full text-red-500 shadow-sm hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
 
                         {/* CONSENT CHECKBOX */}
                         <div className="flex items-start gap-3 p-2">
@@ -963,14 +1011,14 @@ export default function ClientFeedbackPage() {
                             <Send size={18} />
                         </button>
                     </form>
-                </div>
+                </div >
 
 
                 <p className="text-center text-xs text-gray-400">
                     Powered by Jobber
                 </p>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
