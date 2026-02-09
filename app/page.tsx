@@ -60,7 +60,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center gap-2">
-              <div className="relative w-48 h-12">
+              <div className="relative w-64 h-16">
                 <Image
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
                   alt="Feedback by Jobber Logo"

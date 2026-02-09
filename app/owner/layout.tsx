@@ -117,7 +117,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         <div className={`h-16 flex items-center justify-between px-4 border-b border-slate-100/60 ${!sidebarOpen && 'px-2'}`}>
           {sidebarOpen ? (
             <div className="flex items-center gap-2 font-bold text-xl tracking-tight px-2">
-              <div className="relative w-32 h-10">
+              <div className="relative w-48 h-12">
                 <Image
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
                   alt="Logo"
@@ -141,21 +141,11 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-colors ${!sidebarOpen && 'hidden'}`}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-colors shrink-0"
           >
-            <ChevronLeft size={18} />
+            {sidebarOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
           </button>
         </div>
-
-        {/* Collapsed Toggle */}
-        {!sidebarOpen && (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="mx-auto mt-4 p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-colors"
-          >
-            <ChevronRight size={20} />
-          </button>
-        )}
 
         {/* Navigation */}
         <nav className={`flex-1 py-6 px-3 space-y-1.5 overflow-y-auto no-scrollbar ${!sidebarOpen ? 'flex flex-col items-center' : ''}`}>
@@ -172,7 +162,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                   flex transition-all duration-200 group relative w-full
                   ${sidebarOpen
                     ? "items-center gap-3 px-3 py-2.5 rounded-xl"
-                    : "flex-col items-center justify-center py-3 rounded-xl gap-1"
+                    : "items-center justify-center p-3 rounded-xl"
                   }
                   ${isActive
                     ? "bg-slate-900 text-white font-medium shadow-xl shadow-slate-200"
@@ -181,19 +171,22 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                       : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                   }
                 `}
-                title={!sidebarOpen ? "" : label}
               >
-                <Icon size={sidebarOpen ? 20 : 22} className={`${isActive ? "text-indigo-400" : (isLocked ? "text-slate-300" : "text-slate-400 group-hover:text-slate-900")} shrink-0 transition-colors`} />
+                <Icon size={18} className={`${isActive ? "text-indigo-400" : (isLocked ? "text-slate-300" : "text-slate-400 group-hover:text-slate-900")} shrink-0 transition-colors`} />
 
-                {sidebarOpen ? (
+                {!sidebarOpen && (
+                  <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold rounded-xl opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100] shadow-2xl flex items-center gap-2">
+                    {label}
+                    {isLocked && <Lock size={10} className="text-slate-400" />}
+                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-[6px] border-transparent border-r-slate-900" />
+                  </div>
+                )}
+
+                {sidebarOpen && (
                   <div className="flex items-center justify-between flex-1">
                     <span className="text-sm tracking-tight">{label}</span>
                     {isLocked && <Lock size={12} className="text-slate-300" />}
                   </div>
-                ) : (
-                  <span className={`text-[9px] font-bold uppercase tracking-tighter transition-opacity ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-900'}`}>
-                    {label.split(' ')[0]}
-                  </span>
                 )}
               </Link>
             );
@@ -205,7 +198,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
           {sidebarOpen ? (
             <div className="flex items-center gap-3 p-1.5 bg-slate-50 rounded-2xl border border-slate-100/50">
               <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-400 shadow-sm">
-                <User size={20} />
+                <User size={18} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-900 truncate uppercase tracking-tight">{user?.full_name?.split(' ')[0] || "Propriétaire"}</p>
@@ -230,7 +223,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
       {/* ================= MOBILE NAV ================= */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200/60 h-20 flex items-center justify-between px-6">
         <div className="flex items-center">
-          <div className="relative w-32 h-10">
+          <div className="relative w-48 h-12">
             <Image
               src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
               alt="Logo"
@@ -248,74 +241,76 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
       </div>
 
       {/* MOBILE DRAWER */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-[100] flex">
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setMobileMenuOpen(false)} />
+      {
+        mobileMenuOpen && (
+          <div className="md:hidden fixed inset-0 z-[100] flex">
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md" onClick={() => setMobileMenuOpen(false)} />
 
-          <div className="relative bg-white w-[85%] max-w-sm h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-500">
-            <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100">
-              <span className="font-bold text-slate-900 uppercase tracking-widest text-[10px]">Menu Navigation</span>
-              <button
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-10 h-10 bg-slate-50 flex items-center justify-center text-slate-400 rounded-xl"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            <div className="relative bg-white w-[85%] max-w-sm h-full shadow-2xl flex flex-col animate-in slide-in-from-left duration-500">
+              <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100">
+                <span className="font-bold text-slate-900 uppercase tracking-widest text-[10px]">Menu Navigation</span>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-10 h-10 bg-slate-50 flex items-center justify-center text-slate-400 rounded-xl"
+                >
+                  <X size={20} />
+                </button>
+              </div>
 
-            <nav className="flex-1 py-10 px-6 space-y-2">
-              {links.map(({ href, label, icon: Icon, locked }) => {
-                const isActive = href === "/owner" ? pathname === "/owner" : pathname?.startsWith(href);
-                const isLocked = locked;
+              <nav className="flex-1 py-10 px-6 space-y-2">
+                {links.map(({ href, label, icon: Icon, locked }) => {
+                  const isActive = href === "/owner" ? pathname === "/owner" : pathname?.startsWith(href);
+                  const isLocked = locked;
 
-                return (
-                  <Link
-                    key={href}
-                    href={isLocked ? "#" : href}
-                    onClick={(e) => {
-                      if (isLocked) e.preventDefault();
-                      else setMobileMenuOpen(false);
-                    }}
-                    className={`
+                  return (
+                    <Link
+                      key={href}
+                      href={isLocked ? "#" : href}
+                      onClick={(e) => {
+                        if (isLocked) e.preventDefault();
+                        else setMobileMenuOpen(false);
+                      }}
+                      className={`
                                     flex items-center gap-4 px-4 py-4 rounded-2xl transition-all
                                     ${isActive
-                        ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                        : isLocked
-                          ? "opacity-40 cursor-not-allowed"
-                          : "text-slate-600 hover:bg-slate-50"
-                      }
+                          ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                          : isLocked
+                            ? "opacity-40 cursor-not-allowed"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }
                                 `}
-                  >
-                    <Icon size={20} className={isLocked ? "text-slate-300" : ""} />
-                    <div className="flex items-center justify-between flex-1">
-                      <span className="text-sm font-semibold">{label}</span>
-                      {isLocked && <Lock size={12} className="text-slate-300" />}
-                    </div>
-                  </Link>
-                );
-              })}
-            </nav>
+                    >
+                      <Icon size={20} className={isLocked ? "text-slate-300" : ""} />
+                      <div className="flex items-center justify-between flex-1">
+                        <span className="text-sm font-semibold">{label}</span>
+                        {isLocked && <Lock size={12} className="text-slate-300" />}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </nav>
 
-            <div className="p-8 border-t border-slate-100 bg-slate-50/50">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 shadow-sm">
-                  <User size={24} />
+              <div className="p-8 border-t border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 bg-white border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400 shadow-sm">
+                    <User size={24} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate uppercase tracking-tight">{user?.full_name}</p>
+                    <p className="text-[10px] text-slate-400 truncate opacity-70 tracking-tight">{user?.email}</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-slate-900 truncate uppercase tracking-tight">{user?.full_name}</p>
-                  <p className="text-[10px] text-slate-400 truncate opacity-70 tracking-tight">{user?.email}</p>
-                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full h-14 flex items-center justify-center gap-3 bg-white border border-red-100 text-red-600 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={18} /> Déconnexion
+                </button>
               </div>
-              <button
-                onClick={handleLogout}
-                className="w-full h-14 flex items-center justify-center gap-3 bg-white border border-red-100 text-red-600 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-sm hover:bg-red-50 transition-colors"
-              >
-                <LogOut size={18} /> Déconnexion
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
 
       {/* ================= MAIN CONTENT ================= */}
@@ -381,6 +376,6 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         </div>
       </main>
 
-    </div>
+    </div >
   );
 }

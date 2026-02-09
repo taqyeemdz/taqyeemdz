@@ -12,8 +12,12 @@ import {
   Phone,
   Mail,
   Loader2,
+  MoreVertical,
+  Trash2,
+  Eye,
   Filter
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function OwnersListPage() {
   const router = useRouter();
@@ -21,51 +25,118 @@ export default function OwnersListPage() {
   const [loading, setLoading] = useState(true);
   const [owners, setOwners] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterName, setFilterName] = useState("");
+  const [filterEmail, setFilterEmail] = useState("");
+  const [filterPhone, setFilterPhone] = useState("");
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedPlan, setSelectedPlan] = useState<string>("all");
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const fetchOwners = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*, subscription_plans:plan_id(name, billing_period)")
+        .eq("role", "owner")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch auth emails
+      let emailMap: Record<string, string> = {};
+      try {
+        const res = await fetch("/api/admin/owners/list-emails");
+        const emailData = await res.json();
+        if (emailData.emails) emailMap = emailData.emails;
+      } catch (e) { }
+
+      const merged = (data || []).map((o: any) => ({
+        ...o,
+        email: o.email || emailMap[o.id] || "—",
+        plan_name: o.subscription_plans?.name || "Standard",
+        billing_period: o.subscription_plans?.billing_period || "monthly"
+      }));
+
+      setOwners(merged);
+    } catch (err) {
+      console.error("Error loading owners:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPlans = async () => {
+    const { data } = await supabase
+      .from("subscription_plans")
+      .select("name")
+      .eq("is_active", true);
+
+    if (data) {
+      const uniqueNames = Array.from(new Set(data.map(p => p.name)));
+      setPlans(uniqueNames);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*, subscription_plans:plan_id(name, billing_period)")
-          .eq("role", "owner")
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-
-        // Fetch auth emails
-        let emailMap: Record<string, string> = {};
-        try {
-          const res = await fetch("/api/admin/owners/list-emails");
-          const emailData = await res.json();
-          if (emailData.emails) emailMap = emailData.emails;
-        } catch (e) { }
-
-        const merged = (data || []).map((o: any) => ({
-          ...o,
-          email: o.email || emailMap[o.id] || "—",
-          plan_name: o.subscription_plans?.name || "Standard",
-          billing_period: o.subscription_plans?.billing_period || "monthly"
-        }));
-
-        setOwners(merged);
-      } catch (err) {
-        console.error("Error loading owners:", err);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    fetchOwners();
+    fetchPlans();
+    // Close menu on click outside
+    const handleOutsideClick = () => setOpenMenu(null);
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
   }, [supabase]);
+
+  const handleDeleteOwner = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce propriétaire ? Cette action est irréversible et supprimera tout l'accès et les données associées.")) return;
+
+    setIsDeleting(id);
+    try {
+      const res = await fetch("/api/admin/owners/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id })
+      });
+
+      if (!res.ok) throw new Error("Erreur lors de la suppression");
+
+      toast.success("Propriétaire supprimé avec succès");
+      fetchOwners();
+    } catch (err) {
+      toast.error("Échec de la suppression");
+    } finally {
+      setIsDeleting(null);
+      setOpenMenu(null);
+    }
+  };
 
   const filtered = owners.filter((o) => {
     const s = search.toLowerCase();
-    return (
+    const matchesGlobal = !search ||
       (o.full_name?.toLowerCase() || "").includes(s) ||
       (o.email?.toLowerCase() || "").includes(s) ||
-      (o.phone || "").includes(search)
-    );
+      (o.phone || "").includes(search);
+
+    const matchesName = !filterName || (o.full_name?.toLowerCase() || "").includes(filterName.toLowerCase());
+    const matchesEmail = !filterEmail || (o.email?.toLowerCase() || "").includes(filterEmail.toLowerCase());
+    const matchesPhone = !filterPhone || (o.phone || "").includes(filterPhone);
+    const matchesPlan = selectedPlan === "all" || o.plan_name === selectedPlan;
+
+    return matchesGlobal && matchesName && matchesEmail && matchesPhone && matchesPlan;
   });
+
+  const resetFilters = () => {
+    setFilterName("");
+    setFilterEmail("");
+    setFilterPhone("");
+    setSelectedPlan("all");
+    setSearch("");
+  };
+
+  const hasActiveFilters = filterName || filterEmail || filterPhone || selectedPlan !== "all";
 
   return (
     <div className="max-w-6xl mx-auto p-8 space-y-10">
@@ -85,20 +156,94 @@ export default function OwnersListPage() {
         </button>
       </div>
 
-      {/* minimal search & utility bar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher..."
-            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:border-slate-400 transition-colors"
-          />
+      <div className="space-y-4">
+        {/* Search bar & Filter Toggle */}
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Recherche rapide..."
+              className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:border-slate-400 transition-colors"
+            />
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all text-sm font-medium ${showFilters || hasActiveFilters
+              ? 'bg-slate-900 border-slate-900 text-white'
+              : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+          >
+            <Filter size={16} />
+            <span>Filtres</span>
+            {hasActiveFilters && (
+              <span className="ml-1 px-1.5 py-0.5 bg-white/20 rounded text-[10px]">!</span>
+            )}
+          </button>
         </div>
-        <button className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
-          <Filter size={16} />
-        </button>
+
+        {/* Expandable Filter Panel */}
+        {showFilters && (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Nom</label>
+              <input
+                value={filterName}
+                onChange={(e) => setFilterName(e.target.value)}
+                placeholder="Filtrer par nom..."
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Email</label>
+              <input
+                value={filterEmail}
+                onChange={(e) => setFilterEmail(e.target.value)}
+                placeholder="Filtrer par email..."
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Téléphone</label>
+              <input
+                value={filterPhone}
+                onChange={(e) => setFilterPhone(e.target.value)}
+                placeholder="Filtrer par téléphone..."
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Plan</label>
+              <div className="relative">
+                <select
+                  value={selectedPlan}
+                  onChange={(e) => setSelectedPlan(e.target.value)}
+                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-slate-400 appearance-none cursor-pointer pr-10"
+                >
+                  <option value="all">Tous les plans</option>
+                  {plans.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                <MoreVertical size={14} className="absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="md:col-span-4 flex justify-end pt-2">
+              <button
+                onClick={resetFilters}
+                className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-widest flex items-center gap-2"
+              >
+                <Trash2 size={12} />
+                Réinitialiser les filtres
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* minimal table */}
@@ -122,7 +267,7 @@ export default function OwnersListPage() {
                   <th className="px-6 py-4 hidden md:table-cell text-center">Téléphone</th>
                   <th className="px-6 py-4 text-center">Plan</th>
                   <th className="px-6 py-4 text-center">Statut</th>
-                  <th className="px-6 py-4 text-right"></th>
+                  <th className="px-6 py-4 text-right">Options</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -174,8 +319,42 @@ export default function OwnersListPage() {
                         {o.is_active ? 'Actif' : 'Inactif'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <ChevronRight size={16} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-1" />
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setOpenMenu(openMenu === o.id ? null : o.id);
+                          }}
+                          className="p-2 hover:bg-slate-200/50 rounded-lg transition-colors text-slate-400"
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+
+                        {openMenu === o.id && (
+                          <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                            <button
+                              onClick={() => router.push(`/admin/owners/${o.id}`)}
+                              className="w-full px-4 py-2.5 text-left text-xs font-medium text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                            >
+                              <Eye size={14} className="text-slate-400" />
+                              Voir détails
+                            </button>
+                            <button
+                              disabled={isDeleting === o.id}
+                              onClick={(e) => handleDeleteOwner(e, o.id)}
+                              className="w-full px-4 py-2.5 text-left text-xs font-medium text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-slate-50"
+                            >
+                              {isDeleting === o.id ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
+                              Supprimer
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

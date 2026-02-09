@@ -25,6 +25,8 @@ import {
     Plus,
     MessageSquare,
     Mic,
+    Camera,
+    Video,
     Image as ImageIcon,
     AudioLines,
     Play,
@@ -912,11 +914,37 @@ function FeedbackRow({ feedback, onClick }: { feedback: any, onClick: () => void
                 </div>
             </div>
 
-            {/* Name */}
-            <div className="w-24 sm:w-32 shrink-0">
-                <p className="text-xs font-bold text-slate-700 truncate">
+            {/* Name & Media Indicators */}
+            <div className="flex-1 min-w-0 flex items-center gap-3">
+                <p className="text-xs font-bold text-slate-700 truncate max-w-[120px]">
                     {feedback.anonymous ? "Anonyme" : feedback.full_name || "Client"}
                 </p>
+
+                {/* Media Indicators */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                    {(() => {
+                        const params = feedback.custom_responses || {};
+                        const medias = params._media_urls && Array.isArray(params._media_urls)
+                            ? params._media_urls
+                            : feedback.media_urls && Array.isArray(feedback.media_urls)
+                                ? feedback.media_urls
+                                : feedback.media_url ? [feedback.media_url] : [];
+
+                        if (medias.length === 0) return null;
+
+                        const hasAudio = medias.some((url: string) => isAudio(url));
+                        const hasVideo = medias.some((url: string) => isVideo(url));
+                        const hasPhoto = medias.some((url: string) => !isAudio(url) && !isVideo(url));
+
+                        return (
+                            <>
+                                {hasPhoto && <Camera size={12} className="text-indigo-400" />}
+                                {hasVideo && <Video size={12} className="text-amber-400" />}
+                                {hasAudio && <Mic size={12} className="text-rose-400" />}
+                            </>
+                        );
+                    })()}
+                </div>
             </div>
 
             {/* Date */}
@@ -936,8 +964,9 @@ function FeedbackDetailsModal({ feedback, formConfig, onClose }: { feedback: any
     // Helper to find label
     const getLabel = (key: string) => {
         if (key === 'age_range') return "Tranche d'âge";
+        if (key === 'wilaya') return "Wilaya";
         const field = formConfig?.find(f => f.id === key);
-        return field ? field.label : "Question personnalisée";
+        return field ? field.label : "Wilaya";
     };
 
     // Filter relevant responses to show
