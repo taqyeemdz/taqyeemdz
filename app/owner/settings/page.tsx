@@ -9,7 +9,8 @@ import {
   Mail,
   Loader2,
   Save,
-  Zap
+  Zap,
+  Camera
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -25,6 +26,8 @@ export default function SettingsPage() {
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
   const [ownerPlan, setOwnerPlan] = useState<any>(null);
   const [businesses, setBusinesses] = useState<any[]>([]);
+
+  const [uploading, setUploading] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -102,6 +105,42 @@ export default function SettingsPage() {
     setSaving(false);
   }
 
+  async function handleUploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    try {
+      if (!e.target.files || e.target.files.length === 0) return;
+      setUploading(true);
+
+      const file = e.target.files[0];
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${ownerProfile.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("profiles")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("profiles")
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", ownerProfile.id);
+
+      if (updateError) throw updateError;
+
+      setOwnerProfile({ ...ownerProfile, avatar_url: publicUrl });
+      toast.success("Avatar mis à jour avec succès !");
+    } catch (error: any) {
+      toast.error("Erreur lors de l'upload: " + error.message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -122,12 +161,48 @@ export default function SettingsPage() {
         {/* Left Side: Profile Form */}
         <div className="lg:col-span-7 space-y-10">
           <div className="space-y-6">
-            <div className="flex items-center gap-3 text-slate-900">
+            <div className="flex items-center gap-3 text-slate-900 border-b border-slate-50 pb-4">
               <User size={18} className="text-slate-400" />
               <h2 className="text-sm font-bold uppercase tracking-widest">Informations Personnelles</h2>
             </div>
 
-            <form onSubmit={handleSaveProfile} className="space-y-8">
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center sm:flex-row gap-6 pb-6 border-b border-slate-50">
+              <div className="relative group">
+                <div className="w-24 h-24 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center relative shadow-sm">
+                  {ownerProfile?.avatar_url ? (
+                    <img
+                      src={ownerProfile.avatar_url}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={32} className="text-slate-300" />
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                      <Loader2 className="animate-spin text-slate-900" size={20} />
+                    </div>
+                  )}
+                </div>
+                <label className="absolute -bottom-2 -right-2 p-2 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-all active:scale-95">
+                  <Camera size={14} className="text-slate-600" />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleUploadAvatar}
+                    disabled={uploading}
+                  />
+                </label>
+              </div>
+              <div className="text-center sm:text-left">
+                <h3 className="text-sm font-bold text-slate-900">Avatar / Logo</h3>
+                <p className="text-xs text-slate-500 mt-1">PNG, JPG ou GIF. Max 2MB.</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveProfile} className="space-y-8 pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Nom Complet</label>

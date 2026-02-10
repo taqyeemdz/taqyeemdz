@@ -103,7 +103,7 @@ export default function ClientFeedbackPage() {
         const loadBusiness = async () => {
             setLoading(true);
             try {
-                const decodedId = decodeURIComponent(identifier);
+                const decodedId = decodeURIComponent(identifier).trim();
                 let localBusiness = null;
                 let userId: string | null = null;
 

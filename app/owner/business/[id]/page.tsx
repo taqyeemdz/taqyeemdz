@@ -433,7 +433,7 @@ export default function OwnerBusinessDetailsPage() {
                                     {/* QR Code - Minimalist */}
                                     <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex items-center gap-6">
                                         <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 shrink-0">
-                                            <QRCodeSVG id="qr-code-svg" value={feedbackLink} size={80} level="M" />
+                                            <QRCodeSVG id="qr-code-svg" value={feedbackLink} size={120} level="H" />
                                         </div>
                                         <div className="space-y-3 flex-1">
                                             <div>
