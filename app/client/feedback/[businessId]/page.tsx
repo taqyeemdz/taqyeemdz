@@ -171,25 +171,15 @@ export default function ClientFeedbackPage() {
                 }
 
                 let planPerms = { allow_photo: false, allow_video: false, allow_audio: false };
-                const planToUse = localBusiness.plan_id;
+                const planIdToUse = localBusiness.plan_id;
 
-                if (planToUse) {
+                if (planIdToUse) {
                     const { data: plan } = await supabase
                         .from("subscription_plans")
                         .select("allow_photo, allow_video, allow_audio")
-                        .eq("id", planToUse)
+                        .eq("id", planIdToUse)
                         .single();
                     if (plan) planPerms = plan;
-                } else if (userId) {
-                    const { data: profile } = await supabase.from('profiles').select('plan_id').eq('id', userId).single();
-                    if (profile?.plan_id) {
-                        const { data: plan } = await supabase
-                            .from("subscription_plans")
-                            .select("allow_photo, allow_video, allow_audio")
-                            .eq("id", profile.plan_id)
-                            .single();
-                        if (plan) planPerms = plan;
-                    }
                 }
 
                 setBusiness(localBusiness);

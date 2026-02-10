@@ -70,14 +70,15 @@ export async function POST(request: Request) {
     }
 
     // ------------------------------
-    // 6️⃣ Check subscription limits
+    // 6️⃣ Check subscription limits & Get Plan ID
     // ------------------------------
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("subscription_plans(max_businesses)")
+      .select("plan_id, subscription_plans(max_businesses)")
       .eq("id", user.id)
       .single();
 
+    const planId = profile?.plan_id;
     const maxBusinesses = (profile?.subscription_plans as any)?.max_businesses || 0;
 
     const { count: currentBusinesses } = await supabaseAdmin
@@ -107,6 +108,7 @@ export async function POST(request: Request) {
           category: body.category,
           description: body.description || null,
           owner_id: user.id, // ✅ essential for RLS
+          plan_id: planId, // ✅ Set the plan ID immediately
         },
       ])
       .select()
