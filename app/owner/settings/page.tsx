@@ -105,14 +105,14 @@ export default function SettingsPage() {
     setSaving(false);
   }
 
-  async function handleUploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleUploadPhoto(e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'logo') {
     try {
       if (!e.target.files || e.target.files.length === 0) return;
       setUploading(true);
 
       const file = e.target.files[0];
       const fileExt = file.name.split(".").pop();
-      const fileName = `${ownerProfile.id}-${Math.random()}.${fileExt}`;
+      const fileName = `${ownerProfile.id}-${type}-${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -125,15 +125,22 @@ export default function SettingsPage() {
         .from("profiles")
         .getPublicUrl(filePath);
 
+      const updateData = type === 'avatar' ? { avatar_url: publicUrl } : { logo_url: publicUrl };
+
       const { error: updateError } = await supabase
         .from("profiles")
-        .update({ avatar_url: publicUrl })
+        .update(updateData)
         .eq("id", ownerProfile.id);
 
       if (updateError) throw updateError;
 
-      setOwnerProfile({ ...ownerProfile, avatar_url: publicUrl });
-      toast.success("Avatar mis à jour avec succès !");
+      if (type === 'avatar') {
+        setOwnerProfile({ ...ownerProfile, avatar_url: publicUrl });
+        toast.success("Avatar mis à jour !");
+      } else {
+        setOwnerProfile({ ...ownerProfile, logo_url: publicUrl });
+        toast.success("Logo mis à jour !");
+      }
     } catch (error: any) {
       toast.error("Erreur lors de l'upload: " + error.message);
     } finally {
@@ -166,39 +173,78 @@ export default function SettingsPage() {
               <h2 className="text-sm font-bold uppercase tracking-widest">Informations Personnelles</h2>
             </div>
 
-            {/* Avatar Section */}
-            <div className="flex flex-col items-center sm:flex-row gap-6 pb-6 border-b border-slate-50">
-              <div className="relative group">
-                <div className="w-24 h-24 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center relative shadow-sm">
-                  {ownerProfile?.avatar_url ? (
-                    <img
-                      src={ownerProfile.avatar_url}
-                      alt="Avatar"
-                      className="w-full h-full object-cover"
+            {/* Avatar & Logo Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pb-8 border-b border-slate-50">
+              {/* Avatar Uploader */}
+              <div className="flex items-center gap-4">
+                <div className="relative group">
+                  <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center relative shadow-sm transition-all group-hover:border-slate-300">
+                    {ownerProfile?.avatar_url ? (
+                      <img
+                        src={ownerProfile.avatar_url}
+                        alt="Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User size={24} className="text-slate-300" />
+                    )}
+                    {uploading && (
+                      <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-slate-900" size={16} />
+                      </div>
+                    )}
+                  </div>
+                  <label className="absolute -bottom-2 -right-2 p-1.5 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-all active:scale-95">
+                    <Camera size={12} className="text-slate-600" />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => handleUploadPhoto(e, 'avatar')}
+                      disabled={uploading}
                     />
-                  ) : (
-                    <User size={32} className="text-slate-300" />
-                  )}
-                  {uploading && (
-                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                      <Loader2 className="animate-spin text-slate-900" size={20} />
-                    </div>
-                  )}
+                  </label>
                 </div>
-                <label className="absolute -bottom-2 -right-2 p-2 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-all active:scale-95">
-                  <Camera size={14} className="text-slate-600" />
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleUploadAvatar}
-                    disabled={uploading}
-                  />
-                </label>
+                <div>
+                  <h3 className="text-xs font-bold text-slate-900 uppercase">Mon Avatar</h3>
+                  <p className="text-[10px] text-slate-500 mt-1">Photo personnelle.</p>
+                </div>
               </div>
-              <div className="text-center sm:text-left">
-                <h3 className="text-sm font-bold text-slate-900">Avatar / Logo</h3>
-                <p className="text-xs text-slate-500 mt-1">PNG, JPG ou GIF. Max 2MB.</p>
+
+              {/* Logo Uploader */}
+              <div className="flex items-center gap-4">
+                <div className="relative group">
+                  <div className="w-20 h-20 rounded-2xl bg-indigo-50/30 border border-indigo-100 overflow-hidden flex items-center justify-center relative shadow-sm transition-all group-hover:border-indigo-300">
+                    {ownerProfile?.logo_url ? (
+                      <img
+                        src={ownerProfile.logo_url}
+                        alt="Logo"
+                        className="w-full h-full object-contain p-2"
+                      />
+                    ) : (
+                      <Camera size={24} className="text-indigo-200" />
+                    )}
+                    {uploading && (
+                      <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                        <Loader2 className="animate-spin text-indigo-900" size={16} />
+                      </div>
+                    )}
+                  </div>
+                  <label className="absolute -bottom-2 -right-2 p-1.5 bg-indigo-600 border border-indigo-700 rounded-lg shadow-sm cursor-pointer hover:bg-indigo-700 transition-all active:scale-95">
+                    <Camera size={12} className="text-white" />
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      onChange={(e) => handleUploadPhoto(e, 'logo')}
+                      disabled={uploading}
+                    />
+                  </label>
+                </div>
+                <div>
+                  <h3 className="text-xs font-bold text-indigo-900 uppercase">Logo de Marque</h3>
+                  <p className="text-[10px] text-slate-500 mt-1">S'affiche sur vos QR.</p>
+                </div>
               </div>
             </div>
 

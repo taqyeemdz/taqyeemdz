@@ -19,14 +19,19 @@ CREATE POLICY "Public Read Feedback Media"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'feedback-media' );
 
--- 1. Fill existing NULL plan_id in businesses from owner profiles
-UPDATE public.businesses b
-SET plan_id = p.plan_id
-FROM public.profiles p
-WHERE b.owner_id = p.id AND b.plan_id IS NULL;
+-- 1. Add owner_avatar_url and owner_logo_url to businesses
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS owner_avatar_url TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS owner_logo_url TEXT;
 
--- 2. Ensure new businesses get a plan_id (fallback to Starter if owner has none, but they should have)
--- This is just a safety measure for existing rows that might still be NULL
+-- 2. Fill existing data
+UPDATE public.businesses b
+SET plan_id = p.plan_id,
+    owner_avatar_url = p.avatar_url,
+    owner_logo_url = p.logo_url
+FROM public.profiles p
+WHERE b.owner_id = p.id;
+
+-- 3. Ensure new businesses get a plan_id (fallback to Starter if owner has none)
 DO $$
 DECLARE
     starter_id UUID;
@@ -37,22 +42,24 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Trigger to keep businesses.plan_id in sync with profiles.plan_id
-CREATE OR REPLACE FUNCTION public.sync_business_plan()
+-- 4. Trigger to keep businesses.plan_id and urls in sync with profiles
+CREATE OR REPLACE FUNCTION public.sync_business_from_profile()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE public.businesses
-    SET plan_id = NEW.plan_id
+    SET plan_id = NEW.plan_id,
+        owner_avatar_url = NEW.avatar_url,
+        owner_logo_url = NEW.logo_url
     WHERE owner_id = NEW.id;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-DROP TRIGGER IF EXISTS on_profile_plan_update ON public.profiles;
-CREATE TRIGGER on_profile_plan_update
-    AFTER UPDATE OF plan_id ON public.profiles
+DROP TRIGGER IF EXISTS on_profile_sync_business ON public.profiles;
+CREATE TRIGGER on_profile_sync_business
+    AFTER UPDATE OF plan_id, avatar_url, logo_url ON public.profiles
     FOR EACH ROW
-    EXECUTE FUNCTION public.sync_business_plan();
+    EXECUTE FUNCTION public.sync_business_from_profile();
 
--- 4. Reload schema cache
+-- 5. Reload schema cache
 NOTIFY pgrst, 'reload schema';

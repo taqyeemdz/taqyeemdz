@@ -536,21 +536,38 @@ export default function ClientFeedbackPage() {
             <div className="max-w-xl w-full space-y-8">
 
                 {/* HEADLINE */}
-                <div className="text-center">
-                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                        {business.name}
-                    </h1>
-                    {ownerEmail && (
-                        <div className="flex justify-center mt-1">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                                <User size={10} className="text-slate-400" />
-                                {ownerEmail}
-                            </span>
-                        </div>
-                    )}
-                    <p className="mt-2 text-gray-500">
-                        We value your opinion. Please rate your experience.
-                    </p>
+                <div className="text-center space-y-6">
+                    <div>
+                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                            {business.name}
+                        </h1>
+                        {ownerEmail && (
+                            <div className="flex justify-center mt-2">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-white text-slate-500 border border-slate-200 shadow-sm">
+                                    <div className="w-1 h-1 rounded-full bg-slate-400" />
+                                    {ownerEmail}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4">
+                        <p className="text-gray-500 max-w-xs mx-auto text-sm">
+                            Votre avis nous aide à nous améliorer. Merci de partager votre expérience.
+                        </p>
+
+                        {(business.owner_logo_url || business.owner_avatar_url) && (
+                            <div className="flex justify-center pt-2">
+                                <div className={`w-28 h-28 rounded-3xl border-4 border-white shadow-2xl overflow-hidden ${business.owner_logo_url ? 'bg-indigo-50/50' : 'bg-slate-100'}`}>
+                                    <img
+                                        src={business.owner_logo_url || business.owner_avatar_url}
+                                        alt={business.name}
+                                        className={`w-full h-full ${business.owner_logo_url ? 'object-contain p-3' : 'object-cover'}`}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* FORM CARD */}

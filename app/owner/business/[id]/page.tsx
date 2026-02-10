@@ -797,9 +797,23 @@ export default function OwnerBusinessDetailsPage() {
                         ) : (
                             <div className="max-w-xl mx-auto py-10">
                                 <div className="p-10 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm space-y-12">
-                                    <div className="text-center space-y-2">
-                                        <h1 className="text-2xl font-semibold text-slate-900">{business.name}</h1>
-                                        <p className="text-sm text-slate-400">Mode Aperçu - Votre avis est précieux.</p>
+                                    <div className="text-center space-y-6">
+                                        <div>
+                                            <h1 className="text-2xl font-semibold text-slate-900">{business.name}</h1>
+                                            <p className="text-sm text-slate-400">Mode Aperçu - Votre avis est précieux.</p>
+                                        </div>
+
+                                        {(business.owner_logo_url || business.owner_avatar_url) && (
+                                            <div className="flex justify-center">
+                                                <div className={`w-28 h-28 rounded-3xl border-4 border-white shadow-2xl overflow-hidden ${business.owner_logo_url ? 'bg-indigo-50/50' : 'bg-slate-100'}`}>
+                                                    <img
+                                                        src={business.owner_logo_url || business.owner_avatar_url}
+                                                        alt={business.name}
+                                                        className={`w-full h-full ${business.owner_logo_url ? 'object-contain p-3' : 'object-cover'}`}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="flex flex-col items-center gap-4">
@@ -838,6 +852,7 @@ export default function OwnerBusinessDetailsPage() {
                                                 </div>
                                             </div>
                                         ))}
+
                                         <div className="space-y-4">
                                             {/* Media / Audio Preview */}
                                             {(planPermissions.allow_photo && business.allow_photo) ||
@@ -868,8 +883,8 @@ export default function OwnerBusinessDetailsPage() {
                                                     )}
                                                 </div>
                                             ) : null}
-
                                         </div>
+
                                         <button className="w-full bg-slate-900 text-white py-4 rounded-xl text-xs font-bold uppercase tracking-widest opacity-50 cursor-not-allowed">
                                             Envoyer
                                         </button>
@@ -881,22 +896,26 @@ export default function OwnerBusinessDetailsPage() {
                 </div>
             </div>
 
-            {showDelete && (
-                <DeleteBusinessModal
-                    businessId={businessId as string}
-                    businessName={business.name}
-                    onClose={() => setShowDelete(false)}
-                />
-            )}
+            {
+                showDelete && (
+                    <DeleteBusinessModal
+                        businessId={businessId as string}
+                        businessName={business.name}
+                        onClose={() => setShowDelete(false)}
+                    />
+                )
+            }
 
-            {selectedFeedback && (
-                <FeedbackDetailsModal
-                    feedback={selectedFeedback}
-                    formConfig={formConfig}
-                    onClose={() => setSelectedFeedback(null)}
-                />
-            )}
-        </div>
+            {
+                selectedFeedback && (
+                    <FeedbackDetailsModal
+                        feedback={selectedFeedback}
+                        formConfig={formConfig}
+                        onClose={() => setSelectedFeedback(null)}
+                    />
+                )
+            }
+        </div >
     );
 }
 
