@@ -105,44 +105,56 @@ export default function SettingsPage() {
     setSaving(false);
   }
 
-  async function handleUploadPhoto(e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'logo') {
+  async function handleUploadLogo(e: React.ChangeEvent<HTMLInputElement>) {
     try {
       if (!e.target.files || e.target.files.length === 0) return;
+      if (!ownerProfile?.id) {
+        toast.error("Profil non chargé. Veuillez rafraîchir la page.");
+        return;
+      }
+
       setUploading(true);
 
       const file = e.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${ownerProfile.id}-${type}-${Math.random()}.${fileExt}`;
+      const fileExt = file.name.split(".").pop() || 'png';
+      const fileName = `${ownerProfile.id}-logo-${Date.now()}.${fileExt}`;
       const filePath = `${fileName}`;
+
+      console.log("Uploading to bucket profiles, path:", filePath);
 
       const { error: uploadError } = await supabase.storage
         .from("profiles")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          upsert: true,
+          cacheControl: '3600'
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Storage upload error:", uploadError);
+        throw uploadError;
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from("profiles")
         .getPublicUrl(filePath);
 
-      const updateData = type === 'avatar' ? { avatar_url: publicUrl } : { logo_url: publicUrl };
+      console.log("Upload success, public URL:", publicUrl);
 
       const { error: updateError } = await supabase
         .from("profiles")
-        .update(updateData)
+        .update({ logo_url: publicUrl })
         .eq("id", ownerProfile.id);
 
-      if (updateError) throw updateError;
-
-      if (type === 'avatar') {
-        setOwnerProfile({ ...ownerProfile, avatar_url: publicUrl });
-        toast.success("Avatar mis à jour !");
-      } else {
-        setOwnerProfile({ ...ownerProfile, logo_url: publicUrl });
-        toast.success("Logo mis à jour !");
+      if (updateError) {
+        console.error("Database update error:", updateError);
+        throw updateError;
       }
+
+      setOwnerProfile({ ...ownerProfile, logo_url: publicUrl });
+      toast.success("Logo de marque mis à jour !");
     } catch (error: any) {
-      toast.error("Erreur lors de l'upload: " + error.message);
+      console.error("Total upload error:", error);
+      toast.error("Échec de l'upload: " + (error.message || "Erreur inconnue"));
     } finally {
       setUploading(false);
     }
@@ -173,78 +185,42 @@ export default function SettingsPage() {
               <h2 className="text-sm font-bold uppercase tracking-widest">Informations Personnelles</h2>
             </div>
 
-            {/* Avatar & Logo Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pb-8 border-b border-slate-50">
-              {/* Avatar Uploader */}
-              <div className="flex items-center gap-4">
-                <div className="relative group">
-                  <div className="w-20 h-20 rounded-2xl bg-slate-50 border border-slate-100 overflow-hidden flex items-center justify-center relative shadow-sm transition-all group-hover:border-slate-300">
-                    {ownerProfile?.avatar_url ? (
-                      <img
-                        src={ownerProfile.avatar_url}
-                        alt="Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User size={24} className="text-slate-300" />
-                    )}
-                    {uploading && (
-                      <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                        <Loader2 className="animate-spin text-slate-900" size={16} />
-                      </div>
-                    )}
-                  </div>
-                  <label className="absolute -bottom-2 -right-2 p-1.5 bg-white border border-slate-200 rounded-lg shadow-sm cursor-pointer hover:bg-slate-50 transition-all active:scale-95">
-                    <Camera size={12} className="text-slate-600" />
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => handleUploadPhoto(e, 'avatar')}
-                      disabled={uploading}
+            {/* Logo Section Only */}
+            <div className="flex flex-col sm:flex-row items-center gap-8 pb-8 border-b border-slate-50">
+              <div className="relative group">
+                <div className="w-28 h-28 rounded-[2rem] bg-indigo-50/30 border-2 border-dashed border-indigo-200 overflow-hidden flex items-center justify-center relative shadow-sm transition-all group-hover:border-indigo-400 group-hover:bg-indigo-50/50">
+                  {ownerProfile?.logo_url ? (
+                    <img
+                      src={ownerProfile.logo_url}
+                      alt="Logo"
+                      className="w-full h-full object-contain p-4"
                     />
-                  </label>
+                  ) : (
+                    <Camera size={32} className="text-indigo-300" />
+                  )}
+                  {uploading && (
+                    <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                      <Loader2 className="animate-spin text-indigo-900" size={20} />
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-slate-900 uppercase">Mon Avatar</h3>
-                  <p className="text-[10px] text-slate-500 mt-1">Photo personnelle.</p>
-                </div>
+                <label className="absolute -bottom-2 -right-2 p-2.5 bg-indigo-600 border-4 border-white text-white rounded-2xl shadow-xl cursor-pointer hover:bg-indigo-700 hover:scale-110 transition-all active:scale-95">
+                  <Camera size={16} />
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleUploadLogo}
+                    disabled={uploading}
+                  />
+                </label>
               </div>
-
-              {/* Logo Uploader */}
-              <div className="flex items-center gap-4">
-                <div className="relative group">
-                  <div className="w-20 h-20 rounded-2xl bg-indigo-50/30 border border-indigo-100 overflow-hidden flex items-center justify-center relative shadow-sm transition-all group-hover:border-indigo-300">
-                    {ownerProfile?.logo_url ? (
-                      <img
-                        src={ownerProfile.logo_url}
-                        alt="Logo"
-                        className="w-full h-full object-contain p-2"
-                      />
-                    ) : (
-                      <Camera size={24} className="text-indigo-200" />
-                    )}
-                    {uploading && (
-                      <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                        <Loader2 className="animate-spin text-indigo-900" size={16} />
-                      </div>
-                    )}
-                  </div>
-                  <label className="absolute -bottom-2 -right-2 p-1.5 bg-indigo-600 border border-indigo-700 rounded-lg shadow-sm cursor-pointer hover:bg-indigo-700 transition-all active:scale-95">
-                    <Camera size={12} className="text-white" />
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept="image/*"
-                      onChange={(e) => handleUploadPhoto(e, 'logo')}
-                      disabled={uploading}
-                    />
-                  </label>
-                </div>
-                <div>
-                  <h3 className="text-xs font-bold text-indigo-900 uppercase">Logo de Marque</h3>
-                  <p className="text-[10px] text-slate-500 mt-1">S'affiche sur vos QR.</p>
-                </div>
+              <div className="text-center sm:text-left space-y-1">
+                <h3 className="text-base font-bold text-slate-900 tracking-tight">Logo de Marque</h3>
+                <p className="text-xs text-slate-500 max-w-[240px] leading-relaxed">
+                  Ce logo représentera votre établissement sur tous vos formulaires et QR codes.
+                </p>
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest pt-1">PNG ou JPG recommandé</p>
               </div>
             </div>
 

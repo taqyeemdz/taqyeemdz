@@ -66,3 +66,23 @@ END $$;
 ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS avatar_url TEXT,
 ADD COLUMN IF NOT EXISTS logo_url TEXT;
+
+-- Enable RLS on profiles if not already enabled
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can view their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+CREATE POLICY "Users can view own profile"
+ON public.profiles FOR SELECT
+USING ( auth.uid() = id );
+
+-- Policy: Users can update their own profile
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+CREATE POLICY "Users can update own profile"
+ON public.profiles FOR UPDATE
+USING ( auth.uid() = id );
+
+-- Policy: Public profiles are viewable by everyone (optional, based on your needs)
+-- DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
+-- CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles FOR SELECT USING (true);
+

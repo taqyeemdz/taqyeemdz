@@ -800,16 +800,30 @@ export default function OwnerBusinessDetailsPage() {
                                     <div className="text-center space-y-6">
                                         <div>
                                             <h1 className="text-2xl font-semibold text-slate-900">{business.name}</h1>
-                                            <p className="text-sm text-slate-400">Mode Aperçu - Votre avis est précieux.</p>
+                                            <div className="flex flex-col items-center gap-2 mt-2">
+                                                {business.owner_full_name && (
+                                                    <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 border border-slate-100 rounded-full">
+                                                        {business.owner_avatar_url && (
+                                                            <div className="w-4 h-4 rounded-full overflow-hidden">
+                                                                <img src={business.owner_avatar_url} alt="" className="w-full h-full object-cover" />
+                                                            </div>
+                                                        )}
+                                                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tight">
+                                                            Propriété de {business.owner_full_name}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                <p className="text-[11px] text-slate-400">Mode Aperçu - Votre avis est précieux.</p>
+                                            </div>
                                         </div>
 
-                                        {(business.owner_logo_url || business.owner_avatar_url) && (
+                                        {business.owner_logo_url && (
                                             <div className="flex justify-center">
-                                                <div className={`w-28 h-28 rounded-3xl border-4 border-white shadow-2xl overflow-hidden ${business.owner_logo_url ? 'bg-indigo-50/50' : 'bg-slate-100'}`}>
+                                                <div className="w-24 h-24 rounded-2xl border-2 border-slate-50 shadow-xl overflow-hidden bg-white">
                                                     <img
-                                                        src={business.owner_logo_url || business.owner_avatar_url}
+                                                        src={business.owner_logo_url}
                                                         alt={business.name}
-                                                        className={`w-full h-full ${business.owner_logo_url ? 'object-contain p-3' : 'object-cover'}`}
+                                                        className="w-full h-full object-contain p-3"
                                                     />
                                                 </div>
                                             </div>

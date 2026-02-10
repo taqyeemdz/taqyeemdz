@@ -535,38 +535,31 @@ export default function ClientFeedbackPage() {
         <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
             <div className="max-w-xl w-full space-y-8">
 
+                {/* BRAND LOGO AT THE TOP */}
+                {business.owner_logo_url && (
+                    <div className="flex justify-center mb-8">
+                        <div className="w-24 h-24 rounded-3xl bg-white shadow-xl border border-slate-50 flex items-center justify-center p-4">
+                            <img
+                                src={business.owner_logo_url}
+                                alt={business.name}
+                                className="max-w-full max-h-full object-contain"
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* HEADLINE */}
-                <div className="text-center space-y-6">
+                <div className="text-center space-y-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
                             {business.name}
                         </h1>
-                        {ownerEmail && (
-                            <div className="flex justify-center mt-2">
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-white text-slate-500 border border-slate-200 shadow-sm">
-                                    <div className="w-1 h-1 rounded-full bg-slate-400" />
-                                    {ownerEmail}
-                                </span>
-                            </div>
-                        )}
                     </div>
 
                     <div className="space-y-4">
-                        <p className="text-gray-500 max-w-xs mx-auto text-sm">
+                        <p className="text-gray-500 max-w-sm mx-auto text-sm leading-relaxed">
                             Votre avis nous aide à nous améliorer. Merci de partager votre expérience.
                         </p>
-
-                        {(business.owner_logo_url || business.owner_avatar_url) && (
-                            <div className="flex justify-center pt-2">
-                                <div className={`w-28 h-28 rounded-3xl border-4 border-white shadow-2xl overflow-hidden ${business.owner_logo_url ? 'bg-indigo-50/50' : 'bg-slate-100'}`}>
-                                    <img
-                                        src={business.owner_logo_url || business.owner_avatar_url}
-                                        alt={business.name}
-                                        className={`w-full h-full ${business.owner_logo_url ? 'object-contain p-3' : 'object-cover'}`}
-                                    />
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
 

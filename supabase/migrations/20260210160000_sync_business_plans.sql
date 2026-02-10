@@ -19,15 +19,19 @@ CREATE POLICY "Public Read Feedback Media"
 ON storage.objects FOR SELECT
 USING ( bucket_id = 'feedback-media' );
 
--- 1. Add owner_avatar_url and owner_logo_url to businesses
+-- 1. Add owner details to businesses for public access
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS owner_avatar_url TEXT;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS owner_logo_url TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS owner_email TEXT;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS owner_full_name TEXT;
 
 -- 2. Fill existing data
 UPDATE public.businesses b
 SET plan_id = p.plan_id,
     owner_avatar_url = p.avatar_url,
-    owner_logo_url = p.logo_url
+    owner_logo_url = p.logo_url,
+    owner_email = p.email,
+    owner_full_name = p.full_name
 FROM public.profiles p
 WHERE b.owner_id = p.id;
 
@@ -42,14 +46,16 @@ BEGIN
     END IF;
 END $$;
 
--- 4. Trigger to keep businesses.plan_id and urls in sync with profiles
+-- 4. Trigger to keep businesses info in sync with owner profiles
 CREATE OR REPLACE FUNCTION public.sync_business_from_profile()
 RETURNS TRIGGER AS $$
 BEGIN
     UPDATE public.businesses
     SET plan_id = NEW.plan_id,
         owner_avatar_url = NEW.avatar_url,
-        owner_logo_url = NEW.logo_url
+        owner_logo_url = NEW.logo_url,
+        owner_email = NEW.email,
+        owner_full_name = NEW.full_name
     WHERE owner_id = NEW.id;
     RETURN NEW;
 END;
@@ -57,7 +63,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 DROP TRIGGER IF EXISTS on_profile_sync_business ON public.profiles;
 CREATE TRIGGER on_profile_sync_business
-    AFTER UPDATE OF plan_id, avatar_url, logo_url ON public.profiles
+    AFTER UPDATE OF plan_id, avatar_url, logo_url, email, full_name ON public.profiles
     FOR EACH ROW
     EXECUTE FUNCTION public.sync_business_from_profile();
 
