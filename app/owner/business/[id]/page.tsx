@@ -255,7 +255,7 @@ export default function OwnerBusinessDetailsPage() {
     ];
 
     return (
-        <div className="max-w-6xl mx-auto p-8 space-y-10">
+        <div className="max-w-6xl mx-auto p-4 sm:p-8 space-y-6 sm:space-y-10">
             {/* Minimalist Header */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -272,23 +272,23 @@ export default function OwnerBusinessDetailsPage() {
                     </div>
                 </div>
 
-                <div className="bg-slate-900 rounded-3xl p-8 flex flex-col lg:flex-row lg:items-start justify-between gap-8 shadow-xl">
-                    <div className="space-y-4">
+                <div className="bg-slate-900 rounded-2xl sm:rounded-3xl p-6 sm:p-8 flex flex-col lg:flex-row lg:items-start justify-between gap-6 sm:gap-8 shadow-xl">
+                    <div className="space-y-3 sm:space-y-4">
                         <div className="flex items-center gap-3">
-                            <h1 className="text-3xl font-semibold text-white tracking-tight">{business.name}</h1>
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            <h1 className="text-xl sm:text-3xl font-semibold text-white tracking-tight leading-tight">{business.name}</h1>
+                            <span className="shrink-0 px-2 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
                                 Actif
                             </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 text-sm font-medium">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-400 text-[11px] sm:text-sm font-medium">
                             <div className="flex items-center gap-1.5">
-                                <MessageCircle size={14} className="text-slate-500" />
-                                <span>{feedback.length} avis reçus</span>
+                                <MessageCircle size={12} className="text-slate-500 sm:w-3.5 sm:h-3.5" />
+                                <span>{feedback.length} avis</span>
                             </div>
 
                             <span className="hidden sm:inline w-1 h-1 rounded-full bg-slate-700" />
                             <div className="flex items-center gap-1.5">
-                                <Calendar size={14} className="text-slate-500" />
+                                <Calendar size={12} className="text-slate-500 sm:w-3.5 sm:h-3.5" />
                                 <span>Lancé le {format(new Date(business.created_at), "d MMM yyyy", { locale: fr })}</span>
                             </div>
                         </div>
@@ -299,9 +299,35 @@ export default function OwnerBusinessDetailsPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                {/* Vertical Navigation Sidebar */}
-                <div className="lg:col-span-3 space-y-4 sticky top-8">
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-2">
+                {/* Navigation Sidebar / Mobile Dropdown */}
+                <div className="lg:col-span-3 space-y-4 lg:sticky lg:top-8">
+                    {/* Mobile Dropdown Menu */}
+                    <div className="lg:hidden w-full relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                            {(() => {
+                                const activeMeta = tabs.find(t => t.id === activeTab);
+                                const Icon = activeMeta?.icon || LayoutDashboard;
+                                return <Icon size={16} />;
+                            })()}
+                        </div>
+                        <select
+                            value={activeTab}
+                            onChange={(e) => setActiveTab(e.target.value as any)}
+                            className="w-full bg-white border-2 border-slate-100 rounded-xl pl-12 pr-10 py-3.5 text-xs font-black text-slate-900 uppercase tracking-widest outline-none appearance-none cursor-pointer shadow-sm hover:border-indigo-100 transition-all"
+                        >
+                            {tabs.map((tab) => (
+                                <option key={tab.id} value={tab.id}>
+                                    {tab.label}
+                                </option>
+                            ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <ChevronRight className="rotate-90" size={16} />
+                        </div>
+                    </div>
+
+                    {/* Desktop Sidebar */}
+                    <div className="hidden lg:flex bg-white rounded-2xl border border-slate-200 shadow-sm p-4 flex-col gap-1 space-y-2">
                         <p className="px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Menu</p>
                         {tabs.map((tab) => (
                             <button
@@ -341,9 +367,9 @@ export default function OwnerBusinessDetailsPage() {
                         {activeTab === "overview" ? (
                             <div className="space-y-6">
                                 {/* Dashboard Header */}
-                                <div>
-                                    <h2 className="text-lg font-bold text-slate-900 tracking-tight">Vue d'ensemble</h2>
-                                    <p className="text-sm text-slate-500">Performances et outils de partage.</p>
+                                <div className="mb-4 sm:mb-6">
+                                    <h2 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">Vue d'ensemble</h2>
+                                    <p className="text-[11px] sm:text-sm text-slate-500">Performances et outils de partage.</p>
                                 </div>
 
                                 {/* Stats Row - Compact */}
@@ -398,32 +424,32 @@ export default function OwnerBusinessDetailsPage() {
                                 {/* Link & QR Section - Minimalist Split */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {/* Link & Actions */}
-                                    <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-6">
+                                    <div className="p-5 sm:p-6 bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] space-y-4 sm:space-y-6">
                                         <div className="space-y-1">
-                                            <h3 className="text-sm font-bold text-slate-900">Lien de collecte</h3>
-                                            <p className="text-xs text-slate-500">Partagez ce lien pour obtenir plus d'avis.</p>
+                                            <h3 className="text-xs sm:text-sm font-bold text-slate-900">Lien de collecte</h3>
+                                            <p className="text-[10px] sm:text-xs text-slate-500">Partagez ce lien pour obtenir plus d'avis.</p>
                                         </div>
 
                                         <div className="flex items-center gap-2 p-2 bg-slate-50/50 border border-slate-100 rounded-xl">
-                                            <div className="p-2 bg-white rounded-lg border border-slate-100 shadow-sm text-slate-400">
-                                                <ExternalLink size={14} />
+                                            <div className="p-1.5 sm:p-2 bg-white rounded-lg border border-slate-100 shadow-sm text-slate-400">
+                                                <ExternalLink size={12} className="sm:w-3.5 sm:h-3.5" />
                                             </div>
-                                            <p className="flex-1 text-xs font-mono text-slate-600 truncate px-2 select-all">
+                                            <p className="flex-1 text-[10px] sm:text-xs font-mono text-slate-600 truncate px-1 select-all">
                                                 {feedbackLink}
                                             </p>
                                             <button
                                                 onClick={handleCopyLink}
-                                                className="p-2 hover:bg-white hover:text-indigo-600 hover:shadow-sm rounded-lg transition-all text-slate-400"
+                                                className="p-1.5 sm:p-2 hover:bg-white hover:text-indigo-600 hover:shadow-sm rounded-lg transition-all text-slate-400"
                                                 title="Copier"
                                             >
-                                                <Copy size={16} />
+                                                <Copy size={14} className="sm:w-4 sm:h-4" />
                                             </button>
                                         </div>
 
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => window.open(feedbackLink, "_blank")}
-                                                className="flex-1 py-2.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors"
+                                                className="flex-1 py-2 sm:py-2.5 bg-slate-900 text-white rounded-xl text-[10px] sm:text-xs font-bold hover:bg-slate-800 transition-colors"
                                             >
                                                 Ouvrir le formulaire
                                             </button>
@@ -431,30 +457,30 @@ export default function OwnerBusinessDetailsPage() {
                                     </div>
 
                                     {/* QR Code - Minimalist */}
-                                    <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex items-center gap-6">
-                                        <div className="bg-slate-50 p-2 rounded-xl border border-slate-100 shrink-0">
-                                            <QRCodeSVG id="qr-code-svg" value={feedbackLink} size={120} level="H" />
+                                    <div className="p-5 sm:p-6 bg-white rounded-xl sm:rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex items-center gap-4 sm:gap-6">
+                                        <div className="bg-slate-50 p-1.5 sm:p-2 rounded-xl border border-slate-100 shrink-0">
+                                            <QRCodeSVG id="qr-code-svg" value={feedbackLink} size={80} level="H" className="sm:w-[120px] sm:h-[120px]" />
                                         </div>
                                         <div className="space-y-3 flex-1">
                                             <div>
-                                                <h3 className="text-sm font-bold text-slate-900">QR Code</h3>
-                                                <p className="text-xs text-slate-500 text-balance">
-                                                    Imprimez ce code sur vos tickets ou menus.
+                                                <h3 className="text-xs sm:text-sm font-bold text-slate-900">QR Code</h3>
+                                                <p className="text-[10px] sm:text-xs text-slate-500 leading-tight">
+                                                    Imprimez ce code sur vos tickets.
                                                 </p>
                                             </div>
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={handleDownloadQR}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                                    className="flex items-center gap-1.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
                                                 >
-                                                    <Download size={12} />
+                                                    <Download size={10} />
                                                     PNG
                                                 </button>
                                                 <button
                                                     onClick={() => window.print()}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 rounded-lg text-[10px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
+                                                    className="hidden sm:flex items-center gap-1.5 px-2 py-1.5 border border-slate-200 rounded-lg text-[9px] font-bold text-slate-600 hover:bg-slate-50 transition-colors"
                                                 >
-                                                    <Printer size={12} />
+                                                    <Printer size={10} />
                                                     Print
                                                 </button>
                                             </div>
@@ -527,28 +553,43 @@ export default function OwnerBusinessDetailsPage() {
 
                                 <div className="space-y-4">
                                     {formConfig.map((field, index) => (
-                                        <div key={field.id} className="p-6 border border-slate-100 rounded-xl bg-white hover:border-slate-300 transition-all group relative">
-                                            <div className="flex items-center gap-6">
-                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400">
+                                        <div key={field.id} className="p-4 sm:p-6 border border-slate-100 rounded-xl bg-white hover:border-slate-300 transition-all group relative">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                                                {/* Header Row: Index & Delete (Mobile Only) */}
+                                                <div className="flex sm:hidden items-center justify-between mb-2">
+                                                    <div className="w-6 h-6 rounded-lg bg-slate-50 flex items-center justify-center text-[9px] font-bold text-slate-400">
+                                                        {index + 1}
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removeField(field.id)}
+                                                        className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+
+                                                {/* Desktop Index */}
+                                                <div className="hidden sm:flex w-8 h-8 rounded-lg bg-slate-50 items-center justify-center text-[10px] font-bold text-slate-400 shrink-0">
                                                     {index + 1}
                                                 </div>
-                                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Question</label>
+
+                                                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Question</label>
                                                         <input
                                                             type="text"
                                                             value={field.label}
                                                             onChange={(e) => updateField(field.id, "label", e.target.value)}
-                                                            className="w-full text-sm font-medium text-slate-900 border-none p-0 focus:ring-0 placeholder:text-slate-200"
+                                                            className="w-full text-[12px] sm:text-sm font-medium text-slate-900 border-b border-transparent focus:border-indigo-100 p-0 focus:ring-0 placeholder:text-slate-200 transition-colors"
                                                             placeholder="Votre question ici..."
                                                         />
                                                     </div>
-                                                    <div className="space-y-1.5">
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Type de réponse</label>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Type de réponse</label>
                                                         <select
                                                             value={field.type}
                                                             onChange={(e) => updateField(field.id, "type", e.target.value)}
-                                                            className="w-full text-sm font-medium text-slate-900 border-none p-0 focus:ring-0 appearance-none bg-transparent cursor-pointer"
+                                                            className="w-full text-[12px] sm:text-sm font-medium text-slate-900 border-none p-0 focus:ring-0 appearance-none bg-transparent cursor-pointer"
                                                         >
                                                             <option value="message">Message</option>
                                                             <option value="rating">Étoiles</option>
@@ -558,48 +599,8 @@ export default function OwnerBusinessDetailsPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* Options Editor for 'choice' type */}
-                                                {field.type === 'choice' && (
-                                                    <div className="mt-4 pt-4 border-t border-slate-50 space-y-3">
-                                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Options de réponse</label>
-                                                        <div className="space-y-2">
-                                                            {(field.options || []).map((opt: string, idx: number) => (
-                                                                <div key={idx} className="flex items-center gap-2">
-                                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                                                                    <input
-                                                                        type="text"
-                                                                        value={opt}
-                                                                        onChange={(e) => {
-                                                                            const newOpts = [...(field.options || [])];
-                                                                            newOpts[idx] = e.target.value;
-                                                                            updateField(field.id, "options", newOpts);
-                                                                        }}
-                                                                        className="flex-1 bg-slate-50 border-none rounded-lg px-3 py-1.5 text-xs font-medium text-slate-700 focus:ring-1 focus:ring-indigo-500"
-                                                                        placeholder={`Option ${idx + 1}`}
-                                                                    />
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const newOpts = (field.options || []).filter((_: any, i: number) => i !== idx);
-                                                                            updateField(field.id, "options", newOpts);
-                                                                        }}
-                                                                        className="p-1.5 text-slate-300 hover:text-rose-500 transition-colors"
-                                                                    >
-                                                                        <Trash2 size={12} />
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                            <button
-                                                                onClick={() => updateField(field.id, "options", [...(field.options || []), ""])}
-                                                                className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 mt-2"
-                                                            >
-                                                                <Plus size={12} />
-                                                                Ajouter une option
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <div className="flex items-center gap-4 border-l border-slate-100 pl-4">
+                                                {/* Actions Container */}
+                                                <div className="flex items-center justify-between sm:justify-start gap-4 pt-4 sm:pt-0 border-t sm:border-t-0 sm:border-l border-slate-100 sm:pl-4">
                                                     <div
                                                         onClick={() => updateField(field.id, "required", !field.required)}
                                                         className="flex items-center gap-2 cursor-pointer group select-none"
@@ -607,19 +608,59 @@ export default function OwnerBusinessDetailsPage() {
                                                         <div className={`w-8 h-4 rounded-full transition-all flex items-center p-0.5 ${field.required ? 'bg-indigo-600 justify-end' : 'bg-slate-200 justify-start'}`}>
                                                             <div className="w-3 h-3 bg-white rounded-full shadow-sm" />
                                                         </div>
-                                                        <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors ${field.required ? 'text-indigo-600' : 'text-slate-300 group-hover:text-slate-400'}`}>
+                                                        <span className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider transition-colors ${field.required ? 'text-indigo-600' : 'text-slate-300 group-hover:text-slate-400'}`}>
                                                             Obligatoire
                                                         </span>
                                                     </div>
+
                                                     <button
                                                         onClick={() => removeField(field.id)}
-                                                        className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                                                        className="hidden sm:block p-2 text-slate-300 hover:text-rose-500 transition-colors"
                                                         title="Supprimer la question"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
                                             </div>
+
+                                            {/* Choice Options Editor (Unchanged logic, slightly adjusted padding) */}
+                                            {field.type === 'choice' && (
+                                                <div className="mt-4 pt-4 border-t border-slate-50 space-y-3">
+                                                    <label className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Options de réponse</label>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                        {(field.options || []).map((opt: string, idx: number) => (
+                                                            <div key={idx} className="flex items-center gap-2 bg-slate-50/50 p-2 rounded-lg group/opt">
+                                                                <input
+                                                                    type="text"
+                                                                    value={opt}
+                                                                    onChange={(e) => {
+                                                                        const newOpts = [...(field.options || [])];
+                                                                        newOpts[idx] = e.target.value;
+                                                                        updateField(field.id, "options", newOpts);
+                                                                    }}
+                                                                    className="flex-1 bg-transparent border-none p-0 text-[11px] font-medium text-slate-700 focus:ring-0"
+                                                                    placeholder={`Option ${idx + 1}`}
+                                                                />
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const newOpts = (field.options || []).filter((_: any, i: number) => i !== idx);
+                                                                        updateField(field.id, "options", newOpts);
+                                                                    }}
+                                                                    className="p-1 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover/opt:opacity-100"
+                                                                >
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        <button
+                                                            onClick={() => updateField(field.id, "options", [...(field.options || []), ""])}
+                                                            className="flex items-center gap-2 p-2 border-2 border-dashed border-slate-100 rounded-lg text-[10px] font-bold text-indigo-400 hover:text-indigo-600 hover:border-indigo-100 transition-all"
+                                                        >
+                                                            <Plus size={12} /> Ajouter
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
 
@@ -948,8 +989,8 @@ function FeedbackRow({ feedback, onClick }: { feedback: any, onClick: () => void
             </div>
 
             {/* Name & Media Indicators */}
-            <div className="flex-1 min-w-0 flex items-center gap-3">
-                <p className="text-xs font-bold text-slate-700 truncate max-w-[120px]">
+            <div className="flex-1 min-w-0 flex items-center gap-2 sm:gap-3">
+                <p className="text-[11px] sm:text-xs font-bold text-slate-700 truncate max-w-[100px] sm:max-w-[120px]">
                     {feedback.anonymous ? "Anonyme" : feedback.full_name || "Client"}
                 </p>
 

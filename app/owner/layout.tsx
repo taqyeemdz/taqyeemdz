@@ -238,7 +238,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
                 {sidebarOpen && (
                   <div className="flex items-center justify-between flex-1">
-                    <span className="text-base font-semibold tracking-tight">{label}</span>
+                    <span className="text-sm font-semibold tracking-tight">{label}</span>
                     {isLocked && <Lock size={12} className="text-slate-300" />}
                   </div>
                 )}
@@ -255,7 +255,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                 <User size={18} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate uppercase tracking-tight">{user?.full_name?.split(' ')[0] || "Propriétaire"}</p>
+                <p className="text-[11px] font-bold text-slate-900 truncate uppercase tracking-tight">{user?.full_name?.split(' ')[0] || "Propriétaire"}</p>
                 <button onClick={handleLogout} className="text-[10px] font-bold text-red-500 hover:text-red-600 transition-colors uppercase tracking-widest">
                   Déconnexion
                 </button>
@@ -275,9 +275,9 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
 
       {/* ================= MOBILE NAV ================= */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200/60 h-28 flex items-center justify-between px-6">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200/60 h-20 flex items-center justify-between px-6">
         <div className="flex items-center">
-          <div className="relative w-80 h-24">
+          <div className="relative w-48 h-12">
             <Image
               src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
               alt="Logo"
@@ -311,7 +311,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                 </button>
               </div>
 
-              <nav className="flex-1 py-10 px-6 space-y-2">
+              <nav className="flex-1 py-6 px-6 space-y-1">
                 {links.map(({ href, label, icon: Icon, locked }) => {
                   const isActive = href === "/owner" ? pathname === "/owner" : pathname?.startsWith(href);
                   const isLocked = locked;
@@ -325,7 +325,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                         else setMobileMenuOpen(false);
                       }}
                       className={`
-                                    flex items-center gap-4 px-4 py-4 rounded-2xl transition-all
+                                    flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all
                                     ${isActive
                           ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
                           : isLocked
@@ -334,9 +334,9 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                         }
                                 `}
                     >
-                      <Icon size={20} className={isLocked ? "text-slate-300" : ""} />
+                      <Icon size={18} className={isLocked ? "text-slate-300" : ""} />
                       <div className="flex items-center justify-between flex-1">
-                        <span className="text-sm font-semibold">{label}</span>
+                        <span className="text-[13px] font-semibold">{label}</span>
                         {isLocked && <Lock size={12} className="text-slate-300" />}
                       </div>
                     </Link>
@@ -350,7 +350,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                     <User size={24} />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 truncate uppercase tracking-tight">{user?.full_name}</p>
+                    <p className="text-xs font-bold text-slate-900 truncate uppercase tracking-tight">{user?.full_name}</p>
                     <p className="text-[10px] text-slate-400 truncate opacity-70 tracking-tight">{user?.email}</p>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
 
       {/* ================= MAIN CONTENT ================= */}
-      <main className={`flex-1 min-w-0 transition-all duration-300 md:mt-0 mt-28`}>
+      <main className={`flex-1 min-w-0 transition-all duration-300 md:mt-0 mt-20`}>
 
         {/* TOP SPACE (Minimal) */}
         <header className="hidden md:block h-6" />
@@ -390,12 +390,12 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                       <Lock size={20} className="text-indigo-600 animate-pulse sm:w-7 sm:h-7" />
                     </div>
 
-                    <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                    <h2 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight leading-tight">
                       {isExpired ? "Abonnement" : "Activation"} <br />
                       <span className="text-indigo-600 border-b-4 border-indigo-100">{isExpired ? "Expiré" : "en cours"}</span>
                     </h2>
 
-                    <p className="text-slate-500 font-medium leading-relaxed text-xs sm:text-sm italic">
+                    <p className="text-slate-500 font-medium leading-relaxed text-[11px] sm:text-sm italic">
                       {isExpired
                         ? "Votre abonnement a expiré. Veuillez contacter un conseiller pour la réactivation de vos services."
                         : `Votre compte est en cours de création, un conseiller vous contactera au ${user.phone}.`
