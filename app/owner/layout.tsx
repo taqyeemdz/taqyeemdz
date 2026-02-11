@@ -111,13 +111,13 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
       {/* ================= SIDEBAR (DESKTOP) ================= */}
       <aside
-        className={`hidden md:flex flex-col bg-white border-r border-slate-200/60 transition-all duration-300 ease-in-out sticky top-0 h-screen z-50 ${sidebarOpen ? 'w-64' : 'w-20'}`}
+        className={`hidden md:flex flex-col bg-white border-r border-slate-200/60 transition-all duration-300 ease-in-out sticky top-0 h-screen z-50 ${sidebarOpen ? 'w-72' : 'w-20'}`}
       >
         {/* Header */}
-        <div className={`h-16 flex items-center justify-between px-4 border-b border-slate-100/60 ${!sidebarOpen && 'px-2'}`}>
+        <div className={`h-20 flex items-center justify-between px-4 border-b border-slate-100/60 ${!sidebarOpen && 'px-2'}`}>
           {sidebarOpen ? (
             <div className="flex items-center gap-2 font-bold text-xl tracking-tight px-2">
-              <div className="relative w-48 h-12">
+              <div className="relative w-64 h-16">
                 <Image
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
                   alt="Logo"
@@ -127,8 +127,8 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
               </div>
             </div>
           ) : (
-            <div className="w-10 h-10 flex items-center justify-center mx-auto">
-              <div className="relative w-8 h-8">
+            <div className="w-12 h-12 flex items-center justify-center mx-auto">
+              <div className="relative w-10 h-10">
                 <Image
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo2.png`}
                   alt="Logo"
@@ -172,7 +172,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
                   }
                 `}
               >
-                <Icon size={18} className={`${isActive ? "text-indigo-400" : (isLocked ? "text-slate-300" : "text-slate-400 group-hover:text-slate-900")} shrink-0 transition-colors`} />
+                <Icon size={20} className={`${isActive ? "text-indigo-400" : (isLocked ? "text-slate-300" : "text-slate-400 group-hover:text-slate-900")} shrink-0 transition-colors`} />
 
                 {!sidebarOpen && (
                   <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-white text-[10px] font-bold rounded-xl opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all pointer-events-none whitespace-nowrap z-[100] shadow-2xl flex items-center gap-2">
@@ -184,7 +184,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
                 {sidebarOpen && (
                   <div className="flex items-center justify-between flex-1">
-                    <span className="text-sm tracking-tight">{label}</span>
+                    <span className="text-base font-semibold tracking-tight">{label}</span>
                     {isLocked && <Lock size={12} className="text-slate-300" />}
                   </div>
                 )}
@@ -221,9 +221,9 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
 
       {/* ================= MOBILE NAV ================= */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200/60 h-20 flex items-center justify-between px-6">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-[60] bg-white/90 backdrop-blur-xl border-b border-slate-200/60 h-28 flex items-center justify-between px-6">
         <div className="flex items-center">
-          <div className="relative w-48 h-12">
+          <div className="relative w-80 h-24">
             <Image
               src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
               alt="Logo"
@@ -314,7 +314,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
 
 
       {/* ================= MAIN CONTENT ================= */}
-      <main className={`flex-1 min-w-0 transition-all duration-300 md:mt-0 mt-20`}>
+      <main className={`flex-1 min-w-0 transition-all duration-300 md:mt-0 mt-28`}>
 
         {/* TOP SPACE (Minimal) */}
         <header className="hidden md:block h-6" />

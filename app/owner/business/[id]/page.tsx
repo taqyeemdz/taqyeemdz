@@ -819,11 +819,11 @@ export default function OwnerBusinessDetailsPage() {
 
                                         {business.owner_logo_url && (
                                             <div className="flex justify-center">
-                                                <div className="w-24 h-24 rounded-2xl border-2 border-slate-50 shadow-xl overflow-hidden bg-white">
+                                                <div className="w-28 h-28 rounded-3xl border-2 border-slate-50 shadow-xl overflow-hidden bg-white">
                                                     <img
                                                         src={business.owner_logo_url}
                                                         alt={business.name}
-                                                        className="w-full h-full object-contain p-3"
+                                                        className="w-full h-full object-cover"
                                                     />
                                                 </div>
                                             </div>

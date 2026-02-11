@@ -188,12 +188,12 @@ export default function SettingsPage() {
             {/* Logo Section Only */}
             <div className="flex flex-col sm:flex-row items-center gap-8 pb-8 border-b border-slate-50">
               <div className="relative group">
-                <div className="w-28 h-28 rounded-[2rem] bg-indigo-50/30 border-2 border-dashed border-indigo-200 overflow-hidden flex items-center justify-center relative shadow-sm transition-all group-hover:border-indigo-400 group-hover:bg-indigo-50/50">
+                <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-50/30 border-2 border-dashed border-indigo-200 overflow-hidden flex items-center justify-center relative shadow-sm transition-all group-hover:border-indigo-400 group-hover:bg-indigo-50/50">
                   {ownerProfile?.logo_url ? (
                     <img
                       src={ownerProfile.logo_url}
                       alt="Logo"
-                      className="w-full h-full object-contain p-4"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <Camera size={32} className="text-indigo-300" />

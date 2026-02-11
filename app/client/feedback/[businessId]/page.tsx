@@ -538,11 +538,11 @@ export default function ClientFeedbackPage() {
                 {/* BRAND LOGO AT THE TOP */}
                 {business.owner_logo_url && (
                     <div className="flex justify-center mb-8">
-                        <div className="w-24 h-24 rounded-3xl bg-white shadow-xl border border-slate-50 flex items-center justify-center p-4">
+                        <div className="w-28 h-28 rounded-3xl bg-white shadow-xl border border-slate-50 overflow-hidden flex items-center justify-center">
                             <img
                                 src={business.owner_logo_url}
                                 alt={business.name}
-                                className="max-w-full max-h-full object-contain"
+                                className="w-full h-full object-cover"
                             />
                         </div>
                     </div>
@@ -757,11 +757,10 @@ export default function ClientFeedbackPage() {
                                     </div>
                                     <div className="space-y-4">
                                         {mediaFiles.length < 4 ? (
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <div className="flex flex-wrap items-center justify-start gap-3">
                                                 {/* PHOTO UPLOAD */}
                                                 {allowPhoto && (
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-tighter">Max 20Mo</span>
+                                                    <div className="flex flex-col items-center">
                                                         <input
                                                             type="file"
                                                             multiple
@@ -772,12 +771,12 @@ export default function ClientFeedbackPage() {
                                                         />
                                                         <label
                                                             htmlFor="photo-upload"
-                                                            className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white hover:border-indigo-400 transition-all group aspect-square shadow-sm active:scale-[0.98]"
+                                                            className="w-20 h-20 flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white hover:border-indigo-400 transition-all group shadow-sm active:scale-[0.98]"
                                                         >
-                                                            <div className="w-8 h-8 rounded-full bg-white text-indigo-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-50 transition-all mb-1 shadow-sm border border-indigo-50">
+                                                            <div className="w-8 h-8 rounded-full bg-white text-indigo-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-50 transition-all shadow-sm border border-indigo-50">
                                                                 <Camera size={16} />
                                                             </div>
-                                                            <span className="text-[10px] font-bold text-slate-600 text-center truncate w-full">
+                                                            <span className="text-[8px] font-bold text-slate-500 text-center uppercase tracking-tighter mt-1">
                                                                 Photos
                                                                 {business.require_photo && <span className="text-red-500 ml-0.5">*</span>}
                                                             </span>
@@ -787,8 +786,7 @@ export default function ClientFeedbackPage() {
 
                                                 {/* VIDEO UPLOAD */}
                                                 {allowVideo && (
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-tighter">Max 20Mo</span>
+                                                    <div className="flex flex-col items-center">
                                                         <input
                                                             type="file"
                                                             multiple
@@ -799,12 +797,15 @@ export default function ClientFeedbackPage() {
                                                         />
                                                         <label
                                                             htmlFor="video-upload"
-                                                            className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white hover:border-amber-400 transition-all group aspect-square shadow-sm active:scale-[0.98]"
+                                                            className="w-20 h-20 relative flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-white hover:border-amber-400 transition-all group shadow-sm active:scale-[0.98]"
                                                         >
-                                                            <div className="w-8 h-8 rounded-full bg-white text-amber-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-50 transition-all mb-1 shadow-sm border border-amber-50">
+                                                            <div className="absolute top-1 right-1 px-1 bg-amber-100 text-amber-700 text-[7px] font-black rounded-md border border-amber-200">
+                                                                45s
+                                                            </div>
+                                                            <div className="w-8 h-8 rounded-full bg-white text-amber-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-50 transition-all shadow-sm border border-amber-50">
                                                                 <Video size={16} />
                                                             </div>
-                                                            <span className="text-[10px] font-bold text-slate-600 text-center truncate w-full">
+                                                            <span className="text-[8px] font-bold text-slate-500 text-center uppercase tracking-tighter mt-1">
                                                                 Vidéos
                                                                 {business.require_video && <span className="text-red-500 ml-0.5">*</span>}
                                                             </span>
@@ -814,28 +815,30 @@ export default function ClientFeedbackPage() {
 
                                                 {/* AUDIO RECORDING */}
                                                 {allowAudio && (
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-tighter">30 sec</span>
+                                                    <div className="flex flex-col items-center">
                                                         {!isRecording ? (
                                                             <button
                                                                 type="button"
                                                                 onClick={startRecording}
-                                                                className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-xl bg-slate-50/50 hover:bg-white hover:border-rose-400 transition-all group aspect-square shadow-sm active:scale-[0.98]"
+                                                                className="w-20 h-20 relative flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-xl bg-slate-50/50 hover:bg-white hover:border-rose-400 transition-all group shadow-sm active:scale-[0.98]"
                                                             >
-                                                                <div className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-rose-50 transition-all mb-1 shadow-sm border border-rose-50">
+                                                                <div className="absolute top-1 right-1 px-1 bg-rose-100 text-rose-700 text-[7px] font-black rounded-md border border-rose-200">
+                                                                    30s
+                                                                </div>
+                                                                <div className="w-8 h-8 rounded-full bg-white text-rose-500 flex items-center justify-center group-hover:scale-110 group-hover:bg-rose-50 transition-all shadow-sm border border-rose-50">
                                                                     <Mic size={16} />
                                                                 </div>
-                                                                <span className="text-[10px] font-bold text-slate-600 text-center truncate w-full">
+                                                                <span className="text-[8px] font-bold text-slate-500 text-center uppercase tracking-tighter mt-1">
                                                                     Vocal
                                                                     {business.require_audio && <span className="text-red-500 ml-0.5">*</span>}
                                                                 </span>
                                                             </button>
                                                         ) : (
-                                                            <div className="flex flex-col items-center justify-center p-2 border-2 border-rose-500 bg-rose-50 rounded-xl shadow-lg shadow-rose-100 animate-pulse cursor-pointer aspect-square" onClick={stopRecording}>
+                                                            <div className="w-20 h-20 flex flex-col items-center justify-center border-2 border-rose-500 bg-rose-50 rounded-xl shadow-lg shadow-rose-100 animate-pulse cursor-pointer" onClick={stopRecording}>
                                                                 <div className="w-8 h-8 rounded-full bg-rose-500 text-white flex items-center justify-center mb-1 shadow-lg shadow-rose-200">
                                                                     <Square size={10} fill="currentColor" />
                                                                 </div>
-                                                                <span className="text-[9px] font-black text-rose-600 font-mono tracking-tighter">
+                                                                <span className="text-[8px] font-black text-rose-600 font-mono tracking-tighter">
                                                                     00:{recordingTime < 10 ? `0${recordingTime}` : recordingTime}
                                                                 </span>
                                                                 <span className="text-[7px] text-rose-400 uppercase font-black">STOP</span>
@@ -852,7 +855,7 @@ export default function ClientFeedbackPage() {
 
                                         {/* PREVIEWS LIST */}
                                         {mediaFiles.length > 0 && (
-                                            <div className="grid grid-cols-4 gap-3 bg-slate-50/50 p-2 rounded-2xl border border-slate-100">
+                                            <div className="grid grid-cols-5 gap-2 bg-slate-50/50 p-2 rounded-xl border border-slate-100">
                                                 {mediaFiles.map((file, idx) => (
                                                     <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-white bg-white shadow-sm group">
                                                         {file.type.startsWith('video') ? (

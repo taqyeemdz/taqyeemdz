@@ -111,8 +111,8 @@ export default function OwnerBusinessPage() {
       {/* Minimalist Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Vos Produits</h1>
-          <p className="text-slate-500 text-sm mt-0.5">Gérez vos produits et vos codes QR.</p>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Vos Produits</h1>
+          <p className="text-slate-500 text-base mt-1 font-medium">Gérez vos produits et vos codes QR.</p>
         </div>
         <button
           onClick={() => {
@@ -122,9 +122,9 @@ export default function OwnerBusinessPage() {
               router.push("/owner/business/new");
             }
           }}
-          className="bg-black text-white text-sm px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-slate-800 transition-all font-medium active:scale-95"
+          className="bg-black text-white text-base px-6 py-3 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-800 transition-all font-bold active:scale-95 shadow-sm"
         >
-          <Plus size={16} />
+          <Plus size={18} />
           Nouveau Produit
         </button>
       </div>
@@ -137,7 +137,7 @@ export default function OwnerBusinessPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher un produit..."
-            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm outline-none focus:border-slate-400 transition-colors"
+            className="w-full bg-white border border-slate-200 rounded-xl pl-12 pr-4 py-3 text-base outline-none focus:border-slate-400 transition-colors shadow-sm"
           />
         </div>
         <button className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
@@ -192,8 +192,8 @@ export default function OwnerBusinessPage() {
                             <QrCode size={16} />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium text-slate-900 leading-tight">{b.name}</span>
-                            <span className="text-[10px] text-slate-400 mt-0.5 font-medium">
+                            <span className="text-base font-bold text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors">{b.name}</span>
+                            <span className="text-xs text-slate-400 mt-1 font-medium">
                               Créé le {format(new Date(b.created_at), "dd/MM/yyyy")}
                             </span>
                           </div>
@@ -207,9 +207,9 @@ export default function OwnerBusinessPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <div className="w-1 h-1 rounded-full bg-emerald-500" />
-                          <span className="text-[11px] font-medium text-emerald-500">Actif</span>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">Actif</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">

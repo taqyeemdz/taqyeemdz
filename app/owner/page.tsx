@@ -167,10 +167,10 @@ export default function OwnerDashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-fade-in-up">
         <div className="space-y-1">
 
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none">
+          <h1 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight leading-none">
             Bonjour, <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">{profile?.full_name?.split(' ')[0] || "Propriétaire"}</span>
           </h1>
-          <p className="text-slate-500 text-base font-medium">Visualisez l'évolution de vos produits en temps réel.</p>
+          <p className="text-slate-500 text-xl font-medium">Visualisez l'évolution de vos produits en temps réel.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -180,15 +180,15 @@ export default function OwnerDashboardPage() {
             </div>
             <div className="text-left">
               <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Aujourd'hui</p>
-              <p className="text-xs font-black text-slate-900 uppercase">{format(new Date(), "dd MMM yyyy", { locale: fr })}</p>
+              <p className="text-sm font-black text-slate-900 uppercase">{format(new Date(), "dd MMM yyyy", { locale: fr })}</p>
             </div>
           </div>
           <button
             onClick={() => router.push('/owner/business/new')}
-            className="h-14 px-6 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all active:scale-95 shadow-xl shadow-slate-200 flex items-center gap-3 group"
+            className="h-16 px-8 bg-slate-900 text-white rounded-2xl hover:bg-black transition-all active:scale-95 shadow-xl shadow-slate-200 flex items-center gap-3 group"
           >
-            <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Ajouter</span>
+            <Plus size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+            <span className="text-xs font-black uppercase tracking-widest">Nouveau Produit</span>
           </button>
         </div>
       </div>
@@ -201,16 +201,16 @@ export default function OwnerDashboardPage() {
           <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-                  <QrCode size={14} /> Vos Produits
+                <h2 className="text-[13px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                  <QrCode size={16} /> Vos Produits
                 </h2>
-                <span className="px-2.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full border border-slate-200/50">
+                <span className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-black rounded-full border border-slate-200/50">
                   {stats.totalBusinesses}
                 </span>
               </div>
               <button
                 onClick={() => router.push("/owner/business")}
-                className="text-[10px] font-black text-indigo-600 uppercase tracking-widest px-4 py-2 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
+                className="text-xs font-black text-indigo-600 uppercase tracking-widest px-5 py-2.5 bg-indigo-50 rounded-xl hover:bg-indigo-100 transition-colors"
               >
                 Tout gérer
               </button>
@@ -230,23 +230,23 @@ export default function OwnerDashboardPage() {
                         <QrCode size={20} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors truncate text-[13px] uppercase tracking-tight mb-0.5">{biz.name}</h3>
+                        <h3 className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors truncate text-lg uppercase tracking-tight mb-1">{biz.name}</h3>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-1">
-                            <Star size={10} className="fill-amber-500 text-amber-500" />
-                            <span className="text-[10px] font-black text-slate-700">{biz.avg_rating}</span>
+                            <Star size={12} className="fill-amber-500 text-amber-500" />
+                            <span className="text-sm font-black text-slate-700">{biz.avg_rating}</span>
                           </div>
                           <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
                           <div className="flex items-center gap-1 text-slate-400">
-                            <Users size={10} />
-                            <span className="text-[10px] font-bold">{biz.reviews_count} avis</span>
+                            <Users size={12} />
+                            <span className="text-sm font-bold">{biz.reviews_count} avis</span>
                           </div>
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4 shrink-0 ml-4">
-                      <p className="hidden sm:block text-[9px] font-bold text-indigo-400/60 uppercase tracking-widest whitespace-nowrap">
+                      <p className="hidden sm:block text-xs font-bold text-indigo-400/60 uppercase tracking-widest whitespace-nowrap">
                         {format(new Date(biz.created_at), "MMM yyyy", { locale: fr })}
                       </p>
                       <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-all">
@@ -284,17 +284,17 @@ export default function OwnerDashboardPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <h3 className="text-xl font-black tracking-tight leading-tight">Animez vos ventes</h3>
-                  <p className="text-slate-400 text-xs font-medium leading-relaxed">
+                  <h3 className="text-3xl font-black tracking-tight leading-tight">Animez vos ventes</h3>
+                  <p className="text-base text-slate-300 font-medium leading-relaxed">
                     Utilisez <span className="text-white font-bold">Tamboola</span> pour organiser des tirages au sort instantanés.
                   </p>
                 </div>
 
                 <button
                   onClick={() => router.push('/owner/tamboola')}
-                  className="w-full h-12 bg-white text-slate-900 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-slate-100 active:scale-[0.98] transition-all shadow-xl"
+                  className="w-full h-14 bg-white text-slate-900 rounded-xl font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-slate-100 active:scale-[0.98] transition-all shadow-xl"
                 >
-                  Lancer Tamboola <ArrowRight size={16} />
+                  Lancer Tamboola <ArrowRight size={20} />
                 </button>
               </div>
             </div>

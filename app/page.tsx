@@ -60,7 +60,7 @@ export default function LandingPage() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center gap-2">
-              <div className="relative w-64 h-16">
+              <div className="relative w-80 h-24">
                 <Image
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
                   alt="Feedback by Jobber Logo"
@@ -71,26 +71,26 @@ export default function LandingPage() {
             </div>
 
             {/* Desktop Nav */}
-            <nav className="hidden md:flex items-center gap-8">
-              <Link href="#about" className="text-sm font-medium hover:text-[var(--chart-2)] transition-colors">
+            <nav className="hidden md:flex items-center gap-10">
+              <Link href="#about" className="text-base font-semibold hover:text-[var(--chart-2)] transition-colors">
                 À propos
               </Link>
-              <Link href="#pricing" className="text-sm font-medium hover:text-[var(--chart-2)] transition-colors">
+              <Link href="#pricing" className="text-base font-semibold hover:text-[var(--chart-2)] transition-colors">
                 Tarifs
               </Link>
             </nav>
 
             {/* CTA Buttons */}
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-6">
               <Link
                 href="/auth/login"
-                className="text-sm font-medium hover:text-[var(--chart-2)] transition-colors"
+                className="text-base font-semibold hover:text-[var(--chart-2)] transition-colors"
               >
                 Se connecter
               </Link>
               <Link
                 href="/auth/request"
-                className="px-4 py-2 rounded-full bg-[var(--chart-2)] text-white text-sm font-medium hover:opacity-90 transition-opacity shadow-lg shadow-[var(--chart-2)]/25"
+                className="px-6 py-2.5 rounded-full bg-[var(--chart-2)] text-white text-base font-bold hover:opacity-90 transition-opacity shadow-lg shadow-[var(--chart-2)]/25"
               >
                 S'inscrire
               </Link>
@@ -109,25 +109,25 @@ export default function LandingPage() {
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-[var(--border)] bg-[var(--background)]">
-            <div className="px-4 py-4 space-y-4">
-              <Link href="#about" className="block text-sm font-medium text-[var(--foreground)]" onClick={() => setIsMobileMenuOpen(false)}>
+            <div className="px-4 py-6 space-y-6">
+              <Link href="#about" className="block text-lg font-bold text-[var(--foreground)]" onClick={() => setIsMobileMenuOpen(false)}>
                 À propos
               </Link>
-              <Link href="#pricing" className="block text-sm font-medium text-[var(--foreground)]" onClick={() => setIsMobileMenuOpen(false)}>
+              <Link href="#pricing" className="block text-lg font-bold text-[var(--foreground)]" onClick={() => setIsMobileMenuOpen(false)}>
                 Tarifs
               </Link>
               <hr className="border-[var(--border)]" />
-              <div className="flex flex-col gap-3 pt-2">
+              <div className="flex flex-col gap-4 pt-2">
                 <Link
                   href="/auth/login"
-                  className="block text-center w-full py-2 text-sm font-medium border border-[var(--border)] rounded-lg"
+                  className="block text-center w-full py-3 text-base font-bold border border-[var(--border)] rounded-xl"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Se connecter
                 </Link>
                 <Link
                   href="/auth/request"
-                  className="block text-center w-full py-2 text-sm font-medium bg-[var(--chart-2)] text-white rounded-lg"
+                  className="block text-center w-full py-3 text-base font-bold bg-[var(--chart-2)] text-white rounded-xl"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   S'inscrire
@@ -150,11 +150,11 @@ export default function LandingPage() {
               Désormais disponible pour toutes les entreprises en Algérie
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-[var(--foreground)] mb-6 max-w-4xl mx-auto leading-[1.1]">
+            <h1 className="text-6xl md:text-8xl font-bold tracking-tight text-[var(--foreground)] mb-8 max-w-5xl mx-auto leading-[1.1]">
               Transformez les retours clients en <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--chart-2)] to-[var(--chart-1)]">Croissance exploitable</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-[var(--muted-foreground)] max-w-2xl mx-auto mb-10">
+            <p className="text-xl md:text-2xl text-[var(--muted-foreground)] max-w-3xl mx-auto mb-12 leading-relaxed">
               Feedback by Jobber offre un canal privé et fluide permettant à vos clients de partager leurs expériences, vous aidant ainsi à améliorer vos services et à fidéliser votre clientèle.
             </p>
 
@@ -181,12 +181,12 @@ export default function LandingPage() {
                   Notre Mission
                 </div>
 
-                <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-[var(--foreground)]">
+                <h2 className="text-4xl md:text-6xl font-black mb-8 tracking-tight text-[var(--foreground)]">
                   Qu'est-ce que <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--chart-2)] to-purple-600">Feedback by Jobber</span> ?
                 </h2>
 
-                <div className="space-y-6 text-lg text-[var(--muted-foreground)] leading-relaxed">
+                <div className="space-y-8 text-xl text-[var(--muted-foreground)] leading-relaxed">
                   <p>
                     Nous comblons le fossé entre les entreprises et leurs clients. Fini les boîtes à suggestions poussiéreuses : place à une <strong className="text-[var(--foreground)]">intelligence client instantanée</strong>.
                   </p>
@@ -260,13 +260,13 @@ export default function LandingPage() {
                 <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 text-white text-sm font-bold tracking-wide uppercase border border-white/10 shadow-sm backdrop-blur-md">
                   Notre Philosophie
                 </div>
-                <h2 className="text-4xl lg:text-6xl font-black text-white leading-tight tracking-tight">
+                <h2 className="text-5xl lg:text-7xl font-black text-white leading-tight tracking-tight">
                   Vision partagée, <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--chart-2)] to-purple-400">
                     succès assuré.
                   </span>
                 </h2>
-                <p className="text-xl text-slate-300 leading-relaxed font-medium">
+                <p className="text-2xl text-slate-300 leading-relaxed font-medium">
                   Nous croyons que l'écoute est la clé de la croissance. Ensemble, transformons chaque retour client en une opportunité concrète de réussite.
                 </p>
                 <div className="pt-4 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -284,8 +284,8 @@ export default function LandingPage() {
         <section id="pricing" className="py-24">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Tarification simple et transparente</h2>
-              <p className="text-[var(--muted-foreground)] mb-8">Choisissez le forfait qui correspond aux besoins de votre entreprise.</p>
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">Tarification simple et transparente</h2>
+              <p className="text-lg text-[var(--muted-foreground)] mb-10">Choisissez le forfait qui correspond aux besoins de votre entreprise.</p>
 
               {/* Billing Period Toggle */}
               <div className="flex justify-center mb-10">
@@ -353,8 +353,8 @@ export default function LandingPage() {
         {/* ==================== CTA SECTION ==================== */}
         <section className="py-24 bg-[var(--chart-2)] text-white">
           <div className="max-w-4xl mx-auto px-4 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Prêt à améliorer votre expérience client ?</h2>
-            <p className="text-blue-100 text-lg mb-10">
+            <h2 className="text-4xl md:text-6xl font-bold mb-8">Prêt à améliorer votre expérience client ?</h2>
+            <p className="text-blue-100 text-xl md:text-2xl mb-12 leading-relaxed">
               Rejoignez des centaines d'entreprises utilisant Feedback by Jobber pour écouter, apprendre et grandir.
             </p>
             <Link
@@ -373,7 +373,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
 
           {/* Logo */}
-          <div className="relative w-64 h-20 mx-auto mb-8">
+          <div className="relative w-80 h-28 mx-auto mb-10">
             <Image
               src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/webapp-assets/logo.png`}
               alt="Feedback by Jobber Logo"
@@ -455,9 +455,9 @@ export default function LandingPage() {
 
 function FeatureItem({ text }: { text: string }) {
   return (
-    <div className="flex items-center gap-3">
-      <CheckCircle2 size={20} className="text-[var(--chart-2)] flex-shrink-0" />
-      <span className="text-[var(--foreground)] font-medium">{text}</span>
+    <div className="flex items-center gap-4">
+      <CheckCircle2 size={24} className="text-[var(--chart-2)] flex-shrink-0" />
+      <span className="text-[var(--foreground)] font-semibold text-lg">{text}</span>
     </div>
   );
 }
