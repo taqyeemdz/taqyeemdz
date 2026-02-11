@@ -309,15 +309,39 @@ export default function OwnersListPage() {
                         <span className="text-[11px] font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-center">
                           {o.plan_name}
                         </span>
-                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                          {o.billing_period === 'yearly' ? 'Annuel' : 'Mensuel'}
-                        </span>
+                        <div className="flex flex-col items-center">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                            {o.billing_period === 'yearly' ? 'Annuel' : 'Mensuel'}
+                          </span>
+                          {o.subscription_end && (
+                            <span className="text-[9px] font-bold text-slate-400/70 uppercase tracking-tighter">
+                              Fin: {new Date(o.subscription_end).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: '2-digit' })}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`text-[11px] font-medium ${o.is_active ? 'text-emerald-500' : 'text-slate-400'}`}>
-                        {o.is_active ? 'Actif' : 'Inactif'}
-                      </span>
+                      {(() => {
+                        const isInactive = !o.is_active;
+                        const isExpired = o.subscription_end && new Date(o.subscription_end) < new Date();
+
+                        if (isInactive) return (
+                          <span className="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded-full uppercase tracking-wider border border-slate-200">
+                            Inactif
+                          </span>
+                        );
+                        if (isExpired) return (
+                          <span className="text-[10px] font-bold px-2 py-1 bg-amber-50 text-amber-600 rounded-full uppercase tracking-wider border border-amber-100">
+                            Expiré
+                          </span>
+                        );
+                        return (
+                          <span className="text-[10px] font-bold px-2 py-1 bg-emerald-50 text-emerald-600 rounded-full uppercase tracking-wider border border-emerald-100">
+                            Actif
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="relative">

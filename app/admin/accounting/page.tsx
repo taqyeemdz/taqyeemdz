@@ -48,15 +48,50 @@ export default function AccountingPage() {
     async function fetchAccountingData() {
         setLoading(true);
         try {
-            // 1. Fetch onboarding requests (paid or active) as "transactions"
-            const { data: requests, error } = await supabase
+            // 1. Fetch onboarding requests (paid or active)
+            const { data: onboarding, error: onbError } = await supabase
                 .from("onboarding_requests")
                 .select(`*, subscription_plans(name, price, billing_period)`)
                 .in("status", ["paid", "active"])
                 .order("created_at", { ascending: true });
 
-            if (error) throw error;
-            setOriginalRequests(requests || []);
+            if (onbError) throw onbError;
+
+            // 2. Fetch renewal requests (approved)
+            const { data: renewals, error: renError } = await supabase
+                .from("renewal_requests")
+                .select(`*, profiles(full_name, subscription_end), subscription_plans(name, price, billing_period)`)
+                .eq("status", "approved")
+                .order("created_at", { ascending: true });
+
+            if (renError) throw renError;
+
+            // 3. Merge and normalize
+            const normalizedOnboarding = (onboarding || []).map(o => ({
+                id: o.id,
+                business_name: o.business_name,
+                owner_name: o.owner_name,
+                created_at: o.created_at,
+                subscription_end: null, // Temporary
+                subscription_plans: o.subscription_plans,
+                type: 'onboarding'
+            }));
+
+            const normalizedRenewals = (renewals || []).map(r => ({
+                id: r.id,
+                business_name: r.profiles?.full_name || "Renouvellement",
+                owner_name: r.profiles?.full_name || "Client",
+                created_at: r.created_at,
+                subscription_end: r.profiles?.subscription_end,
+                subscription_plans: r.subscription_plans,
+                type: 'renewal'
+            }));
+
+            const combined = [...normalizedOnboarding, ...normalizedRenewals].sort((a, b) =>
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+
+            setOriginalRequests(combined);
 
         } catch (err: any) {
             console.error("Error fetching accounting data:", err);
@@ -250,6 +285,7 @@ export default function AccountingPage() {
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">Client / Business</th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">Plan</th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">Date</th>
+                                        <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50">Fin Abonnement</th>
                                         <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-50 text-right">Montant</th>
                                     </tr>
                                 </thead>
@@ -259,7 +295,12 @@ export default function AccountingPage() {
                                             <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors group">
                                                 <td className="px-6 py-4">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-slate-900">{tx.business_name}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-sm font-semibold text-slate-900">{tx.business_name}</p>
+                                                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${tx.type === 'renewal' ? 'bg-amber-100 text-amber-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                                                                {tx.type === 'renewal' ? 'Renouvellement' : 'Nouveau'}
+                                                            </span>
+                                                        </div>
                                                         <p className="text-[11px] text-slate-400">{tx.owner_name}</p>
                                                     </div>
                                                 </td>
@@ -277,6 +318,15 @@ export default function AccountingPage() {
                                                 </td>
                                                 <td className="px-6 py-4 text-xs text-slate-500">
                                                     {format(new Date(tx.created_at), "dd MMM yyyy", { locale: fr })}
+                                                </td>
+                                                <td className="px-6 py-4 text-xs">
+                                                    {tx.subscription_end ? (
+                                                        <span className={`font-bold ${new Date(tx.subscription_end) < new Date() ? 'text-red-500' : 'text-emerald-600'}`}>
+                                                            {format(new Date(tx.subscription_end), "dd MMM yyyy", { locale: fr })}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-slate-400 italic">N/A</span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <p className="text-sm font-bold text-slate-900">

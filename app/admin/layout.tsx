@@ -8,7 +8,6 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  Building2,
   Users,
   Settings,
   LogOut,
@@ -29,6 +28,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [onboardingCount, setOnboardingCount] = useState(0);
+  const [renewalCount, setRenewalCount] = useState(0);
 
   /* AUTH CHECK */
   useEffect(() => {
@@ -48,11 +49,29 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         .maybeSingle();
 
       if (!profile || profile.role !== "admin") {
-        router.replace("/auth/login"); // Or specific unauthorized page
+        router.replace("/auth/login");
         return;
       }
 
       setUser(profile);
+
+      // Fetch pending counts
+      const fetchCounts = async () => {
+        const { count: onbCount } = await supabase
+          .from("onboarding_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        const { count: renCount } = await supabase
+          .from("renewal_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending");
+
+        setOnboardingCount(onbCount || 0);
+        setRenewalCount(renCount || 0);
+      };
+
+      fetchCounts();
       setLoading(false);
     })();
   }, [supabase, router]);
@@ -66,7 +85,8 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
 
   const links = [
     { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
-    { href: "/admin/onboarding", label: "Demandes", icon: Zap },
+    { href: "/admin/onboarding", label: "Onboarding", icon: Zap, count: onboardingCount },
+    { href: "/admin/renewals", label: "Renouvellements", icon: Activity, count: renewalCount },
     { href: "/admin/owners", label: "Propriétaires", icon: Users },
     { href: "/admin/accounting", label: "Comptabilité", icon: BarChart3 },
     { href: "/admin/settings", label: "Paramètres", icon: Settings },
@@ -112,26 +132,40 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
 
         {/* Navigation */}
         <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
-          {links.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href || (href !== "/admin" && pathname?.startsWith(`${href}/`));
+          {links.map((link) => {
+            const Icon = link.icon;
+            const isActive = pathname === link.href || (link.href !== "/admin" && pathname?.startsWith(`${link.href}/`));
 
             return (
               <Link
-                key={href}
-                href={href}
+                key={link.href}
+                href={link.href}
                 className={`
-                            flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative
-                            ${isActive
+                  flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group relative
+                  ${isActive
                     ? "bg-indigo-600 text-white font-medium shadow-md shadow-indigo-900/20"
                     : "text-slate-400 hover:bg-slate-800 hover:text-white"
                   }
-                            ${!sidebarOpen && "justify-center"}
-                        `}
-                title={!sidebarOpen ? label : ""}
+                  ${!sidebarOpen && "justify-center"}
+                `}
+                title={!sidebarOpen ? link.label : ""}
               >
                 <Icon size={20} className={`${isActive ? "text-white" : "text-slate-400 group-hover:text-white"} shrink-0`} />
 
-                {sidebarOpen && <span>{label}</span>}
+                {sidebarOpen && (
+                  <div className="flex-1 flex items-center justify-between">
+                    <span>{link.label}</span>
+                    {(link as any).count > 0 && (
+                      <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                        {(link as any).count}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {!sidebarOpen && (link as any).count > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900" />
+                )}
               </Link>
             );
           })}
@@ -163,7 +197,6 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
         </div>
       </aside>
 
-
       {/* ================= MOBILE HEADER ================= */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900 border-b border-slate-800 h-16 flex items-center justify-between px-4 text-white">
         <div className="flex items-center gap-2 font-bold text-xl">
@@ -189,23 +222,31 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
             </div>
 
             <nav className="flex-1 py-6 px-4 space-y-2">
-              {links.map(({ href, label, icon: Icon }) => {
-                const isActive = pathname === href || (href !== "/admin" && pathname?.startsWith(`${href}/`));
+              {links.map((link) => {
+                const Icon = link.icon;
+                const isActive = pathname === link.href || (link.href !== "/admin" && pathname?.startsWith(`${link.href}/`));
                 return (
                   <Link
-                    key={href}
-                    href={href}
+                    key={link.href}
+                    href={link.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`
-                      flex items-center gap-3 px-3 py-3 rounded-xl transition-colors
+                      flex items-center justify-between px-3 py-3 rounded-xl transition-colors
                       ${isActive
                         ? "bg-indigo-600 text-white font-medium"
                         : "text-slate-400 hover:bg-slate-800 hover:text-white"
                       }
                     `}
                   >
-                    <Icon size={20} />
-                    {label}
+                    <div className="flex items-center gap-3">
+                      <Icon size={20} />
+                      {link.label}
+                    </div>
+                    {(link as any).count > 0 && (
+                      <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                        {(link as any).count}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -265,4 +306,3 @@ export default function AdminDashboardLayout({ children }: { children: React.Rea
     </div>
   );
 }
-

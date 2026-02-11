@@ -18,8 +18,11 @@ import {
   User,
   Sparkles,
   Trophy,
-  Lock
+  Lock,
+  RefreshCcw,
+  Send
 } from "lucide-react";
+import { toast } from "sonner";
 import Image from "next/image";
 
 export default function OwnerDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -32,6 +35,10 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [renewalLoading, setRenewalLoading] = useState(false);
+  const [hasRenewalRequest, setHasRenewalRequest] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState<any[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -71,6 +78,16 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         requestId: request?.id?.split('-')[0].toUpperCase()
       });
 
+      // Check for renewal request
+      const { data: renewal } = await supabase
+        .from("renewal_requests")
+        .select("id")
+        .eq("user_id", authUser.id)
+        .eq("status", "pending")
+        .maybeSingle();
+
+      setHasRenewalRequest(!!renewal);
+
       if (profile.plan_id) {
         const { data: plan } = await supabase
           .from("subscription_plans")
@@ -81,6 +98,16 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         setAllowStats(!!plan?.allow_stats);
         setAllowTamboola(!!plan?.allow_tamboola);
       }
+
+      // Fetch all active plans for switching
+      const { data: plans } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("price", { ascending: true });
+
+      setAvailablePlans(plans || []);
+      setSelectedPlanId(profile.plan_id);
 
       setLoading(false);
     };
@@ -95,15 +122,42 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
     router.replace("/auth/login");
   }
 
+  async function handleRequestRenewal() {
+    if (!user?.id || hasRenewalRequest) return;
+
+    setRenewalLoading(true);
+    try {
+      const { error } = await supabase
+        .from("renewal_requests")
+        .insert({
+          user_id: user.id,
+          plan_id: selectedPlanId || user.plan_id,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      setHasRenewalRequest(true);
+      toast.success("Demande de renouvellement envoyée avec succès !");
+    } catch (err) {
+      console.error("Renewal request error:", err);
+      toast.error("Échec de l'envoi de la demande.");
+    } finally {
+      setRenewalLoading(false);
+    }
+  }
+
   const isInactive = user?.is_active === false;
+  const isExpired = user?.subscription_end && new Date(user.subscription_end) < new Date();
+  const isBlocked = isInactive || isExpired;
 
   const links = [
     { href: "/owner", label: "Tableau de Bord", icon: LayoutDashboard },
-    { href: "/owner/business", label: "Produits", icon: QrCode, locked: isInactive },
-    { href: "/owner/analytics", label: "Statistiques", icon: BarChart3, locked: isInactive || !allowStats },
-    { href: "/owner/feedback", label: "Avis Clients", icon: MessageCircle, locked: isInactive },
-    { href: "/owner/tamboola", label: "Tamboola", icon: Trophy, locked: isInactive || !allowTamboola },
-    { href: "/owner/settings", label: "Paramètres", icon: Settings, locked: isInactive },
+    { href: "/owner/business", label: "Produits", icon: QrCode, locked: isBlocked },
+    { href: "/owner/analytics", label: "Statistiques", icon: BarChart3, locked: isBlocked || !allowStats },
+    { href: "/owner/feedback", label: "Avis Clients", icon: MessageCircle, locked: isBlocked },
+    { href: "/owner/tamboola", label: "Tamboola", icon: Trophy, locked: isBlocked || !allowTamboola },
+    { href: "/owner/settings", label: "Paramètres", icon: Settings, locked: isBlocked },
   ];
 
   return (
@@ -322,60 +376,130 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
         {/* CONTAINER */}
         <div className="relative animate-in fade-in slide-in-from-bottom-3 duration-1000 min-h-[calc(100vh-5rem)]">
 
-          {/* BLOQUAGE SI INACTIF */}
-          {user?.is_active === false && (
+          {/* BLOQUAGE SI INACTIF OU EXPIRE */}
+          {isBlocked && (
             <div className="absolute inset-0 z-[100] flex items-start sm:items-center justify-center p-4 sm:p-8 bg-white/40 backdrop-blur-md">
               <div className="absolute inset-0 z-0 cursor-not-allowed" />
 
-              <div className="relative z-10 max-w-lg w-full bg-white rounded-3xl sm:rounded-[3rem] shadow-2xl shadow-indigo-200/50 border border-slate-100 p-5 sm:p-12 text-center animate-in zoom-in duration-700 max-h-[90vh] overflow-y-auto no-scrollbar mt-4 sm:mt-0">
-                <div className="w-14 h-14 sm:w-24 sm:h-24 bg-indigo-50 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mx-auto mb-4 sm:mb-8 border-4 border-white shadow-inner">
-                  <Lock size={24} className="text-indigo-600 animate-pulse sm:w-9 sm:h-9" />
+              <div className={`relative z-10 w-full ${isExpired ? 'max-w-3xl' : 'max-w-lg'} bg-white rounded-3xl sm:rounded-[3rem] shadow-2xl shadow-indigo-200/50 border border-slate-100 p-6 sm:p-10 animate-in zoom-in duration-700 mt-4 sm:mt-0`}>
+                <div className={`grid grid-cols-1 ${isExpired ? 'lg:grid-cols-2' : ''} gap-8 sm:gap-12`}>
+
+                  {/* LEFT COLUMN: MESSAGE */}
+                  <div className="text-center lg:text-left space-y-4">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-indigo-50 rounded-2xl sm:rounded-3xl flex items-center justify-center mx-auto lg:mx-0 mb-2 border-4 border-white shadow-inner">
+                      <Lock size={20} className="text-indigo-600 animate-pulse sm:w-7 sm:h-7" />
+                    </div>
+
+                    <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                      {isExpired ? "Abonnement" : "Activation"} <br />
+                      <span className="text-indigo-600 border-b-4 border-indigo-100">{isExpired ? "Expiré" : "en cours"}</span>
+                    </h2>
+
+                    <p className="text-slate-500 font-medium leading-relaxed text-xs sm:text-sm italic">
+                      {isExpired
+                        ? "Votre abonnement a expiré. Veuillez contacter un conseiller pour la réactivation de vos services."
+                        : `Votre compte est en cours de création, un conseiller vous contactera au ${user.phone}.`
+                      }
+                    </p>
+
+                    {user.requestId && !isExpired && (
+                      <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest pt-2">
+                        N° de demande : <span className="text-slate-900">#{user.requestId}</span>
+                      </p>
+                    )}
+
+                    {!isExpired && (
+                      <div className="pt-4 border-t border-slate-50 flex flex-col items-center lg:items-start gap-4">
+                        <button
+                          onClick={handleLogout}
+                          className="flex items-center justify-center gap-2 text-slate-400 font-bold text-[9px] sm:text-[10px] hover:text-red-500 transition-colors uppercase tracking-[0.2em]"
+                        >
+                          <LogOut size={12} className="sm:w-3.5 sm:h-3.5" /> Déconnexion sécurisée
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RIGHT COLUMN: ACTIONS (ONLY IF EXPIRED) */}
+                  {isExpired && (
+                    <div className="flex flex-col justify-center space-y-6 bg-slate-50/50 p-5 sm:p-8 rounded-[2rem] border border-slate-100">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block text-center lg:text-left">
+                          Plan de renouvellement
+                        </label>
+                        <div className="relative group">
+                          <select
+                            disabled={hasRenewalRequest}
+                            value={selectedPlanId || ""}
+                            onChange={(e) => setSelectedPlanId(e.target.value)}
+                            className={`w-full bg-white border-2 border-slate-200 rounded-xl px-4 py-3.5 text-xs font-bold text-slate-900 outline-none transition-all appearance-none cursor-pointer pr-10 ${!hasRenewalRequest ? "hover:border-indigo-200 focus:border-indigo-600 shadow-sm" : "opacity-60 cursor-not-allowed bg-emerald-50/30 border-emerald-100 text-emerald-700"
+                              }`}
+                          >
+                            {availablePlans.map((plan) => (
+                              <option key={plan.id} value={plan.id}>
+                                {plan.name} — {plan.billing_period === 'yearly' ? 'Annuel' : 'Mensuel'} ({new Intl.NumberFormat('fr-DZ').format(plan.price)} {plan.currency})
+                              </option>
+                            ))}
+                          </select>
+                          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <ChevronRight className="rotate-90" size={16} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <button
+                          onClick={handleRequestRenewal}
+                          disabled={hasRenewalRequest || renewalLoading}
+                          className={`w-full flex items-center justify-center gap-3 py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all shadow-lg active:scale-[0.98] ${hasRenewalRequest
+                            ? "bg-emerald-500 text-white cursor-default shadow-none"
+                            : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200"
+                            }`}
+                        >
+                          {renewalLoading ? (
+                            <RefreshCcw size={16} className="animate-spin" />
+                          ) : hasRenewalRequest ? (
+                            <>Demande envoyée</>
+                          ) : (
+                            <>
+                              <Send size={16} /> Renouveler
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center justify-center gap-2 text-slate-400 font-bold text-[9px] hover:text-red-500 transition-colors uppercase tracking-[0.2em] pt-2"
+                        >
+                          <LogOut size={12} /> Déconnexion
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <h2 className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2 sm:mb-4 leading-tight">
-                  Activation <br />
-                  <span className="text-indigo-600 border-b-4 border-indigo-100">en cours</span>
-                </h2>
-
-                <p className="text-slate-500 font-medium leading-relaxed mb-4 sm:mb-6 text-xs sm:text-sm italic">
-                  Votre compte est en cours de création, un conseiller Feedback vous contactera au <span className="text-indigo-600 font-black">{user.phone}</span> pour la finalisation de votre compte.
-                </p>
-                {user.requestId && (
-                  <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 sm:mb-10">
-                    N° de demande : <span className="text-slate-900">#{user.requestId}</span>
-                  </p>
-                )}
-
-                <div className="space-y-4">
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center justify-center gap-2 mx-auto text-slate-400 font-bold text-[9px] sm:text-[10px] hover:text-red-500 transition-colors uppercase tracking-[0.2em]"
-                  >
-                    <LogOut size={12} className="sm:w-3.5 sm:h-3.5" /> Déconnexion sécurisée
-                  </button>
-                </div>
-
-                <div className="hidden sm:flex mt-12 pt-10 border-t border-slate-50 flex-col items-center gap-4">
-                  <div className="flex -space-x-3">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="w-9 h-9 rounded-full border-4 border-white bg-slate-100 flex items-center justify-center shadow-sm">
-                        <User size={14} className="text-slate-400" />
+                {/* SOCIAL PROOF (BOTTOM - Reduced) */}
+                <div className="hidden sm:flex mt-8 pt-6 border-t border-slate-50 items-center justify-center gap-4">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center shadow-sm">
+                        <User size={12} className="text-slate-400" />
                       </div>
                     ))}
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Rejoignez +50 commerçants satisfaits</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Rejoignez +50 commerçants satisfaits</span>
                 </div>
               </div>
             </div>
           )}
 
           {/* PAGE CONTENT */}
-          <div className={`p-4 sm:p-0 ${user?.is_active === false ? 'blur-xl pointer-events-none select-none opacity-20' : ''}`}>
+          <div className={`p-4 sm:p-0 ${isBlocked ? 'blur-xl pointer-events-none select-none opacity-20' : ''}`}>
             {children}
           </div>
         </div>
       </main>
 
-    </div >
+    </div>
   );
 }
