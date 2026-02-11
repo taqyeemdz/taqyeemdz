@@ -205,7 +205,7 @@ export default function ClientFeedbackPage() {
             setCustomFields(business.form_config);
             const initials: Record<string, any> = {};
             business.form_config.forEach((f: any) => {
-                if (f.type === 'boolean') initials[f.id] = false;
+                if (f.type === 'boolean') initials[f.id] = null;
                 else initials[f.id] = "";
             });
             setCustomResponses(initials);
@@ -357,13 +357,15 @@ export default function ClientFeedbackPage() {
 
         // Validate required custom fields
         for (const field of customFields) {
-            if (field.required && !customResponses[field.id]) {
-                if (field.type === 'boolean' && field.required && customResponses[field.id] !== true) {
-                    setError(`Please check ${field.label}`);
-                    return;
-                }
-                if (field.type !== 'boolean' && (customResponses[field.id] === "" || customResponses[field.id] === undefined)) {
-                    setError(`Please answer: ${field.label}`);
+            const response = customResponses[field.id];
+            if (field.required) {
+                if (field.type === 'boolean') {
+                    if (response === null || response === undefined) {
+                        setError(`Veuillez répondre à : ${field.label}`);
+                        return;
+                    }
+                } else if (!response || response === "") {
+                    setError(`Veuillez répondre à : ${field.label}`);
                     return;
                 }
             }

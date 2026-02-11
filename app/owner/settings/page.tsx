@@ -10,7 +10,8 @@ import {
   Loader2,
   Save,
   Zap,
-  Camera
+  Camera,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -322,6 +323,29 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Retention Policy Section - Full Width */}
+      <div className="space-y-6 pt-12 border-t border-slate-100">
+        <div className="flex items-center gap-3 text-slate-900">
+          <Clock size={18} className="text-slate-400" />
+          <h2 className="text-sm font-bold uppercase tracking-widest">Politique de Rétention</h2>
+        </div>
+
+        <div className="p-8 bg-amber-50/50 border border-amber-100 rounded-[2rem] flex flex-col md:flex-row items-center gap-8 shadow-sm">
+          <div className="w-16 h-16 rounded-[1.5rem] bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+            <Clock size={32} />
+          </div>
+          <div className="space-y-2 text-center md:text-left">
+            <h3 className="text-base font-bold text-amber-900 uppercase tracking-tight">Suppression Automatique des Médias</h3>
+            <p className="text-sm text-amber-800 leading-relaxed max-w-3xl">
+              Pour garantir des performances optimales et respecter la confidentialité de vos échanges, tous les fichiers multimédias (photos, vidéos et messages vocaux) reçus via vos formulaires de feedback sont automatiquement supprimés après <span className="font-bold underline">45 jours</span>.
+            </p>
+            <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest pt-2">
+              Action requise : Pensez à sauvegarder sur votre appareil les fichiers que vous souhaitez conserver à long terme.
+            </p>
           </div>
         </div>
       </div>
