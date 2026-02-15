@@ -3,10 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 
 export async function GET(
     req: Request,
-    { params }: { params: { businessId: string } }
+    { params }: { params: Promise<{ businessId: string }> }
 ) {
     try {
-        const businessId = params.businessId;
+        const { businessId } = await params;
 
         if (!businessId) {
             return NextResponse.json({ error: 'Business ID is required' }, { status: 400 });
