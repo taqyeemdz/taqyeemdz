@@ -20,7 +20,8 @@ import {
   Trophy,
   Lock,
   RefreshCcw,
-  Send
+  Send,
+  Globe
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -157,6 +158,7 @@ export default function OwnerDashboardLayout({ children }: { children: React.Rea
     { href: "/owner/analytics", label: "Statistiques", icon: BarChart3, locked: isBlocked || !allowStats },
     { href: "/owner/feedback", label: "Avis Clients", icon: MessageCircle, locked: isBlocked },
     { href: "/owner/tamboola", label: "Tamboola", icon: Trophy, locked: isBlocked || !allowTamboola },
+    { href: "/owner/integrations", label: "Widget Web", icon: Globe, locked: isBlocked },
     { href: "/owner/settings", label: "Paramètres", icon: Settings, locked: isBlocked },
   ];
 
