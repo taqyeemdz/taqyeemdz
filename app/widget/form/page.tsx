@@ -1,11 +1,10 @@
 "use client";
 
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { useState, useEffect } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client";
-import { Loader2, CheckCircle2, Star, MessageSquare, User, Phone, Send } from "lucide-react";
+import { Loader2, CheckCircle2, User, Phone, Send } from "lucide-react";
 
-export default function WidgetFormPage() {
+function WidgetForm() {
     const searchParams = useSearchParams();
     const businessId = searchParams.get('business_id');
     const apiKey = searchParams.get('api_key');
@@ -166,5 +165,17 @@ export default function WidgetFormPage() {
                 )}
             </div>
         </div>
+    );
+}
+
+export default function WidgetFormPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen items-center justify-center bg-white">
+                <Loader2 className="animate-spin text-slate-300" size={32} />
+            </div>
+        }>
+            <WidgetForm />
+        </Suspense>
     );
 }
