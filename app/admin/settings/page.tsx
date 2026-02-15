@@ -406,6 +406,15 @@ export default function AdminSettings() {
                           </button>
                         </div>
                         <div className="flex items-center justify-between p-2 sm:p-3 border border-slate-100 rounded-lg bg-white">
+                          <span className="text-[11px] sm:text-xs font-medium text-slate-600">Tamboola</span>
+                          <button
+                            onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, allow_tamboola: !p.allow_tamboola } : p))}
+                            className={`w-8 h-4 rounded-full transition-all ${plan.allow_tamboola ? 'bg-slate-900 text-end' : 'bg-slate-200 text-start'} p-0.5 px-1 flex items-center`}
+                          >
+                            <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm" />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between p-2 sm:p-3 border border-slate-100 rounded-lg bg-white">
                           <span className="text-[11px] sm:text-xs font-medium text-slate-600">Visible</span>
                           <button
                             onClick={() => setPlans(plans.map(p => p.id === plan.id ? { ...p, is_active: !p.is_active } : p))}

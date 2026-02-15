@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, ArrowLeft, Building2, User, Phone, MapPin, Briefcase, Mail, CreditCard, Lock } from "lucide-react";
+import { CheckCircle2, Loader2, ArrowLeft, Building2, User, Phone, MapPin, Briefcase, Mail, CreditCard, Lock, Info, X, Zap, Activity, MessageSquare } from "lucide-react";
 import { registerOwnerAction } from "@/app/actions/owner-onboarding";
 import Link from "next/link";
 
@@ -148,6 +148,8 @@ export default function RequestAccountPage() {
             </div>
         );
     }
+
+    const [selectedPlanForDetails, setSelectedPlanForDetails] = useState<any>(null);
 
     return (
         <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -340,75 +342,198 @@ export default function RequestAccountPage() {
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                                 {filteredPlans.sort((a, b) => a.price - b.price).map((p) => (
-                                    <label
-                                        key={p.id}
-                                        onClick={() => setForm({ ...form, plan_id: p.id })}
-                                        className={`
-                                            relative flex flex-col p-4 sm:p-5 rounded-2xl sm:rounded-[1.5rem] border-2 cursor-pointer transition-all h-full
-                                            ${form.plan_id === p.id
-                                                ? 'border-indigo-600 bg-indigo-50/50 shadow-lg shadow-indigo-100'
-                                                : 'border-slate-100 bg-slate-50 hover:border-slate-200'
-                                            }
-                                        `}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="plan"
-                                            className="hidden"
-                                            value={p.id}
-                                            checked={form.plan_id === p.id}
-                                            readOnly
-                                        />
+                                    <div key={p.id} className="relative group">
+                                        <label
+                                            onClick={() => setForm({ ...form, plan_id: p.id })}
+                                            className={`
+                                                relative flex flex-col p-4 sm:p-5 rounded-2xl sm:rounded-[1.5rem] border-2 cursor-pointer transition-all h-full min-h-[140px]
+                                                ${form.plan_id === p.id
+                                                    ? 'border-indigo-600 bg-indigo-50/50 shadow-lg shadow-indigo-100'
+                                                    : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                                                }
+                                            `}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="plan"
+                                                className="hidden"
+                                                value={p.id}
+                                                checked={form.plan_id === p.id}
+                                                readOnly
+                                            />
 
-                                        {p.name === "Pro" && (
-                                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-[7px] sm:text-[8px] font-black text-white rounded-full uppercase tracking-widest shadow-md whitespace-nowrap z-10">
-                                                Populaire
-                                            </span>
-                                        )}
-
-                                        <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 ${form.plan_id === p.id ? 'text-indigo-600' : 'text-slate-400'}`}>
-                                            {p.name}
-                                        </span>
-                                        <div className="flex flex-col">
-                                            <span className="text-base sm:text-xl font-black text-slate-900 leading-tight">
-                                                {p.price === 0 ? "Gratuit" : `${new Intl.NumberFormat('fr-DZ').format(p.price)}`}
-                                            </span>
-                                            {p.price > 0 && (
-                                                <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
-                                                    {p.currency} / {billingPeriod === 'yearly' ? 'an' : 'mois'}
+                                            {p.name === "Pro" && (
+                                                <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-[7px] sm:text-[8px] font-black text-white rounded-full uppercase tracking-widest shadow-md whitespace-nowrap z-10">
+                                                    Populaire
                                                 </span>
                                             )}
-                                        </div>
 
-                                        <div className="mt-auto pt-3 flex items-center gap-1.5">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${form.plan_id === p.id ? 'bg-indigo-600 animate-pulse' : 'bg-slate-300'}`} />
-                                            <span className="text-[8px] sm:text-[9px] font-bold text-slate-500 uppercase tracking-tight">
-                                                {p.max_qr_codes} QR
+                                            <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 ${form.plan_id === p.id ? 'text-indigo-600' : 'text-slate-400'}`}>
+                                                {p.name}
                                             </span>
-                                        </div>
-                                    </label>
+                                            <div className="flex flex-col">
+                                                <span className="text-base sm:text-xl font-black text-slate-900 leading-tight">
+                                                    {p.price === 0 ? "Gratuit" : `${new Intl.NumberFormat('fr-DZ').format(p.price)}`}
+                                                </span>
+                                                {p.price > 0 && (
+                                                    <span className="text-[8px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                        {p.currency} / {billingPeriod === 'yearly' ? 'an' : 'mois'}
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-auto pt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-slate-100/50">
+                                                <div className="flex items-center gap-1">
+                                                    <div className={`w-1 h-1 rounded-full ${form.plan_id === p.id ? 'bg-indigo-600 animate-pulse' : 'bg-slate-300'}`} />
+                                                    <span className="text-[7px] sm:text-[8px] font-bold text-slate-500 uppercase tracking-tight whitespace-nowrap">
+                                                        {p.max_branches} {p.max_branches === 1 ? 'Étab.' : 'Étab.'}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <div className={`w-1 h-1 rounded-full ${form.plan_id === p.id ? 'bg-indigo-600 animate-pulse' : 'bg-slate-300'}`} />
+                                                    <span className="text-[7px] sm:text-[8px] font-bold text-slate-500 uppercase tracking-tight whitespace-nowrap">
+                                                        {p.max_qr_codes >= 999999 ? 'QR Illimités' : `${p.max_qr_codes} QR`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </label>
+
+                                        {/* Details Button */}
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedPlanForDetails(p);
+                                            }}
+                                            className="absolute top-3 right-3 p-1.5 bg-white rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all opacity-100 sm:opacity-0 group-hover:opacity-100 shadow-sm"
+                                            title="Voir les détails"
+                                        >
+                                            <Info size={14} />
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
-
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-black text-white py-6 rounded-2xl font-black text-base shadow-xl hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
-                        >
-                            {loading ? (
-                                <Loader2 className="animate-spin" size={24} />
-                            ) : (
-                                "ENVOYER MA DEMANDE D'OUVERTURE"
-                            )}
-                        </button>
-                        <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
-                            En soumettant ce formulaire, vous acceptez d'être contacté par notre équipe <br /> pour finaliser l'ouverture de votre compte.
-                        </p>
                     </div>
+
+                    {/* Submit */}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-black text-white py-6 rounded-2xl font-black text-base shadow-xl hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                        {loading ? (
+                            <Loader2 className="animate-spin" size={24} />
+                        ) : (
+                            "ENVOYER MA DEMANDE D'OUVERTURE"
+                        )}
+                    </button>
+                    <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                        En soumettant ce formulaire, vous acceptez d'être contacté par notre équipe <br /> pour finaliser l'ouverture de votre compte.
+                    </p>
                 </form>
             </div>
+
+            {/* Plan Details Modal */}
+            {selectedPlanForDetails && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+                    onClick={() => setSelectedPlanForDetails(null)}
+                >
+                    <div
+                        className="bg-white rounded-[2.5rem] max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="bg-gradient-to-br from-[var(--chart-2)] to-emerald-700 p-10 text-white relative overflow-hidden">
+                            {/* Decorative background accent */}
+                            <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-72 h-72 bg-white/10 rounded-full blur-[100px] pointer-events-none" />
+
+                            <button
+                                onClick={() => setSelectedPlanForDetails(null)}
+                                className="absolute top-8 right-8 p-3 bg-black/10 rounded-2xl hover:bg-black/20 transition-all z-20 backdrop-blur-sm"
+                            >
+                                <X size={20} />
+                            </button>
+
+                            <div className="relative z-10 flex items-end justify-between gap-6">
+                                <div className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <div className="inline-flex items-center gap-2 px-2.5 py-0.5 bg-white/20 rounded-full text-[9px] font-black uppercase tracking-wider text-white backdrop-blur-sm">
+                                            <Zap size={8} className="fill-white" /> Détails de l'offre
+                                        </div>
+                                        <h2 className="text-3xl font-black tracking-tight leading-none">{selectedPlanForDetails.name}</h2>
+                                    </div>
+
+                                    <div className="flex items-baseline gap-2">
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-2xl font-black tracking-tight">
+                                                {selectedPlanForDetails.price === 0 ? "Gratuit" : `${new Intl.NumberFormat('fr-DZ').format(selectedPlanForDetails.price)}`}
+                                            </span>
+                                            {selectedPlanForDetails.price > 0 && (
+                                                <span className="text-[10px] font-black text-white/50">DZD</span>
+                                            )}
+                                        </div>
+                                        {selectedPlanForDetails.price > 0 && (
+                                            <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">
+                                                • {billingPeriod === 'yearly' ? 'annuel' : 'mensuel'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="shrink-0">
+                                    <LimitCardHeader
+                                        label="QR Codes"
+                                        value={selectedPlanForDetails.max_qr_codes >= 999999 ? 'Illimités' : selectedPlanForDetails.max_qr_codes}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-8 flex-1 overflow-y-auto space-y-8 no-scrollbar">
+                            <div className="space-y-4">
+                                <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400">
+                                    <Zap size={14} className="text-amber-500" /> Ce qui est inclus
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {selectedPlanForDetails.features && Array.isArray(selectedPlanForDetails.features) && selectedPlanForDetails.features.map((f: string, i: number) => (
+                                        <div key={i} className="flex items-start gap-2.5 p-3.5 bg-slate-50 rounded-2xl border border-slate-100 group hover:border-indigo-100 transition-all">
+                                            <div className="w-5 h-5 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5">
+                                                <CheckCircle2 size={12} className="text-emerald-500" />
+                                            </div>
+                                            <p className="text-[13px] font-bold text-slate-700 leading-snug">{f}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-6 bg-slate-50 border-t border-slate-100">
+                            <button
+                                onClick={() => {
+                                    setForm({ ...form, plan_id: selectedPlanForDetails.id });
+                                    setSelectedPlanForDetails(null);
+                                }}
+                                className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all shadow-xl"
+                            >
+                                Sélectionner cette offre
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function LimitCardHeader({ label, value }: { label: string, value: any }) {
+    return (
+        <div className="px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-[1.25rem] shadow-xl flex flex-col items-center justify-center min-w-[100px] transform hover:scale-105 transition-transform duration-300">
+            <p className="text-[9px] font-black uppercase tracking-widest text-white/50 mb-0.5">{label}</p>
+            <p className="text-lg font-black text-white leading-none">{value}</p>
         </div>
     );
 }
